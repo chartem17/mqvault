@@ -13,8 +13,12 @@ import {
   fmt,
 } from "@/lib/utils-trade";
 import { StatCard } from "@/components/ui/stat-card";
+import LightRays from "@/components/ui/light-rays";
+import { DrawdownPanel } from "@/components/ui/drawdown-panel";
+import { StreakStatCard } from "@/components/ui/streak-stat-card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { computeAdvancedStats, type RBucket } from "@/lib/advanced-stats";
+import { RiskSummary } from "@/components/ui/risk-summary";
 
 type EqPoint = {
   date: string;
@@ -461,6 +465,9 @@ function RDistributionChart({ buckets }: { buckets: RBucket[] }) {
           Найчастіше: <span className="text-white/80">{bestBucket?.range}</span>
         </div>
       </div>
+      <div className="mt-1">
+  <RiskSummary />
+</div>
 
       <div className="flex items-end gap-2 flex-1 min-h-0">
         {buckets.map((b) => {
@@ -583,7 +590,19 @@ export function OverviewTab() {
   }
 
   return (
-    <div className="max-w-[1400px] mx-auto flex flex-col gap-4">
+    <div className="relative isolate overflow-hidden max-w-[1400px] mx-auto rounded-2xl px-1 py-1">
+      <LightRays
+        raysOrigin="top-center"
+        raysColor="#36d7b6"
+        raysSpeed={0.52}
+        lightSpread={0.92}
+        rayLength={1.22}
+        followMouse
+        mouseInfluence={0.12}
+        noiseAmount={0.03}
+        distortion={0.02}
+      />
+      <div className="relative z-10 flex flex-col gap-4">
       <div>
         <h1 className="text-lg font-semibold text-white">Огляд рахунку</h1>
         <p className="text-xs text-white/40 mt-0.5">{overviewSubtitle}</p>
@@ -608,7 +627,7 @@ export function OverviewTab() {
         <StatCard label="AVG WIN / R" value={`+${stats.avgR?.toFixed(2) ?? "0.00"}R`} hint="Avg Win: R-multiple" />
         <StatCard label="BEST TRADE" value={fmt.usd(stats.bestTrade)} valueClassName="text-[var(--color-green)]" />
         <StatCard label="WORST TRADE" value={fmt.usd(stats.worstTrade)} valueClassName="text-[var(--color-red)]" />
-        <StatCard label="AVG LOSS" value={fmt.usd(stats.avgLoss)} valueClassName="text-[var(--color-red)]" />
+        <StreakStatCard />
         <StatCard
           label="EXPECTANCY"
           value={fmt.usd(advanced.expectancy)}
@@ -625,11 +644,10 @@ export function OverviewTab() {
           <TradesCalendar trades={visibleTrades} />
         </div>
       </div>
-
+        <DrawdownPanel />
       <div style={{ height: "clamp(180px, 20vh, 220px)" }} className="w-full">
         <RDistributionChart buckets={advanced.rDistribution} />
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className={`${CARD} p-3.5`}>
           <SectionHeader title="Місячний P&L" />
@@ -652,7 +670,6 @@ export function OverviewTab() {
             })}
           </div>
         </div>
-
         <div className={`${CARD} p-3.5`}>
           <SectionHeader title="По парам" />
           <div className="space-y-1.5 mt-2">
@@ -667,7 +684,6 @@ export function OverviewTab() {
           </div>
         </div>
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className={`${CARD} p-3.5`}>
           <SectionHeader title="По сесіях" />
@@ -687,7 +703,6 @@ export function OverviewTab() {
             ))}
           </div>
         </div>
-
         <div className={`${CARD} p-3.5`}>
           <SectionHeader title="Емоції vs P&L" />
           <div className="space-y-1.5 mt-2">
@@ -700,6 +715,7 @@ export function OverviewTab() {
             ))}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
