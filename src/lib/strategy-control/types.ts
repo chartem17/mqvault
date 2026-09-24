@@ -82,6 +82,7 @@ export type RuleFinding = {
   compliantAvgR: number | null;
   violatedAvgR: number | null;
   evidenceTradeIds: string[];
+  evidenceTrades: Trade[];
   message: string;
   recommendation: string | null;
 };
@@ -91,13 +92,15 @@ export type StrategyAnalysis = {
   strategyName: string;
   period: { start: string; end: string };
   trades: number;
+  checkedTrades: number;
+  cleanTrades: number;
+  compliance: number;
   winRate: number;
   totalR: number;
   averageR: number;
   averageRisk: number;
   averagePlannedRR: number | null;
   medianPlannedRR: number | null;
-  compliance: number;
   disciplineRisk: number;
   findings: RuleFinding[];
   recommendations: string[];
