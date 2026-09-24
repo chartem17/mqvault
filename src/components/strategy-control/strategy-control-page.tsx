@@ -5,6 +5,7 @@ import { mockTrades } from "@/lib/strategy-control/mock-trades";
 import { mockStrategies } from "@/lib/strategy-control/mock-strategies";
 import { analyzeTrades } from "@/lib/strategy-control/engine";
 import type { RuleFinding, RuleStatus, StrategyProfile } from "@/lib/strategy-control/types";
+import { StrategyBuilder } from "./strategy-builder";
 
 const statusLabel: Record<RuleStatus, string> = {
   ok: "В нормі",
@@ -56,11 +57,15 @@ function Finding({ finding }: { finding: RuleFinding }) {
   );
 }
 
+type BuilderState = { mode: "create" | "edit" } | null;
+
 export function StrategyControlPage() {
   const [strategies, setStrategies] = useState<StrategyProfile[]>(mockStrategies);
   const [strategyId, setStrategyId] = useState(mockStrategies[0].id);
   const [start, setStart] = useState("2026-03-01");
   const [end, setEnd] = useState("2026-06-30");
+  const [builder, setBuilder] = useState<BuilderState>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const activeStrategy = strategies.find((s) => s.id === strategyId) ?? strategies[0];
 
@@ -70,7 +75,6 @@ export function StrategyControlPage() {
   }, [activeStrategy, start, end]);
 
   const riskLabel = analysis.disciplineRisk >= 60 ? "Високий" : analysis.disciplineRisk >= 30 ? "Середній" : "Низький";
-  const riskColor = analysis.disciplineRisk >= 60 ? "text-rose-300" : analysis.disciplineRisk >= 30 ? "text-amber-300" : "text-emerald-300";
 
   const duplicateStrategy = () => {
     const copy: StrategyProfile = {
@@ -83,6 +87,46 @@ export function StrategyControlPage() {
     setStrategies((prev) => [...prev, copy]);
     setStrategyId(copy.id);
   };
+
+  const handleCreate = (strategy: StrategyProfile) => {
+    setStrategies((prev) => [...prev, strategy]);
+    setStrategyId(strategy.id);
+    setBuilder(null);
+  };
+
+  const handleUpdate = (strategy: StrategyProfile) => {
+    setStrategies((prev) => prev.map((s) => (s.id === strategy.id ? strategy : s)));
+    setBuilder(null);
+  };
+
+  const handleDelete = (id: string) => {
+    if (strategies.length <= 1) return;
+    const remaining = strategies.filter((s) => s.id !== id);
+    setStrategies(remaining);
+    if (strategyId === id) setStrategyId(remaining[0].id);
+    setConfirmDeleteId(null);
+  };
+
+  if (builder) {
+    return (
+      <main className="min-h-screen bg-[#08090b] px-5 py-8 text-white md:px-8">
+        <div className="mx-auto max-w-[900px]">
+          <p className="text-[10px] uppercase tracking-[0.24em] text-blue-300/60">Trade Vault · конструктор стратегій</p>
+          <h1 className="mt-3 text-2xl font-semibold tracking-tight">
+            {builder.mode === "create" ? "Нова стратегія" : "Редагування стратегії"}
+          </h1>
+          <div className="mt-5">
+            <StrategyBuilder
+              mode={builder.mode}
+              initialStrategy={builder.mode === "edit" ? activeStrategy : undefined}
+              onSave={builder.mode === "create" ? handleCreate : handleUpdate}
+              onCancel={() => setBuilder(null)}
+            />
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#08090b] px-5 py-8 text-white md:px-8">
@@ -118,18 +162,49 @@ export function StrategyControlPage() {
             </select>
           </label>
           <p className="text-xs text-white/40">{activeStrategy.description}</p>
-          <button
-            onClick={duplicateStrategy}
-            className="ml-auto rounded-lg border border-blue-300/20 bg-blue-300/[0.08] px-3 py-1.5 text-xs text-blue-200 transition hover:bg-blue-300/[0.14]"
-          >
-            Дублювати як нову стратегію
-          </button>
+
+          <div className="ml-auto flex flex-wrap gap-2">
+            <button
+              onClick={() => setBuilder({ mode: "create" })}
+              className="rounded-lg border border-emerald-300/25 bg-emerald-300/[0.1] px-3 py-1.5 text-xs text-emerald-200 transition hover:bg-emerald-300/[0.18]"
+            >
+              + Створити стратегію
+            </button>
+            <button
+              onClick={() => setBuilder({ mode: "edit" })}
+              className="rounded-lg border border-white/15 bg-white/[0.05] px-3 py-1.5 text-xs text-white/70 transition hover:bg-white/[0.09]"
+            >
+              Редагувати
+            </button>
+            <button
+              onClick={duplicateStrategy}
+              className="rounded-lg border border-blue-300/20 bg-blue-300/[0.08] px-3 py-1.5 text-xs text-blue-200 transition hover:bg-blue-300/[0.14]"
+            >
+              Дублювати
+            </button>
+            {confirmDeleteId === activeStrategy.id ? (
+              <button
+                onClick={() => handleDelete(activeStrategy.id)}
+                className="rounded-lg border border-rose-400/40 bg-rose-400/[0.16] px-3 py-1.5 text-xs text-rose-200"
+              >
+                Підтвердити видалення?
+              </button>
+            ) : (
+              <button
+                onClick={() => setConfirmDeleteId(activeStrategy.id)}
+                disabled={strategies.length <= 1}
+                className="rounded-lg border border-rose-300/20 bg-rose-300/[0.06] px-3 py-1.5 text-xs text-rose-300 transition hover:bg-rose-300/[0.12] disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                Видалити
+              </button>
+            )}
+          </div>
         </div>
 
         <section className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           <Metric label="Виконання правил" value={`${analysis.compliance}%`} hint={`${analysis.trades} угод у періоді`} />
           <Metric label="Дисциплінарний ризик" value={`${analysis.disciplineRisk}/100`} hint={riskLabel} />
-          <Metric label="Winrate" value={`${analysis.winRate}%`} hint="Описова метрика періоду" />
+          <Metric label="Winrate" value={`${analysis.winRate}%`} hint="Опісова метрика періоду" />
           <Metric label="Результат" value={`${analysis.totalR >= 0 ? "+" : ""}${analysis.totalR}R`} hint={`avg ${analysis.averageR}R / trade`} />
           <Metric label="Середній ризик" value={`${analysis.averageRisk}%`} hint="На одну угоду" />
         </section>
@@ -143,7 +218,11 @@ export function StrategyControlPage() {
               </div>
               <span className="text-xs text-white/35">{analysis.findings.filter((f) => f.status !== "ok").length} потребують уваги</span>
             </div>
-            {analysis.findings.map((finding) => <Finding key={finding.ruleType} finding={finding} />)}
+            {analysis.findings.length ? (
+              analysis.findings.map((finding) => <Finding key={finding.ruleType} finding={finding} />)
+            ) : (
+              <p className="px-5 py-6 text-sm text-white/40">У цій стратегії не увімкнено жодного правила. Відкрий редагування, щоб додати хоча б одне.</p>
+            )}
           </div>
 
           <div className="space-y-5">
@@ -157,8 +236,8 @@ export function StrategyControlPage() {
               </div>
             </div>
             <div className="rounded-2xl border border-blue-300/10 bg-blue-300/[0.04] p-5">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-blue-200/55">Про прототип</p>
-              <p className="mt-3 text-sm leading-6 text-white/60">Правила й пороги беруться з обраного профілю стратегії, а не захардкоджені в коді. Дублювання створює окрему стратегію, щоб тестувати інші параметри без втрати першої.</p>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-blue-200/55">Стратегій усього: {strategies.length}</p>
+              <p className="mt-3 text-sm leading-6 text-white/60">Кожна стратегія збирається з бібліотеки правил і власних параметрів. Створення нової стратегії не впливає на інші — кожна може мати власний набір правил для порівняння.</p>
             </div>
           </div>
         </section>

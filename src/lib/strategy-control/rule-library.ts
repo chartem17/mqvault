@@ -158,7 +158,14 @@ export const ruleLibrary: Record<RuleType, RuleDefinition> = {
     title: "Ядро інструментів",
     category: "session",
     description: "Перевіряє, чи торгівля велась лише обраними інструментами.",
-    paramsSchema: [{ key: "pairs", label: "Дозволені інструменти", type: "pair_list" }],
+    paramsSchema: [
+      {
+        key: "pairs",
+        label: "Дозволені інструменти",
+        type: "pair_list",
+        options: ["EUR/USD", "XAU/USD", "BTC/USDT", "GBP/USD", "ETH/USDT", "XAG/USD", "US30", "GER40"],
+      },
+    ],
     defaultParams: { pairs: ["EUR/USD", "XAU/USD", "BTC/USDT"] },
   },
   model_confirmation: {
