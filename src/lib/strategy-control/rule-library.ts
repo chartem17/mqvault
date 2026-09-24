@@ -38,7 +38,7 @@ function evaluateMaxTradesPerDay({ trades, params }: EvaluationInput): Evaluatio
     violations: violatedDays.length,
     affectedTrades: affected.length,
     impactR: sumR(affected),
-    sampleSize: violatedDays.length,
+    sampleSize: affected.length,
     compliantImpactR: sumR(compliant),
     compliantCount: compliant.length,
   };
@@ -57,7 +57,7 @@ function evaluateMaxLossesPerDay({ trades, params }: EvaluationInput): Evaluatio
     violations: violatedDays.length,
     affectedTrades: affected.length,
     impactR: sumR(affected),
-    sampleSize: violatedDays.length,
+    sampleSize: affected.length,
     compliantImpactR: sumR(compliant),
     compliantCount: compliant.length,
   };
@@ -119,6 +119,79 @@ function evaluateEmotionFilter({ trades, params }: EvaluationInput): EvaluationO
   };
 }
 
+function evaluateRiskRange({ trades, params }: EvaluationInput): EvaluationOutput {
+  const minPct = Number(params.min_pct ?? 0.5);
+  const maxPct = Number(params.max_pct ?? 2);
+  const violated = trades.filter((t) => t.riskPct < minPct || t.riskPct > maxPct);
+  const compliant = trades.filter((t) => t.riskPct >= minPct && t.riskPct <= maxPct);
+  return {
+    violations: violated.length,
+    affectedTrades: violated.length,
+    impactR: sumR(violated),
+    sampleSize: violated.length,
+    compliantImpactR: sumR(compliant),
+    compliantCount: compliant.length,
+  };
+}
+
+function evaluateMinPlannedRR({ trades, params }: EvaluationInput): EvaluationOutput {
+  const minRR = Number(params.min_rr ?? 2);
+  const known = trades.filter((t) => typeof t.plannedRR === "number");
+  const violated = known.filter((t) => (t.plannedRR as number) < minRR);
+  const compliant = known.filter((t) => (t.plannedRR as number) >= minRR);
+  return {
+    violations: violated.length,
+    affectedTrades: violated.length,
+    impactR: sumR(violated),
+    sampleSize: violated.length,
+    compliantImpactR: sumR(compliant),
+    compliantCount: compliant.length,
+  };
+}
+
+function evaluateHighRiskRequiresRR({ trades, params }: EvaluationInput): EvaluationOutput {
+  const riskThreshold = Number(params.risk_threshold_pct ?? 1);
+  const minRR = Number(params.min_rr ?? 2.5);
+  const eligible = trades.filter((t) => t.riskPct > riskThreshold && typeof t.plannedRR === "number");
+  const violated = eligible.filter((t) => (t.plannedRR as number) < minRR);
+  const compliant = eligible.filter((t) => (t.plannedRR as number) >= minRR);
+  return {
+    violations: violated.length,
+    affectedTrades: violated.length,
+    impactR: sumR(violated),
+    sampleSize: violated.length,
+    compliantImpactR: sumR(compliant),
+    compliantCount: compliant.length,
+  };
+}
+
+function evaluateRiskEscalationAfterLoss({ trades, params }: EvaluationInput): EvaluationOutput {
+  const factor = Number(params.escalation_factor ?? 1.2);
+  const sorted = [...trades].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  const escalated: Trade[] = [];
+  const normal: Trade[] = [];
+  for (let i = 1; i < sorted.length; i += 1) {
+    const prev = sorted[i - 1];
+    const curr = sorted[i];
+    const sameDay = prev.date === curr.date;
+    const prevLoss = prev.resultR < 0;
+    const riskUp = curr.riskPct > prev.riskPct * factor;
+    if (sameDay && prevLoss && riskUp) {
+      escalated.push(curr);
+    } else if (sameDay && prevLoss) {
+      normal.push(curr);
+    }
+  }
+  return {
+    violations: escalated.length,
+    affectedTrades: escalated.length,
+    impactR: sumR(escalated),
+    sampleSize: escalated.length,
+    compliantImpactR: sumR(normal),
+    compliantCount: normal.length,
+  };
+}
+
 export const ruleEvaluators: Record<RuleType, (input: EvaluationInput) => EvaluationOutput> = {
   max_trades_per_day: evaluateMaxTradesPerDay,
   max_losses_per_day: evaluateMaxLossesPerDay,
@@ -126,6 +199,10 @@ export const ruleEvaluators: Record<RuleType, (input: EvaluationInput) => Evalua
   core_instruments: evaluateCoreInstruments,
   model_confirmation: evaluateModelConfirmation,
   emotion_filter: evaluateEmotionFilter,
+  risk_range: evaluateRiskRange,
+  min_planned_rr: evaluateMinPlannedRR,
+  high_risk_requires_rr: evaluateHighRiskRequiresRR,
+  risk_escalation_after_loss: evaluateRiskEscalationAfterLoss,
 };
 
 export const ruleLibrary: Record<RuleType, RuleDefinition> = {
@@ -183,5 +260,43 @@ export const ruleLibrary: Record<RuleType, RuleDefinition> = {
     description: "Відстежує угоди, відкриті у визначених емоційних станах.",
     paramsSchema: [{ key: "states", label: "Стани для контролю", type: "session_list", options: ["Angry", "Neutral", "Tired"] }],
     defaultParams: { states: ["Angry"] },
+  },
+  risk_range: {
+    ruleType: "risk_range",
+    title: "Діапазон ризику на угоду",
+    category: "risk",
+    description: "Перевіряє, чи ризик на угоду залишається в межах дозволеного діапазону.",
+    paramsSchema: [
+      { key: "min_pct", label: "Мінімальний ризик %", type: "number", min: 0.1, max: 5, step: 0.1 },
+      { key: "max_pct", label: "Максимальний ризик %", type: "number", min: 0.5, max: 10, step: 0.1 },
+    ],
+    defaultParams: { min_pct: 0.5, max_pct: 2 },
+  },
+  min_planned_rr: {
+    ruleType: "min_planned_rr",
+    title: "Мінімальний плановий RR",
+    category: "setup",
+    description: "Перевіряє, чи планований співвідношення ризик/прибуток не нижче встановленого мінімуму.",
+    paramsSchema: [{ key: "min_rr", label: "Мінімальний RR", type: "number", min: 0.5, max: 10, step: 0.1 }],
+    defaultParams: { min_rr: 2 },
+  },
+  high_risk_requires_rr: {
+    ruleType: "high_risk_requires_rr",
+    title: "Високий ризик више критеріїв",
+    category: "risk",
+    description: "Перевіряє, чи ризик вище порогу використовується лише при відповідному RR.",
+    paramsSchema: [
+      { key: "risk_threshold_pct", label: "Поріг ризику %", type: "number", min: 0.1, max: 5, step: 0.1 },
+      { key: "min_rr", label: "Мінімальний RR для цього ризику", type: "number", min: 0.5, max: 10, step: 0.1 },
+    ],
+    defaultParams: { risk_threshold_pct: 1, min_rr: 2.5 },
+  },
+  risk_escalation_after_loss: {
+    ruleType: "risk_escalation_after_loss",
+    title: "Ескалація ризику після збитку",
+    category: "psychology",
+    description: "Детектує випадки, коли після збитку тим же днем ризик на наступну угоду збільшується.",
+    paramsSchema: [{ key: "escalation_factor", label: "Коефіцієнт зростання", type: "number", min: 1, max: 3, step: 0.1 }],
+    defaultParams: { escalation_factor: 1.2 },
   },
 };

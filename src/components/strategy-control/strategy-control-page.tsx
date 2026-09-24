@@ -50,6 +50,18 @@ function Finding({ finding }: { finding: RuleFinding }) {
         <span>Вплив: <b className={finding.impactR < 0 ? "text-rose-300" : "text-emerald-300"}>{finding.impactR > 0 ? "+" : ""}{finding.impactR}R</b></span>
         <span>Надійність: <b className="text-white/80">{finding.confidence}</b></span>
       </div>
+      {finding.compliantAvgR !== null && finding.violatedAvgR !== null ? (
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="rounded-lg border border-emerald-300/15 bg-emerald-300/[0.05] px-3 py-2">
+            <p className="text-[10px] uppercase tracking-[0.1em] text-emerald-300/60">за дотримання ({finding.compliantCount})</p>
+            <p className="mt-1 text-sm font-medium text-emerald-200">{finding.compliantAvgR >= 0 ? "+" : ""}{finding.compliantAvgR}R</p>
+          </div>
+          <div className="rounded-lg border border-rose-300/15 bg-rose-300/[0.05] px-3 py-2">
+            <p className="text-[10px] uppercase tracking-[0.1em] text-rose-300/60">за порушення ({finding.affectedTrades})</p>
+            <p className="mt-1 text-sm font-medium text-rose-200">{finding.violatedAvgR >= 0 ? "+" : ""}{finding.violatedAvgR}R</p>
+          </div>
+        </div>
+      ) : null}
       {finding.recommendation ? (
         <p className="mt-3 rounded-xl border border-white/[0.06] bg-white/[0.025] px-3 py-2 text-xs leading-5 text-white/65">{finding.recommendation}</p>
       ) : null}
@@ -57,14 +69,12 @@ function Finding({ finding }: { finding: RuleFinding }) {
   );
 }
 
-type BuilderState = { mode: "create" | "edit" } | null;
-
 export function StrategyControlPage() {
   const [strategies, setStrategies] = useState<StrategyProfile[]>(mockStrategies);
   const [strategyId, setStrategyId] = useState(mockStrategies[0].id);
   const [start, setStart] = useState("2026-03-01");
   const [end, setEnd] = useState("2026-06-30");
-  const [builder, setBuilder] = useState<BuilderState>(null);
+  const [showBuilder, setShowBuilder] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const activeStrategy = strategies.find((s) => s.id === strategyId) ?? strategies[0];
@@ -91,12 +101,7 @@ export function StrategyControlPage() {
   const handleCreate = (strategy: StrategyProfile) => {
     setStrategies((prev) => [...prev, strategy]);
     setStrategyId(strategy.id);
-    setBuilder(null);
-  };
-
-  const handleUpdate = (strategy: StrategyProfile) => {
-    setStrategies((prev) => prev.map((s) => (s.id === strategy.id ? strategy : s)));
-    setBuilder(null);
+    setShowBuilder(false);
   };
 
   const handleDelete = (id: string) => {
@@ -107,21 +112,15 @@ export function StrategyControlPage() {
     setConfirmDeleteId(null);
   };
 
-  if (builder) {
+  if (showBuilder) {
     return (
       <main className="min-h-screen bg-[#08090b] px-5 py-8 text-white md:px-8">
         <div className="mx-auto max-w-[900px]">
           <p className="text-[10px] uppercase tracking-[0.24em] text-blue-300/60">Trade Vault · конструктор стратегій</p>
-          <h1 className="mt-3 text-2xl font-semibold tracking-tight">
-            {builder.mode === "create" ? "Нова стратегія" : "Редагування стратегії"}
-          </h1>
+          <h1 className="mt-3 text-2xl font-semibold tracking-tight">Нова стратегія</h1>
+          <p className="mt-2 text-sm text-white/45">Створення нової стратегії не впливає на раніше створені — редагувати існуючі стратегії не використовується, щоб не ламати попередній аналіз.</p>
           <div className="mt-5">
-            <StrategyBuilder
-              mode={builder.mode}
-              initialStrategy={builder.mode === "edit" ? activeStrategy : undefined}
-              onSave={builder.mode === "create" ? handleCreate : handleUpdate}
-              onCancel={() => setBuilder(null)}
-            />
+            <StrategyBuilder onSave={handleCreate} onCancel={() => setShowBuilder(false)} />
           </div>
         </div>
       </main>
@@ -165,22 +164,16 @@ export function StrategyControlPage() {
 
           <div className="ml-auto flex flex-wrap gap-2">
             <button
-              onClick={() => setBuilder({ mode: "create" })}
+              onClick={() => setShowBuilder(true)}
               className="rounded-lg border border-emerald-300/25 bg-emerald-300/[0.1] px-3 py-1.5 text-xs text-emerald-200 transition hover:bg-emerald-300/[0.18]"
             >
               + Створити стратегію
             </button>
             <button
-              onClick={() => setBuilder({ mode: "edit" })}
-              className="rounded-lg border border-white/15 bg-white/[0.05] px-3 py-1.5 text-xs text-white/70 transition hover:bg-white/[0.09]"
-            >
-              Редагувати
-            </button>
-            <button
               onClick={duplicateStrategy}
               className="rounded-lg border border-blue-300/20 bg-blue-300/[0.08] px-3 py-1.5 text-xs text-blue-200 transition hover:bg-blue-300/[0.14]"
             >
-              Дублювати
+              Дублювати як нову
             </button>
             {confirmDeleteId === activeStrategy.id ? (
               <button
@@ -204,7 +197,7 @@ export function StrategyControlPage() {
         <section className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           <Metric label="Виконання правил" value={`${analysis.compliance}%`} hint={`${analysis.trades} угод у періоді`} />
           <Metric label="Дисциплінарний ризик" value={`${analysis.disciplineRisk}/100`} hint={riskLabel} />
-          <Metric label="Winrate" value={`${analysis.winRate}%`} hint="Опісова метрика періоду" />
+          <Metric label="Winrate" value={`${analysis.winRate}%`} hint="Описова метрика періоду" />
           <Metric label="Результат" value={`${analysis.totalR >= 0 ? "+" : ""}${analysis.totalR}R`} hint={`avg ${analysis.averageR}R / trade`} />
           <Metric label="Середній ризик" value={`${analysis.averageRisk}%`} hint="На одну угоду" />
         </section>
@@ -221,7 +214,7 @@ export function StrategyControlPage() {
             {analysis.findings.length ? (
               analysis.findings.map((finding) => <Finding key={finding.ruleType} finding={finding} />)
             ) : (
-              <p className="px-5 py-6 text-sm text-white/40">У цій стратегії не увімкнено жодного правила. Відкрий редагування, щоб додати хоча б одне.</p>
+              <p className="px-5 py-6 text-sm text-white/40">У цій стратегії не увімкнено жодного правила.</p>
             )}
           </div>
 
@@ -237,7 +230,7 @@ export function StrategyControlPage() {
             </div>
             <div className="rounded-2xl border border-blue-300/10 bg-blue-300/[0.04] p-5">
               <p className="text-[10px] uppercase tracking-[0.18em] text-blue-200/55">Стратегій усього: {strategies.length}</p>
-              <p className="mt-3 text-sm leading-6 text-white/60">Кожна стратегія збирається з бібліотеки правил і власних параметрів. Створення нової стратегії не впливає на інші — кожна може мати власний набір правил для порівняння.</p>
+              <p className="mt-3 text-sm leading-6 text-white/60">Редагування видалено навувиче — це ламалоб історичного аналізу. Щоб спробувати інші змінні — створи нову стратегію або дублюй існуючу і зміни параметри в копії.</p>
             </div>
           </div>
         </section>

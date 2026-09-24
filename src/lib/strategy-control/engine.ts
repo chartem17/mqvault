@@ -3,9 +3,9 @@ import type { RuleFinding, StrategyAnalysis, StrategyProfile, Trade } from "./ty
 
 const round = (value: number, digits = 2) => Number(value.toFixed(digits));
 
-function buildMessage(title: string, violations: number, sampleUnit: string): string {
+function buildMessage(title: string, violations: number, unit: string): string {
   if (violations === 0) return `Порушень немає: правило "${title}" виконувалось повністю.`;
-  return `Правило "${title}" порушено ${violations} раз (${sampleUnit}).`;
+  return `Правило "${title}" порушено у ${violations} випадках (${unit}).`;
 }
 
 function resolveStatus(
@@ -22,26 +22,42 @@ function resolveStatus(
   if (sampleSize < 5) {
     return { status: "insufficient", confidence: "low", impactStatus };
   }
-  if (violations >= 3 && impactR < 0) {
-    return { status: "critical", confidence: sampleSize >= 10 ? "high" : "medium", impactStatus };
-  }
-  return { status: "warning", confidence: sampleSize >= 10 ? "medium" : "low", impactStatus };
+
+  const confidence: RuleFinding["confidence"] = sampleSize >= 20 ? "high" : sampleSize >= 10 ? "medium" : "low";
+  const status: RuleFinding["status"] = impactR < 0 && violations >= 3 ? "critical" : "warning";
+  return { status, confidence, impactStatus };
 }
 
-function buildRecommendation(
-  title: string,
-  status: RuleFinding["status"],
-  impactStatus: RuleFinding["impactStatus"],
-  confidence: RuleFinding["confidence"],
-): string | null {
+function buildRecommendation(params: {
+  title: string;
+  status: RuleFinding["status"];
+  impactStatus: RuleFinding["impactStatus"];
+  confidence: RuleFinding["confidence"];
+  compliantAvgR: number | null;
+  violatedAvgR: number | null;
+}): string | null {
+  const { title, status, impactStatus, confidence, compliantAvgR, violatedAvgR } = params;
   if (status === "ok" || status === "insufficient") return null;
+
+  const comparison =
+    compliantAvgR !== null && violatedAvgR !== null
+      ? ` За дотримання: ${compliantAvgR >= 0 ? "+" : ""}${compliantAvgR}R в середньому, за порушення: ${violatedAvgR >= 0 ? "+" : ""}${violatedAvgR}R.`
+      : "";
+
+  const confidenceNote =
+    confidence === "high"
+      ? "Вибірка достатня, але це все ще кореляція, не доказ причини."
+      : confidence === "medium"
+      ? "Вибірка середня — варто спостерегати далі."
+      : "Вибірка невелика — висновок поки орієнтовний.";
+
   if (impactStatus === "positive" || impactStatus === "neutral") {
-    return `Правило "${title}" порушувалось, але негативного впливу в цьому періоді не виявлено. Вибірка (${confidence === "high" ? "достатня" : "обмежена"}) не дозволяє скасувати правило — продовжуй спостереження.`;
+    return `Правило "${title}" порушувалось, але негативного впливу в цьому періоді не виявлено.${comparison} ${confidenceNote} Не скасовуй правило на основі одного періоду.`;
   }
   if (status === "critical") {
-    return `Правило "${title}" систематично порушується і дає негативний результат. Рекомендується посилити контроль до наступного звіту.`;
+    return `Правило "${title}" систематично порушується і дає негативний результат.${comparison} ${confidenceNote} Рекомендується посилити контроль до наступного звіту.`;
   }
-  return `Правило "${title}" порушується. Варто звернути увагу на наступному періоді.`;
+  return `Правило "${title}" порушується, вплив негативний, але ще не критичний.${comparison} ${confidenceNote} Зверни увагу на наступному періоді.`;
 }
 
 export function analyzeTrades(
@@ -60,7 +76,18 @@ export function analyzeTrades(
       const evaluator = ruleEvaluators[rule.ruleType];
       const result = evaluator({ trades, params: rule.params });
       const { status, confidence, impactStatus } = resolveStatus(result.violations, result.sampleSize, result.impactR);
-      const recommendation = buildRecommendation(definition.title, status, impactStatus, confidence);
+
+      const compliantAvgR = result.compliantCount > 0 ? round(result.compliantImpactR / result.compliantCount) : null;
+      const violatedAvgR = result.affectedTrades > 0 ? round(result.impactR / result.affectedTrades) : null;
+
+      const recommendation = buildRecommendation({
+        title: definition.title,
+        status,
+        impactStatus,
+        confidence,
+        compliantAvgR,
+        violatedAvgR,
+      });
 
       return {
         ruleType: rule.ruleType,
@@ -74,6 +101,9 @@ export function analyzeTrades(
         affectedTrades: result.affectedTrades,
         impactR: result.impactR,
         sampleSize: result.sampleSize,
+        compliantCount: result.compliantCount,
+        compliantAvgR,
+        violatedAvgR,
         message: buildMessage(definition.title, result.violations, `${result.affectedTrades} угод`),
         recommendation,
       } satisfies RuleFinding;

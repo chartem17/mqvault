@@ -13,6 +13,7 @@ export type Trade = {
   session: TradeSession;
   resultR: number;
   riskPct: number;
+  plannedRR?: number;
   emotion?: "Calm" | "Angry" | "Neutral" | "Tired";
   modelConfirmed?: boolean;
 };
@@ -23,7 +24,11 @@ export type RuleType =
   | "allowed_sessions"
   | "core_instruments"
   | "model_confirmation"
-  | "emotion_filter";
+  | "emotion_filter"
+  | "risk_range"
+  | "min_planned_rr"
+  | "high_risk_requires_rr"
+  | "risk_escalation_after_loss";
 
 export type ParamType = "number" | "session_list" | "pair_list" | "boolean";
 
@@ -72,6 +77,9 @@ export type RuleFinding = {
   affectedTrades: number;
   impactR: number;
   sampleSize: number;
+  compliantCount: number;
+  compliantAvgR: number | null;
+  violatedAvgR: number | null;
   message: string;
   recommendation: string | null;
 };

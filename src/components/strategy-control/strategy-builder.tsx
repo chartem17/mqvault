@@ -5,21 +5,14 @@ import { ruleLibrary } from "@/lib/strategy-control/rule-library";
 import type { ParamDefinition, RuleInstance, RuleType, StrategyProfile } from "@/lib/strategy-control/types";
 
 type Props = {
-  mode: "create" | "edit";
-  initialStrategy?: StrategyProfile;
   onSave: (strategy: StrategyProfile) => void;
   onCancel: () => void;
 };
 
-function buildDefaultRules(existing?: RuleInstance[]): RuleInstance[] {
+function buildDefaultRules(): RuleInstance[] {
   return (Object.keys(ruleLibrary) as RuleType[]).map((ruleType) => {
-    const existingRule = existing?.find((r) => r.ruleType === ruleType);
     const definition = ruleLibrary[ruleType];
-    return {
-      ruleType,
-      enabled: existingRule?.enabled ?? false,
-      params: existingRule?.params ?? { ...definition.defaultParams },
-    };
+    return { ruleType, enabled: false, params: { ...definition.defaultParams } };
   });
 }
 
@@ -61,9 +54,7 @@ function ParamField({
               <button
                 key={option}
                 type="button"
-                onClick={() =>
-                  onChange(active ? selected.filter((v) => v !== option) : [...selected, option])
-                }
+                onClick={() => onChange(active ? selected.filter((v) => v !== option) : [...selected, option])}
                 className={`rounded-full border px-3 py-1 text-xs transition ${
                   active
                     ? "border-blue-300/40 bg-blue-300/[0.14] text-blue-200"
@@ -82,41 +73,44 @@ function ParamField({
   return null;
 }
 
-export function StrategyBuilder({ mode, initialStrategy, onSave, onCancel }: Props) {
-  const [name, setName] = useState(initialStrategy?.name ?? "");
-  const [description, setDescription] = useState(initialStrategy?.description ?? "");
-  const [rules, setRules] = useState<RuleInstance[]>(buildDefaultRules(initialStrategy?.rules));
+export function StrategyBuilder({ onSave, onCancel }: Props) {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [rules, setRules] = useState<RuleInstance[]>(buildDefaultRules());
 
   const updateRule = (ruleType: RuleType, patch: Partial<RuleInstance>) => {
     setRules((prev) => prev.map((r) => (r.ruleType === ruleType ? { ...r, ...patch } : r)));
   };
 
   const updateParam = (ruleType: RuleType, key: string, value: unknown) => {
-    setRules((prev) =>
-      prev.map((r) => (r.ruleType === ruleType ? { ...r, params: { ...r.params, [key]: value } } : r)),
-    );
+    setRules((prev) => prev.map((r) => (r.ruleType === ruleType ? { ...r, params: { ...r.params, [key]: value } } : r)));
   };
 
   const handleSave = () => {
     if (!name.trim()) return;
     const strategy: StrategyProfile = {
-      id: initialStrategy?.id ?? `strategy-${Date.now()}`,
+      id: `strategy-${Date.now()}`,
       name: name.trim(),
       description: description.trim() || undefined,
-      createdAt: initialStrategy?.createdAt ?? new Date().toISOString().slice(0, 10),
+      createdAt: new Date().toISOString().slice(0, 10),
       rules,
     };
     onSave(strategy);
   };
 
   const enabledCount = rules.filter((r) => r.enabled).length;
+  const categories: Record<string, string> = {
+    discipline: "Дисципліна",
+    risk: "Ризик-менеджмент",
+    session: "Сесії та інструменти",
+    setup: "Якість сетапу",
+    psychology: "Психологія",
+  };
 
   return (
     <div className="rounded-2xl border border-white/[0.08] bg-black/30 p-5">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium text-white">
-          {mode === "create" ? "Створити нову стратегію" : `Редагувати: ${initialStrategy?.name}`}
-        </h2>
+        <h2 className="text-sm font-medium text-white">Створити нову стратегію</h2>
         <span className="text-xs text-white/35">{enabledCount} правил увімкнено</span>
       </div>
 
@@ -148,7 +142,8 @@ export function StrategyBuilder({ mode, initialStrategy, onSave, onCancel }: Pro
             <div key={rule.ruleType} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm text-white">{definition.title}</p>
+                  <p className="text-[10px] uppercase tracking-[0.1em] text-white/30">{categories[definition.category]}</p>
+                  <p className="mt-1 text-sm text-white">{definition.title}</p>
                   <p className="mt-1 text-xs text-white/40">{definition.description}</p>
                 </div>
                 <label className="flex shrink-0 items-center gap-2 text-xs text-white/50">
@@ -179,10 +174,7 @@ export function StrategyBuilder({ mode, initialStrategy, onSave, onCancel }: Pro
       </div>
 
       <div className="mt-5 flex justify-end gap-2">
-        <button
-          onClick={onCancel}
-          className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-xs text-white/60 hover:bg-white/[0.06]"
-        >
+        <button onClick={onCancel} className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-xs text-white/60 hover:bg-white/[0.06]">
           Скасувати
         </button>
         <button
@@ -190,7 +182,7 @@ export function StrategyBuilder({ mode, initialStrategy, onSave, onCancel }: Pro
           disabled={!name.trim()}
           className="rounded-lg border border-blue-300/30 bg-blue-300/[0.12] px-4 py-2 text-xs text-blue-200 hover:bg-blue-300/[0.2] disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {mode === "create" ? "Створити стратегію" : "Зберегти зміни"}
+          Створити стратегію
         </button>
       </div>
     </div>

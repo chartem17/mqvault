@@ -13,6 +13,10 @@ export const mockStrategies: StrategyProfile[] = [
       { ruleType: "core_instruments", enabled: true, params: { pairs: ["EUR/USD", "XAU/USD", "BTC/USDT"] } },
       { ruleType: "model_confirmation", enabled: true, params: {} },
       { ruleType: "emotion_filter", enabled: true, params: { states: ["Angry"] } },
+      { ruleType: "risk_range", enabled: true, params: { min_pct: 0.7, max_pct: 2 } },
+      { ruleType: "min_planned_rr", enabled: true, params: { min_rr: 2 } },
+      { ruleType: "high_risk_requires_rr", enabled: true, params: { risk_threshold_pct: 1, min_rr: 2.5 } },
+      { ruleType: "risk_escalation_after_loss", enabled: true, params: { escalation_factor: 1.2 } },
     ],
   },
   {
@@ -27,6 +31,10 @@ export const mockStrategies: StrategyProfile[] = [
       { ruleType: "core_instruments", enabled: false, params: { pairs: ["EUR/USD", "XAU/USD", "BTC/USDT"] } },
       { ruleType: "model_confirmation", enabled: true, params: {} },
       { ruleType: "emotion_filter", enabled: false, params: { states: ["Angry"] } },
+      { ruleType: "risk_range", enabled: false, params: { min_pct: 0.5, max_pct: 3 } },
+      { ruleType: "min_planned_rr", enabled: false, params: { min_rr: 1.5 } },
+      { ruleType: "high_risk_requires_rr", enabled: false, params: { risk_threshold_pct: 1.5, min_rr: 2 } },
+      { ruleType: "risk_escalation_after_loss", enabled: true, params: { escalation_factor: 1.3 } },
     ],
   },
 ];
