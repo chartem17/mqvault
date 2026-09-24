@@ -5,9 +5,7 @@ export type TradeStatus = 'OPEN' | 'CLOSED';
 export type TradeSource = 'MANUAL' | 'MT5_EXPORT';
 
 /**
- * Основний тип угоди з фінансовими полями.
- * Поля grossPnlUsd, commissionUsd, swapUsd, netPnlUsd використовуються
- * для правильного розрахунку P&L з урахуванням комісій.
+ * Основний тип угоди з фінансовими полями та MT5-метаданими.
  */
 export interface Trade extends TradeFinancials {
   id: string;
@@ -28,15 +26,16 @@ export interface Trade extends TradeFinancials {
   openTime?: number; // timestamp ms
   closeTime?: number; // timestamp ms
 
-  // Додаткові поля, які вже можуть бути
+  // Додаткові поля
   notes?: string;
   tags?: string[];
   strategyId?: string;
 
-  // Поля для MT5 export (можуть бути відсутні для manual)
+  // MT5-метадані (для імпортованих угод)
   mt5TicketId?: string;
   mt5Magic?: number;
   mt5Comment?: string;
+  mt5ImportId?: string; // посилання на MT5ImportRecord
 
   // Розширення для майбутніх полів
   [key: string]: unknown;
@@ -44,7 +43,6 @@ export interface Trade extends TradeFinancials {
 
 /**
  * Тип для форми створення/редагування угоди.
- * Всі поля, крім id, можуть бути відсутні.
  */
 export type TradeInput = Omit<Partial<Trade>, 'id'>;
 
