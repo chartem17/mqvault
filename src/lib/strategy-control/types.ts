@@ -12,6 +12,7 @@ export type Trade = {
   direction: TradeDirection;
   session: TradeSession;
   resultR: number;
+  resultUsd?: number;
   riskPct: number;
   plannedRR?: number;
   emotion?: "Calm" | "Angry" | "Neutral" | "Tired";
@@ -80,6 +81,7 @@ export type RuleFinding = {
   compliantCount: number;
   compliantAvgR: number | null;
   violatedAvgR: number | null;
+  evidenceTradeIds: string[];
   message: string;
   recommendation: string | null;
 };
@@ -93,6 +95,8 @@ export type StrategyAnalysis = {
   totalR: number;
   averageR: number;
   averageRisk: number;
+  averagePlannedRR: number | null;
+  medianPlannedRR: number | null;
   compliance: number;
   disciplineRisk: number;
   findings: RuleFinding[];
