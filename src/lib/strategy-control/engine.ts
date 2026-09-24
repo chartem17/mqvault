@@ -1,142 +1,81 @@
-import type { RuleFinding, StrategyAnalysis, Trade } from "./types";
-
-const CORE_PAIRS = ["EUR/USD", "XAU/USD", "BTC/USDT"];
-const ALLOWED_SESSIONS = ["NY", "London"];
+import { ruleEvaluators, ruleLibrary } from "./rule-library";
+import type { RuleFinding, StrategyAnalysis, StrategyProfile, Trade } from "./types";
 
 const round = (value: number, digits = 2) => Number(value.toFixed(digits));
 
-const daysWithMoreThan = (trades: Trade[], limit: number) => {
-  const counts = new Map<string, number>();
-  trades.forEach((trade) => counts.set(trade.date, (counts.get(trade.date) ?? 0) + 1));
-  return [...counts.entries()].filter(([, count]) => count > limit);
-};
+function resolveStatus(violations: number, sampleSize: number, impactR: number) {
+  const impactStatus = violations === 0 ? "unknown" : impactR < 0 ? "negative" : impactR > 0 ? "positive" : "neutral";
+  if (violations === 0) return { status: "ok", confidence: "high", impactStatus } as const;
+  if (sampleSize < 5) return { status: "insufficient", confidence: "low", impactStatus } as const;
+  const confidence = sampleSize >= 20 ? "high" : sampleSize >= 10 ? "medium" : "low";
+  const status = impactR < 0 && violations >= 3 ? "critical" : "warning";
+  return { status, confidence, impactStatus } as const;
+}
 
-const findingStatus = (violations: number, sampleSize: number, impactR: number): RuleFinding["status"] => {
-  if (sampleSize < 5) return "insufficient";
-  if (violations >= 3 && impactR < 0) return "critical";
-  if (violations > 0) return "warning";
-  return "ok";
-};
+function buildRecommendation(title: string, status: RuleFinding["status"], impactStatus: RuleFinding["impactStatus"], confidence: RuleFinding["confidence"], compliantAvgR: number | null, violatedAvgR: number | null) {
+  if (status === "ok" || status === "insufficient") return null;
+  const comparison = compliantAvgR !== null && violatedAvgR !== null ? ` Дотримання: ${compliantAvgR >= 0 ? "+" : ""}${compliantAvgR}R, порушення: ${violatedAvgR >= 0 ? "+" : ""}${violatedAvgR}R.` : "";
+  const note = confidence === "high" ? "Вибірка достатня, але це кореляція, а не доказ причини." : confidence === "medium" ? "Вибірка середня — спостерігай далі." : "Вибірка невелика — висновок орієнтовний.";
+  if (impactStatus === "positive" || impactStatus === "neutral") return `Правило "${title}" порушувалось, але негативного впливу не виявлено.${comparison} ${note} Не скасовуй правило на основі одного періоду.`;
+  if (status === "critical") return `Правило "${title}" систематично порушується і дає негативний результат.${comparison} ${note} Посиль контроль до наступного звіту.`;
+  return `Правило "${title}" порушується, вплив негативний, але ще не критичний.${comparison} ${note}`;
+}
 
-export function analyzeTrades(
-  trades: Trade[],
-  period: { start: string; end: string },
-): StrategyAnalysis {
-  const totalR = trades.reduce((sum, trade) => sum + trade.resultR, 0);
-  const wins = trades.filter((trade) => trade.resultR > 0).length;
-  const averageRisk = trades.length ? trades.reduce((sum, trade) => sum + trade.riskPct, 0) / trades.length : 0;
-  const days = new Set(trades.map((trade) => trade.date)).size;
-
-  const overtradeDays = daysWithMoreThan(trades, 3);
-  const overtradeDates = new Set(overtradeDays.map(([date]) => date));
-  const overtradeTrades = trades.filter((trade) => overtradeDates.has(trade.date));
-  const overtradeImpact = overtradeTrades.reduce((sum, trade) => sum + trade.resultR, 0);
-
-  const lossesPerDay = new Map<string, number>();
-  trades.filter((trade) => trade.resultR < 0).forEach((trade) => {
-    lossesPerDay.set(trade.date, (lossesPerDay.get(trade.date) ?? 0) + 1);
+export function analyzeTrades(trades: Trade[], strategy: StrategyProfile, period: { start: string; end: string }): StrategyAnalysis {
+  const totalR = round(trades.reduce((sum, t) => sum + t.resultR, 0));
+  const wins = trades.filter((t) => t.resultR > 0).length;
+  const averageRisk = trades.length ? round(trades.reduce((sum, t) => sum + t.riskPct, 0) / trades.length) : 0;
+  const rrValues = trades.map((t) => t.plannedRR).filter((value): value is number => typeof value === "number").sort((a, b) => a - b);
+  const findings: RuleFinding[] = strategy.rules.filter((rule) => rule.enabled).map((rule) => {
+    const definition = ruleLibrary[rule.ruleType];
+    const evaluated = ruleEvaluators[rule.ruleType]({ trades, params: rule.params });
+    const { status, confidence, impactStatus } = resolveStatus(evaluated.violations, evaluated.sampleSize, evaluated.impactR);
+    const compliantAvgR = evaluated.compliantCount ? round(evaluated.compliantImpactR / evaluated.compliantCount) : null;
+    const violatedAvgR = evaluated.affectedTrades ? round(evaluated.impactR / evaluated.affectedTrades) : null;
+    return {
+      ruleType: rule.ruleType,
+      title: definition.title,
+      category: definition.category,
+      complianceStatus: evaluated.violations > 0 ? "violated" : "passed",
+      impactStatus,
+      confidence,
+      status,
+      violations: evaluated.violations,
+      affectedTrades: evaluated.affectedTrades,
+      impactR: evaluated.impactR,
+      sampleSize: evaluated.sampleSize,
+      compliantCount: evaluated.compliantCount,
+      compliantAvgR,
+      violatedAvgR,
+      evidenceTradeIds: evaluated.evidenceTrades.map((trade) => trade.id),
+      evidenceTrades: evaluated.evidenceTrades,
+      message: evaluated.violations === 0 ? `Порушень немає: правило "${definition.title}" виконувалось повністю.` : `Правило "${definition.title}" порушено у ${evaluated.violations} випадках (${evaluated.affectedTrades} угод).`,
+      recommendation: buildRecommendation(definition.title, status, impactStatus, confidence, compliantAvgR, violatedAvgR),
+    } satisfies RuleFinding;
   });
-  const stopDays = [...lossesPerDay.entries()].filter(([, losses]) => losses >= 2);
-  const stopDates = new Set(stopDays.map(([date]) => date));
-  const stopDayTrades = trades.filter((trade) => stopDates.has(trade.date));
-  const stopImpact = stopDayTrades.reduce((sum, trade) => sum + trade.resultR, 0);
 
-  const asiaTrades = trades.filter((trade) => !ALLOWED_SESSIONS.includes(trade.session));
-  const nonCoreTrades = trades.filter((trade) => !CORE_PAIRS.includes(trade.pair));
-  const noModelTrades = trades.filter((trade) => trade.modelConfirmed === false);
-  const angryTrades = trades.filter((trade) => trade.emotion === "Angry");
-  const highRiskTrades = trades.filter((trade) => trade.riskPct > 1);
-
-  const findings: RuleFinding[] = [
-    {
-      id: "max-trades",
-      title: "Максимум 3 угоди за день",
-      category: "Дисципліна обсягу",
-      violations: overtradeDays.length,
-      affectedTrades: overtradeTrades.length,
-      impactR: round(overtradeImpact),
-      sampleSize: overtradeDays.length,
-      status: findingStatus(overtradeDays.length, days, overtradeImpact),
-      message: overtradeDays.length ? `Ліміт перевищено у ${overtradeDays.length} днях.` : "Перевищень ліміту немає.",
-      recommendation: overtradeDays.length ? "На наступний період залишити максимум 3 входи за день." : null,
-    },
-    {
-      id: "stop-after-losses",
-      title: "Зупинка після 2 збиткових угод",
-      category: "Захист рахунку",
-      violations: stopDays.length,
-      affectedTrades: stopDayTrades.length,
-      impactR: round(stopImpact),
-      sampleSize: stopDays.length,
-      status: findingStatus(stopDays.length, days, stopImpact),
-      message: stopDays.length ? `${stopDays.length} днів мали щонайменше 2 збитки.` : "Серійних стоп-днів не знайдено.",
-      recommendation: stopDays.length ? "Після другого збитку завершувати торгівлю до наступного дня." : null,
-    },
-    {
-      id: "allowed-sessions",
-      title: "Торгівля у дозволені сесії",
-      category: "Час торгівлі",
-      violations: asiaTrades.length,
-      affectedTrades: asiaTrades.length,
-      impactR: round(asiaTrades.reduce((sum, trade) => sum + trade.resultR, 0)),
-      sampleSize: asiaTrades.length,
-      status: asiaTrades.length < 5 ? "insufficient" : asiaTrades.some((trade) => trade.resultR < 0) ? "warning" : "ok",
-      message: asiaTrades.length ? `${asiaTrades.length} угод поза NY/London.` : "Усі угоди у дозволених сесіях.",
-      recommendation: asiaTrades.length >= 5 ? "До наступного звіту торгувати лише у дозволені сесії." : null,
-    },
-    {
-      id: "core-instruments",
-      title: "Інструменти з ядра стратегії",
-      category: "Вибір інструмента",
-      violations: nonCoreTrades.length,
-      affectedTrades: nonCoreTrades.length,
-      impactR: round(nonCoreTrades.reduce((sum, trade) => sum + trade.resultR, 0)),
-      sampleSize: nonCoreTrades.length,
-      status: nonCoreTrades.length >= 5 ? "warning" : "insufficient",
-      message: nonCoreTrades.length ? `${nonCoreTrades.length} угод поза ядром.` : "Усі угоди в ядрі.",
-      recommendation: nonCoreTrades.length >= 5 ? "Зосередитися на EUR/USD, XAU/USD і BTC/USDT." : null,
-    },
-    {
-      id: "model-confirmation",
-      title: "Підтверджена модель входу",
-      category: "Якість сетапу",
-      violations: noModelTrades.length,
-      affectedTrades: noModelTrades.length,
-      impactR: round(noModelTrades.reduce((sum, trade) => sum + trade.resultR, 0)),
-      sampleSize: noModelTrades.length,
-      status: noModelTrades.length < 5 ? "insufficient" : noModelTrades.some((trade) => trade.resultR < 0) ? "warning" : "ok",
-      message: noModelTrades.length ? `${noModelTrades.length} угод позначені без підтвердженої моделі.` : "Усі моделі підтверджені.",
-      recommendation: noModelTrades.length >= 5 ? "Не відкривати угоду без підтвердження моделі у чеклісті." : null,
-    },
-    {
-      id: "emotion",
-      title: "Емоційний стан",
-      category: "Психологія",
-      violations: angryTrades.length,
-      affectedTrades: angryTrades.length,
-      impactR: round(angryTrades.reduce((sum, trade) => sum + trade.resultR, 0)),
-      sampleSize: angryTrades.length,
-      status: angryTrades.length < 5 ? "insufficient" : angryTrades.some((trade) => trade.resultR < 0) ? "warning" : "ok",
-      message: angryTrades.length ? `${angryTrades.length} угод у стані Angry.` : "Угод у стані Angry немає.",
-      recommendation: angryTrades.length >= 5 ? "Перед входом у стані Angry робити паузу і не збільшувати ризик." : null,
-    },
-  ];
-
-  const activeFindings = findings.filter((finding) => finding.status !== "ok");
-  const weightedViolations = activeFindings.reduce((sum, finding) => sum + finding.violations, 0);
-  const compliance = trades.length ? Math.max(0, Math.round(100 - (weightedViolations / trades.length) * 100)) : 0;
-  const disciplineRisk = Math.min(100, Math.round(activeFindings.reduce((sum, finding) => sum + Math.max(0, -finding.impactR) * 10, 0)));
+  const violatedIds = new Set(findings.flatMap((finding) => finding.evidenceTradeIds));
+  const checkedTrades = trades.filter((trade) => findings.some((finding) => finding.evidenceTradeIds.includes(trade.id)) || trades.some((item) => item.id === trade.id));
+  const cleanTrades = checkedTrades.filter((trade) => !violatedIds.has(trade.id));
+  const compliance = checkedTrades.length ? Math.round((cleanTrades.length / checkedTrades.length) * 100) : 0;
+  const disciplineRisk = Math.min(100, Math.round(findings.filter((f) => f.impactStatus === "negative").reduce((sum, f) => sum + Math.max(0, -f.impactR) * 10, 0)));
 
   return {
+    strategyId: strategy.id,
+    strategyName: strategy.name,
     period,
     trades: trades.length,
-    winRate: trades.length ? round((wins / trades.length) * 100, 1) : 0,
-    totalR: round(totalR),
-    averageR: trades.length ? round(totalR / trades.length) : 0,
-    averageRisk: round(averageRisk, 2),
+    checkedTrades: checkedTrades.length,
+    cleanTrades: cleanTrades.length,
     compliance,
+    winRate: trades.length ? round((wins / trades.length) * 100, 1) : 0,
+    totalR,
+    averageR: trades.length ? round(totalR / trades.length) : 0,
+    averageRisk,
+    averagePlannedRR: rrValues.length ? round(rrValues.reduce((sum, value) => sum + value, 0) / rrValues.length) : null,
+    medianPlannedRR: rrValues.length ? round(rrValues[Math.floor(rrValues.length / 2)]) : null,
     disciplineRisk,
     findings,
-    recommendations: findings.filter((finding) => finding.recommendation).map((finding) => finding.recommendation as string),
+    recommendations: findings.filter((f) => f.recommendation).map((f) => f.recommendation as string),
   };
 }
