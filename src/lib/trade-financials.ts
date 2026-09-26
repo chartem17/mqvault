@@ -22,9 +22,10 @@ export function getTradeFinancials(trade: TradeFinancialInput): TradeFinancials 
   const legacyNet = finite(trade.result_usd);
   const commissionUsd = finite(trade.commission_usd);
   const swapUsd = finite(trade.swap_usd);
-  const grossResultUsd = trade.gross_result_usd == null
-    ? legacyNet - commissionUsd - swapUsd
-    : finite(trade.gross_result_usd);
+  const grossResultUsd =
+    trade.gross_result_usd == null
+      ? legacyNet - commissionUsd - swapUsd
+      : finite(trade.gross_result_usd);
   const netResultUsd = grossResultUsd + commissionUsd + swapUsd;
 
   return {
@@ -36,7 +37,9 @@ export function getTradeFinancials(trade: TradeFinancialInput): TradeFinancials 
   };
 }
 
-export function normalizeTradeFinancials<T extends TradeFinancialInput>(trade: T): T & {
+export function normalizeTradeFinancials<T extends TradeFinancialInput>(
+  trade: T
+): T & {
   gross_result_usd: number;
   commission_usd: number;
   swap_usd: number;

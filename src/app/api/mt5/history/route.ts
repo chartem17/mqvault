@@ -16,7 +16,7 @@ export async function GET() {
           initialDeposit: null,
           error: `MT5 bridge returned ${response.status}`,
         },
-        { status: 502 },
+        { status: 502 }
       );
     }
 
@@ -35,7 +35,7 @@ export async function GET() {
         initialDeposit: null,
         error: "MT5 bridge offline",
       },
-      { status: 503 },
+      { status: 503 }
     );
   }
 }

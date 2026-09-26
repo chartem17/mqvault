@@ -1,5 +1,5 @@
-import type { Trade } from './trade-types';
-import type { MT5ImportRecord } from './mt5-imports';
+import type { Trade } from "./trade-types";
+import type { MT5ImportRecord } from "./mt5-imports";
 
 /**
  * Ключі localStorage для нового формату.
@@ -14,19 +14,19 @@ const USER_STORAGE_KEYS = {
  * Старі ключі localStorage (legacy).
  */
 const LEGACY_KEYS = {
-  TRADES: 'mqvault-trades',
-  SETTINGS: 'mqvault-settings',
-  STRATEGIES: 'mqvault-strategies',
+  TRADES: "mqvault-trades",
+  SETTINGS: "mqvault-settings",
+  STRATEGIES: "mqvault-strategies",
 } as const;
 
 // ==================== Профіль користувача ====================
 
-export type Currency = 'USD' | 'EUR' | 'GBP' | 'UAH';
+export type Currency = "USD" | "EUR" | "GBP" | "UAH";
 
 export interface UserSettings {
   timezone?: string;
   currency: Currency;
-  language?: 'uk' | 'en' | 'ru';
+  language?: "uk" | "en" | "ru";
   // інші налаштування (теми, сповіщення тощо)
 }
 
@@ -102,8 +102,8 @@ export function createDefaultUserProfile(userId: string): UserProfile {
     createdAt: nowTs,
     updatedAt: nowTs,
     settings: {
-      currency: 'USD',
-      language: 'uk',
+      currency: "USD",
+      language: "uk",
     },
     strategies: [],
   };
@@ -195,15 +195,18 @@ export function migrateLegacyData(userId: string): UserStorage | null {
   const legacyStrategiesJson = localStorage.getItem(LEGACY_KEYS.STRATEGIES);
 
   const legacyTrades: Trade[] = safeParse<Trade[]>(legacyTradesJson, []);
-  const legacySettings: Partial<UserSettings> = safeParse<Partial<UserSettings>>(legacySettingsJson, {});
+  const legacySettings: Partial<UserSettings> = safeParse<Partial<UserSettings>>(
+    legacySettingsJson,
+    {}
+  );
   const legacyStrategies: StrategyConfig[] = safeParse<StrategyConfig[]>(legacyStrategiesJson, []);
 
   // Створюємо новий профіль
   const profile: UserProfile = {
     ...createDefaultUserProfile(userId),
     settings: {
-      currency: legacySettings.currency ?? 'USD',
-      language: legacySettings.language ?? 'uk',
+      currency: legacySettings.currency ?? "USD",
+      language: legacySettings.language ?? "uk",
       timezone: legacySettings.timezone,
     },
     strategies: legacyStrategies.length > 0 ? legacyStrategies : [],

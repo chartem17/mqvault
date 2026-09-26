@@ -1,20 +1,20 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from "react";
 import {
   type UserStorage,
   getOrCreateUserStorage,
   saveUserStorage,
   loadUserStorage,
-} from '../lib/user-storage';
-import type { TradingData } from '../lib/user-storage';
-import type { Trade } from '../lib/trade-types';
+} from "../lib/user-storage";
+import type { TradingData } from "../lib/user-storage";
+import type { Trade } from "../lib/trade-types";
 
 /**
  * Хардкодний userId для локальної розробки.
  * У майбутньому — з авторизації / контексту.
  */
-const DEFAULT_USER_ID = 'local-user-1';
+const DEFAULT_USER_ID = "local-user-1";
 
 /**
  * Хук для доступу до UserStorage.
@@ -38,46 +38,61 @@ export function useUserStorage() {
   }, [userId]);
 
   // Оновлення всього сховища
-  const updateStorage = useCallback((updater: (prev: UserStorage) => UserStorage) => {
-    setStorage((prev) => {
-      if (!prev) return prev;
-      const next = updater(prev);
-      saveUserStorage(userId, next);
-      return next;
-    });
-  }, [userId]);
+  const updateStorage = useCallback(
+    (updater: (prev: UserStorage) => UserStorage) => {
+      setStorage((prev) => {
+        if (!prev) return prev;
+        const next = updater(prev);
+        saveUserStorage(userId, next);
+        return next;
+      });
+    },
+    [userId]
+  );
 
   // Оновлення торгових даних
-  const updateTradingData = useCallback((updater: (prev: TradingData) => TradingData) => {
-    updateStorage((prev) => ({
-      ...prev,
-      tradingData: updater(prev.tradingData),
-    }));
-  }, [updateStorage]);
+  const updateTradingData = useCallback(
+    (updater: (prev: TradingData) => TradingData) => {
+      updateStorage((prev) => ({
+        ...prev,
+        tradingData: updater(prev.tradingData),
+      }));
+    },
+    [updateStorage]
+  );
 
   // Додавання угоди
-  const addTrade = useCallback((trade: Trade) => {
-    updateTradingData((prev) => ({
-      ...prev,
-      trades: [...prev.trades, trade],
-    }));
-  }, [updateTradingData]);
+  const addTrade = useCallback(
+    (trade: Trade) => {
+      updateTradingData((prev) => ({
+        ...prev,
+        trades: [...prev.trades, trade],
+      }));
+    },
+    [updateTradingData]
+  );
 
   // Оновлення угоди
-  const updateTrade = useCallback((tradeId: string, updater: (t: Trade) => Trade) => {
-    updateTradingData((prev) => ({
-      ...prev,
-      trades: prev.trades.map((t) => (t.id === tradeId ? updater(t) : t)),
-    }));
-  }, [updateTradingData]);
+  const updateTrade = useCallback(
+    (tradeId: string, updater: (t: Trade) => Trade) => {
+      updateTradingData((prev) => ({
+        ...prev,
+        trades: prev.trades.map((t) => (t.id === tradeId ? updater(t) : t)),
+      }));
+    },
+    [updateTradingData]
+  );
 
   // Видалення угоди
-  const deleteTrade = useCallback((tradeId: string) => {
-    updateTradingData((prev) => ({
-      ...prev,
-      trades: prev.trades.filter((t) => t.id !== tradeId),
-    }));
-  }, [updateTradingData]);
+  const deleteTrade = useCallback(
+    (tradeId: string) => {
+      updateTradingData((prev) => ({
+        ...prev,
+        trades: prev.trades.filter((t) => t.id !== tradeId),
+      }));
+    },
+    [updateTradingData]
+  );
 
   // Отримання всіх угод
   const trades = storage?.tradingData.trades ?? [];

@@ -27,14 +27,26 @@ const themeBootstrap = `(() => {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="uk" suppressHydrationWarning style={{ backgroundColor: "#090b10", colorScheme: "dark" }}>
+    <html
+      lang="uk"
+      suppressHydrationWarning
+      style={{ backgroundColor: "#090b10", colorScheme: "dark" }}
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
         <meta name="theme-color" content="#090b10" />
-        <link href="https://api.fontshare.com/v2/css?f[]=manrope@400,500,600,700,800&f[]=cabinet-grotesk@500,700,800&f[]=jet-brains-mono@400,700&display=swap" rel="stylesheet" />
+        <link
+          href="https://api.fontshare.com/v2/css?f[]=manrope@400,500,600,700,800&f[]=cabinet-grotesk@500,700,800&f[]=jet-brains-mono@400,700&display=swap"
+          rel="stylesheet"
+        />
       </head>
       <body style={{ margin: 0, minHeight: "100dvh", backgroundColor: "#090b10" }}>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem={false}
+          disableTransitionOnChange
+        >
           <TradeProvider>{children}</TradeProvider>
         </ThemeProvider>
       </body>

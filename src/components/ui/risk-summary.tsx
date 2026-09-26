@@ -31,7 +31,9 @@ export function RiskSummary() {
       <span className="mx-1.5 text-white/20">·</span>
       Max risk: <span className="font-medium text-white/65">{risk.max.toFixed(2)}%</span>
       <span className="mx-1.5 text-white/20">·</span>
-      <span>{risk.covered}/{risk.total} trades tracked</span>
+      <span>
+        {risk.covered}/{risk.total} trades tracked
+      </span>
     </span>
   );
 }

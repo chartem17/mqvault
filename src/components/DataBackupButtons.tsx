@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useUserStorage } from '@/hooks/useUserStorage';
-import { downloadTradesCSV } from '@/lib/trade-export';
+import { useUserStorage } from "@/hooks/useUserStorage";
+import { downloadTradesCSV } from "@/lib/trade-export";
 import {
   downloadUserStorageBackup,
   uploadAndImportUserStorageBackup,
-} from '@/lib/user-storage-backup';
+} from "@/lib/user-storage-backup";
 
 /**
  * Компонент з кнопками для експорту/імпорту даних.
@@ -16,10 +16,10 @@ export function DataBackupButtons() {
 
   const handleExportCSV = () => {
     if (trades.length === 0) {
-      alert('Немає угод для експорту');
+      alert("Немає угод для експорту");
       return;
     }
-    downloadTradesCSV(trades, 'mqvault-journal.csv');
+    downloadTradesCSV(trades, "mqvault-journal.csv");
   };
 
   const handleBackupJSON = () => {
@@ -29,7 +29,7 @@ export function DataBackupButtons() {
   const handleImportJSON = () => {
     uploadAndImportUserStorageBackup(userId, (result) => {
       if (result.success) {
-        alert('Резервну копію успішно імпортовано!\nСторінка буде перезавантажена.');
+        alert("Резервну копію успішно імпортовано!\nСторінка буде перезавантажена.");
         window.location.reload();
       } else {
         alert(`Помилка імпорту: ${result.error}`);

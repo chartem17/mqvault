@@ -83,10 +83,7 @@ export default function LightRays() {
     const resize = () => {
       const rect = element.getBoundingClientRect();
       renderer.setSize(rect.width, rect.height);
-      program.uniforms.uResolution.value = [
-        rect.width * renderer.dpr,
-        rect.height * renderer.dpr,
-      ];
+      program.uniforms.uResolution.value = [rect.width * renderer.dpr, rect.height * renderer.dpr];
     };
 
     const move = (event: PointerEvent) => {

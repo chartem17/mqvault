@@ -1,4 +1,4 @@
-import type { TradeFinancials } from './trade-financials';
+import type { TradeFinancials } from "./trade-financials";
 
 /**
  * Базовий тип угоди (спрощений, без повних полів).
@@ -7,8 +7,8 @@ import type { TradeFinancials } from './trade-financials';
 export interface LegacyTrade {
   id: string;
   symbol: string;
-  type: 'BUY' | 'SELL';
-  status: 'OPEN' | 'CLOSED';
+  type: "BUY" | "SELL";
+  status: "OPEN" | "CLOSED";
   result_usd?: number;
   // інші поля, які вже є
   [key: string]: unknown;
@@ -21,10 +21,7 @@ export interface MigratedTrade extends LegacyTrade, TradeFinancials {}
  */
 export function isMigratedTrade(trade: LegacyTrade | MigratedTrade): trade is MigratedTrade {
   return (
-    'grossPnlUsd' in trade &&
-    'commissionUsd' in trade &&
-    'swapUsd' in trade &&
-    'netPnlUsd' in trade
+    "grossPnlUsd" in trade && "commissionUsd" in trade && "swapUsd" in trade && "netPnlUsd" in trade
   );
 }
 

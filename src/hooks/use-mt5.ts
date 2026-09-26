@@ -64,7 +64,14 @@ export type Mt5ClosedPosition = {
   resultR?: number | null;
 };
 
-type HistoryResponse = { connected: boolean; updatedAt?: string; initialDeposit?: number | null; deals?: Mt5Deal[]; positions?: Mt5ClosedPosition[]; error?: string };
+type HistoryResponse = {
+  connected: boolean;
+  updatedAt?: string;
+  initialDeposit?: number | null;
+  deals?: Mt5Deal[];
+  positions?: Mt5ClosedPosition[];
+  error?: string;
+};
 type PositionsResponse = { connected: boolean; updatedAt?: string; positions?: Mt5Position[] };
 
 export type UseMt5Result = {
@@ -97,24 +104,48 @@ export function useMt5(refreshMs = 5000): UseMt5Result {
         fetch("/api/mt5/history", { cache: "no-store" }),
       ]);
       if (!healthResponse.ok) throw new Error("Health request failed");
-      const nextHealth = await healthResponse.json() as Mt5Health;
+      const nextHealth = (await healthResponse.json()) as Mt5Health;
       setHealth(nextHealth);
       if (!nextHealth.connected) {
-        setPositions([]); setDeals([]); setClosedPositions([]); setInitialDeposit(null); setUpdatedAt(null); return;
+        setPositions([]);
+        setDeals([]);
+        setClosedPositions([]);
+        setInitialDeposit(null);
+        setUpdatedAt(null);
+        return;
       }
       if (positionsResponse.ok) {
-        const data = await positionsResponse.json() as PositionsResponse;
-        setPositions(data.positions ?? []); setUpdatedAt(data.updatedAt ?? null);
+        const data = (await positionsResponse.json()) as PositionsResponse;
+        setPositions(data.positions ?? []);
+        setUpdatedAt(data.updatedAt ?? null);
       } else setPositions([]);
       if (historyResponse.ok) {
-        const data = await historyResponse.json() as HistoryResponse;
-        setDeals(data.deals ?? []); setClosedPositions(data.positions ?? []); setInitialDeposit(typeof data.initialDeposit === "number" ? data.initialDeposit : null); setUpdatedAt(data.updatedAt ?? null);
-      } else { setDeals([]); setClosedPositions([]); setInitialDeposit(null); }
+        const data = (await historyResponse.json()) as HistoryResponse;
+        setDeals(data.deals ?? []);
+        setClosedPositions(data.positions ?? []);
+        setInitialDeposit(typeof data.initialDeposit === "number" ? data.initialDeposit : null);
+        setUpdatedAt(data.updatedAt ?? null);
+      } else {
+        setDeals([]);
+        setClosedPositions([]);
+        setInitialDeposit(null);
+      }
     } catch {
-      setHealth(OFFLINE); setPositions([]); setDeals([]); setClosedPositions([]); setInitialDeposit(null); setUpdatedAt(null);
-    } finally { setLoading(false); }
+      setHealth(OFFLINE);
+      setPositions([]);
+      setDeals([]);
+      setClosedPositions([]);
+      setInitialDeposit(null);
+      setUpdatedAt(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { void refresh(); const id = window.setInterval(() => void refresh(), refreshMs); return () => window.clearInterval(id); }, [refresh, refreshMs]);
+  useEffect(() => {
+    void refresh();
+    const id = window.setInterval(() => void refresh(), refreshMs);
+    return () => window.clearInterval(id);
+  }, [refresh, refreshMs]);
   return { health, positions, deals, closedPositions, initialDeposit, updatedAt, loading, refresh };
 }

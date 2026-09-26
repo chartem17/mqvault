@@ -15,12 +15,18 @@ export default function Home() {
 
   const renderTab = () => {
     switch (activeTab) {
-      case "overview": return <OverviewTab />;
-      case "journal": return <JournalTab />;
-      case "market": return <MarketTab />;
-      case "calendar": return <CalendarTab />;
-      case "news": return <NewsTab />;
-      case "screenshots": return <ScreenshotsTab />;
+      case "overview":
+        return <OverviewTab />;
+      case "journal":
+        return <JournalTab />;
+      case "market":
+        return <MarketTab />;
+      case "calendar":
+        return <CalendarTab />;
+      case "news":
+        return <NewsTab />;
+      case "screenshots":
+        return <ScreenshotsTab />;
     }
   };
 

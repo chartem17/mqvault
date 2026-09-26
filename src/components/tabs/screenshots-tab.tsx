@@ -10,14 +10,14 @@ export function ScreenshotsTab() {
   const [selected, setSelected] = useState<(typeof tradesWithScreens)[0] | null>(null);
 
   const tradesWithScreens = useMemo(
-    () => trades.filter(t => t.screenshot).sort((a, b) => b.date.localeCompare(a.date)),
+    () => trades.filter((t) => t.screenshot).sort((a, b) => b.date.localeCompare(a.date)),
     [trades]
   );
 
   const filtered = useMemo(() => {
     if (!search) return tradesWithScreens;
     const q = search.toLowerCase();
-    return tradesWithScreens.filter(t =>
+    return tradesWithScreens.filter((t) =>
       `${t.pair} ${t.date} ${t.setup} ${t.notes} ${t.entry_reason}`.toLowerCase().includes(q)
     );
   }, [tradesWithScreens, search]);
@@ -26,18 +26,26 @@ export function ScreenshotsTab() {
     <div className="p-6 space-y-5">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>Скріншоти угод</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">{tradesWithScreens.length} угод зі скріншотами</p>
+          <h1 className="text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
+            Скріншоти угод
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {tradesWithScreens.length} угод зі скріншотами
+          </p>
         </div>
         <div className="flex items-center gap-2 bg-secondary/60 border border-border rounded-lg px-3 py-1.5">
           <Search className="w-3.5 h-3.5 text-muted-foreground" />
           <input
             placeholder="Пошук пари, дати…"
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             className="bg-transparent text-sm text-foreground placeholder-muted-foreground focus:outline-none w-40"
           />
-          {search && <button onClick={() => setSearch("")}><X className="w-3.5 h-3.5 text-muted-foreground" /></button>}
+          {search && (
+            <button onClick={() => setSearch("")}>
+              <X className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -51,8 +59,9 @@ export function ScreenshotsTab() {
 
       {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {filtered.map(t => (
-          <div key={t.id}
+        {filtered.map((t) => (
+          <div
+            key={t.id}
             className="bg-card rounded-xl border border-border overflow-hidden group hover:border-primary/40 transition-all cursor-pointer"
             onClick={() => setSelected(t)}
           >
@@ -68,12 +77,16 @@ export function ScreenshotsTab() {
               </div>
               {/* Watermark */}
               <div className="absolute top-2 right-2">
-                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${t.result_usd > 0 ? "bg-green-500/20 text-green-400" : t.result_usd < 0 ? "bg-red-500/20 text-red-400" : "bg-muted/60 text-muted-foreground"}`}>
+                <span
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${t.result_usd > 0 ? "bg-green-500/20 text-green-400" : t.result_usd < 0 ? "bg-red-500/20 text-red-400" : "bg-muted/60 text-muted-foreground"}`}
+                >
                   {t.result_usd > 0 ? "✓ WIN" : t.result_usd < 0 ? "✗ LOSS" : "BE"}
                 </span>
               </div>
               <div className="absolute bottom-2 left-2">
-                <span className="text-[10px] font-mono bg-black/50 text-white px-1.5 py-0.5 rounded">{t.pair}</span>
+                <span className="text-[10px] font-mono bg-black/50 text-white px-1.5 py-0.5 rounded">
+                  {t.pair}
+                </span>
               </div>
             </div>
 
@@ -82,11 +95,15 @@ export function ScreenshotsTab() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="font-mono font-bold text-sm text-foreground">{t.pair}</span>
-                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${t.direction === "Long" ? "bg-green-500/15 text-green-500" : "bg-red-500/15 text-red-500"}`}>
+                  <span
+                    className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${t.direction === "Long" ? "bg-green-500/15 text-green-500" : "bg-red-500/15 text-red-500"}`}
+                  >
                     {t.direction}
                   </span>
                 </div>
-                <span className={`text-sm font-bold tabular-nums font-mono ${t.result_usd > 0 ? "text-[var(--color-green)]" : t.result_usd < 0 ? "text-[var(--color-red)]" : "text-muted-foreground"}`}>
+                <span
+                  className={`text-sm font-bold tabular-nums font-mono ${t.result_usd > 0 ? "text-[var(--color-green)]" : t.result_usd < 0 ? "text-[var(--color-red)]" : "text-muted-foreground"}`}
+                >
                   {fmt.usd(t.result_usd)}
                 </span>
               </div>
@@ -98,14 +115,20 @@ export function ScreenshotsTab() {
               </div>
 
               {t.entry_reason && (
-                <p className="text-[10px] text-muted-foreground leading-relaxed line-clamp-2">{t.entry_reason}</p>
+                <p className="text-[10px] text-muted-foreground leading-relaxed line-clamp-2">
+                  {t.entry_reason}
+                </p>
               )}
 
               <div className="flex items-center justify-between pt-1">
                 <span className="text-[10px] text-muted-foreground">{fmt.r(t.result_r)}</span>
-                <a href={t.screenshot} target="_blank" rel="noopener noreferrer"
-                  onClick={e => e.stopPropagation()}
-                  className="flex items-center gap-1 text-[10px] text-primary hover:underline">
+                <a
+                  href={t.screenshot}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center gap-1 text-[10px] text-primary hover:underline"
+                >
                   TradingView <ExternalLink className="w-2.5 h-2.5" />
                 </a>
               </div>
@@ -116,17 +139,30 @@ export function ScreenshotsTab() {
 
       {/* Detail modal */}
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setSelected(null)}>
-          <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={() => setSelected(null)}
+        >
+          <div
+            className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between px-5 py-4 border-b border-border">
               <div className="flex items-center gap-3">
                 <span className="font-mono font-bold text-base">{selected.pair}</span>
-                <span className={`text-xs px-2 py-0.5 rounded font-semibold ${selected.direction === "Long" ? "bg-green-500/15 text-green-500" : "bg-red-500/15 text-red-500"}`}>
+                <span
+                  className={`text-xs px-2 py-0.5 rounded font-semibold ${selected.direction === "Long" ? "bg-green-500/15 text-green-500" : "bg-red-500/15 text-red-500"}`}
+                >
                   {selected.direction}
                 </span>
                 <span className="text-xs text-muted-foreground">{selected.date}</span>
               </div>
-              <button onClick={() => setSelected(null)} className="text-muted-foreground hover:text-foreground transition-colors text-sm">✕</button>
+              <button
+                onClick={() => setSelected(null)}
+                className="text-muted-foreground hover:text-foreground transition-colors text-sm"
+              >
+                ✕
+              </button>
             </div>
             <div className="p-5 space-y-4">
               <div className="grid grid-cols-3 gap-3 text-xs">
@@ -139,14 +175,18 @@ export function ScreenshotsTab() {
                   ["R", fmt.r(selected.result_r)],
                 ].map(([l, v]) => (
                   <div key={l} className="bg-secondary/50 rounded-lg p-2.5">
-                    <p className="text-muted-foreground uppercase tracking-wider text-[10px]">{l}</p>
+                    <p className="text-muted-foreground uppercase tracking-wider text-[10px]">
+                      {l}
+                    </p>
                     <p className="font-mono font-semibold mt-0.5 text-foreground">{v}</p>
                   </div>
                 ))}
               </div>
               {selected.entry_reason && (
                 <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Причина входу</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
+                    Причина входу
+                  </p>
                   <p className="text-sm text-foreground">{selected.entry_reason}</p>
                 </div>
               )}
@@ -158,12 +198,18 @@ export function ScreenshotsTab() {
               )}
               {selected.notes && (
                 <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Нотатки</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
+                    Нотатки
+                  </p>
                   <p className="text-sm text-foreground">{selected.notes}</p>
                 </div>
               )}
-              <a href={selected.screenshot} target="_blank" rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
+              <a
+                href={selected.screenshot}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+              >
                 <ExternalLink className="w-4 h-4" />
                 Відкрити скріншот на TradingView
               </a>

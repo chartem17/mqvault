@@ -59,7 +59,12 @@ function computeStreaks(trades: StreakTrade[]): StreakSummary {
       currentStart = trade.date;
     }
 
-    const info: StreakInfo = { count: currentCount, pnl: currentPnl, startDate: currentStart, endDate: trade.date };
+    const info: StreakInfo = {
+      count: currentCount,
+      pnl: currentPnl,
+      startDate: currentStart,
+      endDate: trade.date,
+    };
     if (type === "win" && (!longestWin || currentCount > longestWin.count)) longestWin = info;
     if (type === "loss" && (!longestLoss || currentCount > longestLoss.count)) longestLoss = info;
   }
@@ -72,7 +77,8 @@ function computeStreaks(trades: StreakTrade[]): StreakSummary {
 }
 
 export function StreakStatCard() {
-  const { visibleTrades, accounts, includedAccountIds, activeAccountId, activeAccount } = useTrades();
+  const { visibleTrades, accounts, includedAccountIds, activeAccountId, activeAccount } =
+    useTrades();
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -91,7 +97,8 @@ export function StreakStatCard() {
 
   const winCount = summary.longestWin?.count ?? 0;
   const lossCount = summary.longestLoss?.count ?? 0;
-  const currentColor = summary.current.type === "win" ? GREEN : summary.current.type === "loss" ? RED : undefined;
+  const currentColor =
+    summary.current.type === "win" ? GREEN : summary.current.type === "loss" ? RED : undefined;
 
   const cancelClose = () => {
     if (closeTimer.current) {
@@ -128,12 +135,21 @@ export function StreakStatCard() {
 
       <div
         className="relative h-6 overflow-hidden rounded-md"
-        style={{ background: "linear-gradient(135deg, rgba(118,208,90,0.16) 49%, rgba(240,106,115,0.16) 51%)" }}
+        style={{
+          background:
+            "linear-gradient(135deg, rgba(118,208,90,0.16) 49%, rgba(240,106,115,0.16) 51%)",
+        }}
       >
-        <span className="absolute left-1.5 top-1/2 -translate-y-1/2 whitespace-nowrap text-xs font-semibold" style={{ color: GREEN }}>
+        <span
+          className="absolute left-1.5 top-1/2 -translate-y-1/2 whitespace-nowrap text-xs font-semibold"
+          style={{ color: GREEN }}
+        >
           {winCount}W
         </span>
-        <span className="absolute right-1.5 top-1/2 -translate-y-1/2 whitespace-nowrap text-xs font-semibold" style={{ color: RED }}>
+        <span
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 whitespace-nowrap text-xs font-semibold"
+          style={{ color: RED }}
+        >
           {lossCount}L
         </span>
       </div>
@@ -141,11 +157,15 @@ export function StreakStatCard() {
       <div className="mt-2 whitespace-nowrap text-[11px] text-white/40">
         Поточний:{" "}
         <span style={{ color: currentColor }}>
-          {summary.current.type === "none" ? "—" : `${summary.current.count} ${summary.current.type === "win" ? "W" : "L"}`}
+          {summary.current.type === "none"
+            ? "—"
+            : `${summary.current.count} ${summary.current.type === "win" ? "W" : "L"}`}
         </span>
       </div>
 
-      {open && coords && typeof document !== "undefined" &&
+      {open &&
+        coords &&
+        typeof document !== "undefined" &&
         createPortal(
           <div
             className="fixed z-[100] w-72 rounded-xl border border-white/10 bg-background p-3 text-xs shadow-2xl"
@@ -159,13 +179,17 @@ export function StreakStatCard() {
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-white/50">Поточний стрік</span>
                 <span className="whitespace-nowrap" style={{ color: currentColor }}>
-                  {summary.current.type === "none" ? "—" : `${summary.current.count} ${summary.current.type === "win" ? "перемог" : "поразок"}`}
+                  {summary.current.type === "none"
+                    ? "—"
+                    : `${summary.current.count} ${summary.current.type === "win" ? "перемог" : "поразок"}`}
                 </span>
               </div>
               {summary.current.type !== "none" && (
                 <div className="flex items-baseline justify-between gap-3 text-white/40">
                   <span>P&L / %</span>
-                  <span className="whitespace-nowrap">{fmt.usd(summary.current.pnl)} · {fmt.pct(pct(summary.current.pnl))}</span>
+                  <span className="whitespace-nowrap">
+                    {fmt.usd(summary.current.pnl)} · {fmt.pct(pct(summary.current.pnl))}
+                  </span>
                 </div>
               )}
             </div>
@@ -179,11 +203,15 @@ export function StreakStatCard() {
                 <>
                   <div className="flex items-baseline justify-between gap-3 text-white/40">
                     <span>Період</span>
-                    <span className="whitespace-nowrap">{summary.longestWin.startDate} → {summary.longestWin.endDate}</span>
+                    <span className="whitespace-nowrap">
+                      {summary.longestWin.startDate} → {summary.longestWin.endDate}
+                    </span>
                   </div>
                   <div className="flex items-baseline justify-between gap-3 text-white/40">
                     <span>P&L / %</span>
-                    <span className="whitespace-nowrap">{fmt.usd(summary.longestWin.pnl)} · {fmt.pct(pct(summary.longestWin.pnl))}</span>
+                    <span className="whitespace-nowrap">
+                      {fmt.usd(summary.longestWin.pnl)} · {fmt.pct(pct(summary.longestWin.pnl))}
+                    </span>
                   </div>
                 </>
               )}
@@ -198,17 +226,21 @@ export function StreakStatCard() {
                 <>
                   <div className="flex items-baseline justify-between gap-3 text-white/40">
                     <span>Період</span>
-                    <span className="whitespace-nowrap">{summary.longestLoss.startDate} → {summary.longestLoss.endDate}</span>
+                    <span className="whitespace-nowrap">
+                      {summary.longestLoss.startDate} → {summary.longestLoss.endDate}
+                    </span>
                   </div>
                   <div className="flex items-baseline justify-between gap-3 text-white/40">
                     <span>P&L / %</span>
-                    <span className="whitespace-nowrap">{fmt.usd(summary.longestLoss.pnl)} · {fmt.pct(pct(summary.longestLoss.pnl))}</span>
+                    <span className="whitespace-nowrap">
+                      {fmt.usd(summary.longestLoss.pnl)} · {fmt.pct(pct(summary.longestLoss.pnl))}
+                    </span>
                   </div>
                 </>
               )}
             </div>
           </div>,
-          document.body,
+          document.body
         )}
     </div>
   );

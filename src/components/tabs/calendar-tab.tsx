@@ -14,9 +14,21 @@ type MarketRead = {
 };
 
 type EventItem = {
-  id: string; date: string; time: string; currency: string; country: string;
-  impact: Impact; title: string; category: string; forecast: string; previous: string;
-  actual: string; description: string; affected: string[]; tradeExposure: string; read: MarketRead;
+  id: string;
+  date: string;
+  time: string;
+  currency: string;
+  country: string;
+  impact: Impact;
+  title: string;
+  category: string;
+  forecast: string;
+  previous: string;
+  actual: string;
+  description: string;
+  affected: string[];
+  tradeExposure: string;
+  read: MarketRead;
 };
 
 const USD_ASSETS = [
@@ -27,40 +39,462 @@ const USD_ASSETS = [
 ];
 
 const EVENTS: EventItem[] = [
-  { id: "pce", date: "Tuesday · September 22", time: "12:30", currency: "USD", country: "United States", impact: "high", title: "Core PCE Price Index (MoM)", category: "Inflation", forecast: "0.2%", previous: "0.2%", actual: "—", description: "Core personal consumption expenditures price index, excluding food and energy. A key inflation gauge watched by the Federal Reserve.", affected: USD_ASSETS.map((item) => item.symbol), tradeExposure: "2 trades nearby", read: { higher: { currency: "USD supportive", summary: "Hotter inflation may shift Fed expectations toward a more hawkish path.", assets: USD_ASSETS }, lower: { currency: "USD negative", summary: "Cooler inflation may shift Fed expectations toward a more dovish path.", assets: USD_ASSETS.map((item) => ({ ...item, bias: item.bias === "negative" ? "supportive" : item.bias })) }, caveat: "Initial macro bias only. Price action can differ when expectations are already priced in." } },
-  { id: "confidence", date: "Tuesday · September 22", time: "14:00", currency: "USD", country: "United States", impact: "medium", title: "CB Consumer Confidence", category: "Activity", forecast: "98.5", previous: "98.0", actual: "—", description: "Survey-based measure of consumer confidence and expected household activity.", affected: ["US30", "EUR/USD"], tradeExposure: "No linked trades", read: { higher: { currency: "USD supportive", summary: "Stronger confidence can support growth expectations and USD.", assets: [{ symbol: "US30", bias: "supportive" }, { symbol: "EUR/USD", bias: "negative" }] }, lower: { currency: "USD negative", summary: "Weaker confidence can pressure growth expectations and USD.", assets: [{ symbol: "US30", bias: "negative" }, { symbol: "EUR/USD", bias: "supportive" }] }, caveat: "Confidence data is secondary to inflation, labor and central-bank repricing." } },
-  { id: "german-cpi", date: "Wednesday · September 23", time: "09:00", currency: "EUR", country: "Germany", impact: "medium", title: "German CPI (MoM)", category: "Inflation", forecast: "0.1%", previous: "0.0%", actual: "—", description: "German consumer price change, relevant for euro-area inflation expectations.", affected: ["EUR/USD", "GER40"], tradeExposure: "1 trade nearby", read: { higher: { currency: "EUR supportive", summary: "Hotter German inflation can support EUR through firmer ECB expectations.", assets: [{ symbol: "EUR/USD", bias: "supportive" }, { symbol: "GER40", bias: "mixed" }] }, lower: { currency: "EUR negative", summary: "Cooler inflation can reduce near-term ECB tightening expectations.", assets: [{ symbol: "EUR/USD", bias: "negative" }, { symbol: "GER40", bias: "mixed" }] }, caveat: "German CPI is an early euro-area signal; the broader euro release can override it." } },
-  { id: "uk-cpi", date: "Wednesday · September 23", time: "08:30", currency: "GBP", country: "United Kingdom", impact: "high", title: "UK CPI (YoY)", category: "Inflation", forecast: "2.2%", previous: "2.3%", actual: "—", description: "Year-over-year UK consumer inflation release with potential impact on GBP and Bank of England expectations.", affected: ["GBP/USD"], tradeExposure: "No linked trades", read: { higher: { currency: "GBP supportive", summary: "Hotter inflation can reduce dovish BoE expectations and support GBP.", assets: [{ symbol: "GBP/USD", bias: "supportive" }] }, lower: { currency: "GBP negative", summary: "Cooler inflation can increase dovish BoE expectations and weigh on GBP.", assets: [{ symbol: "GBP/USD", bias: "negative" }] }, caveat: "The direction depends on the inflation composition and the BoE policy context." } },
-  { id: "fomc", date: "Thursday · September 24", time: "18:00", currency: "USD", country: "United States", impact: "high", title: "FOMC Member Speech", category: "Central bank", forecast: "—", previous: "—", actual: "—", description: "Scheduled Federal Reserve communication. Volatility depends on tone, guidance and deviation from current rate expectations.", affected: USD_ASSETS.map((item) => item.symbol), tradeExposure: "3 trades nearby", read: { higher: { currency: "Hawkish USD", summary: "More hawkish guidance can support USD and pressure dollar-sensitive assets.", assets: USD_ASSETS }, lower: { currency: "Dovish USD", summary: "More dovish guidance can weigh on USD and support risk-sensitive assets.", assets: USD_ASSETS.map((item) => ({ ...item, bias: item.bias === "negative" ? "supportive" : item.bias })) }, caveat: "Speeches are qualitative; there is no reliable higher/lower forecast rule." } },
-  { id: "nfp", date: "Friday · September 25", time: "12:30", currency: "USD", country: "United States", impact: "high", title: "Non-Farm Payrolls", category: "Employment", forecast: "175K", previous: "177K", actual: "—", description: "Monthly US employment release, usually relevant for USD, rates, gold, indices and broader risk sentiment.", affected: USD_ASSETS.map((item) => item.symbol), tradeExposure: "4 trades nearby", read: { higher: { currency: "USD supportive", summary: "Stronger payrolls can support USD through firmer labor and rate expectations.", assets: USD_ASSETS }, lower: { currency: "USD negative", summary: "Weaker payrolls can pressure USD through softer labor and rate expectations.", assets: USD_ASSETS.map((item) => ({ ...item, bias: item.bias === "negative" ? "supportive" : item.bias })) }, caveat: "Read payrolls together with unemployment, wages and revisions." } },
+  {
+    id: "pce",
+    date: "Tuesday · September 22",
+    time: "12:30",
+    currency: "USD",
+    country: "United States",
+    impact: "high",
+    title: "Core PCE Price Index (MoM)",
+    category: "Inflation",
+    forecast: "0.2%",
+    previous: "0.2%",
+    actual: "—",
+    description:
+      "Core personal consumption expenditures price index, excluding food and energy. A key inflation gauge watched by the Federal Reserve.",
+    affected: USD_ASSETS.map((item) => item.symbol),
+    tradeExposure: "2 trades nearby",
+    read: {
+      higher: {
+        currency: "USD supportive",
+        summary: "Hotter inflation may shift Fed expectations toward a more hawkish path.",
+        assets: USD_ASSETS,
+      },
+      lower: {
+        currency: "USD negative",
+        summary: "Cooler inflation may shift Fed expectations toward a more dovish path.",
+        assets: USD_ASSETS.map((item) => ({
+          ...item,
+          bias: item.bias === "negative" ? "supportive" : item.bias,
+        })),
+      },
+      caveat:
+        "Initial macro bias only. Price action can differ when expectations are already priced in.",
+    },
+  },
+  {
+    id: "confidence",
+    date: "Tuesday · September 22",
+    time: "14:00",
+    currency: "USD",
+    country: "United States",
+    impact: "medium",
+    title: "CB Consumer Confidence",
+    category: "Activity",
+    forecast: "98.5",
+    previous: "98.0",
+    actual: "—",
+    description: "Survey-based measure of consumer confidence and expected household activity.",
+    affected: ["US30", "EUR/USD"],
+    tradeExposure: "No linked trades",
+    read: {
+      higher: {
+        currency: "USD supportive",
+        summary: "Stronger confidence can support growth expectations and USD.",
+        assets: [
+          { symbol: "US30", bias: "supportive" },
+          { symbol: "EUR/USD", bias: "negative" },
+        ],
+      },
+      lower: {
+        currency: "USD negative",
+        summary: "Weaker confidence can pressure growth expectations and USD.",
+        assets: [
+          { symbol: "US30", bias: "negative" },
+          { symbol: "EUR/USD", bias: "supportive" },
+        ],
+      },
+      caveat: "Confidence data is secondary to inflation, labor and central-bank repricing.",
+    },
+  },
+  {
+    id: "german-cpi",
+    date: "Wednesday · September 23",
+    time: "09:00",
+    currency: "EUR",
+    country: "Germany",
+    impact: "medium",
+    title: "German CPI (MoM)",
+    category: "Inflation",
+    forecast: "0.1%",
+    previous: "0.0%",
+    actual: "—",
+    description: "German consumer price change, relevant for euro-area inflation expectations.",
+    affected: ["EUR/USD", "GER40"],
+    tradeExposure: "1 trade nearby",
+    read: {
+      higher: {
+        currency: "EUR supportive",
+        summary: "Hotter German inflation can support EUR through firmer ECB expectations.",
+        assets: [
+          { symbol: "EUR/USD", bias: "supportive" },
+          { symbol: "GER40", bias: "mixed" },
+        ],
+      },
+      lower: {
+        currency: "EUR negative",
+        summary: "Cooler inflation can reduce near-term ECB tightening expectations.",
+        assets: [
+          { symbol: "EUR/USD", bias: "negative" },
+          { symbol: "GER40", bias: "mixed" },
+        ],
+      },
+      caveat: "German CPI is an early euro-area signal; the broader euro release can override it.",
+    },
+  },
+  {
+    id: "uk-cpi",
+    date: "Wednesday · September 23",
+    time: "08:30",
+    currency: "GBP",
+    country: "United Kingdom",
+    impact: "high",
+    title: "UK CPI (YoY)",
+    category: "Inflation",
+    forecast: "2.2%",
+    previous: "2.3%",
+    actual: "—",
+    description:
+      "Year-over-year UK consumer inflation release with potential impact on GBP and Bank of England expectations.",
+    affected: ["GBP/USD"],
+    tradeExposure: "No linked trades",
+    read: {
+      higher: {
+        currency: "GBP supportive",
+        summary: "Hotter inflation can reduce dovish BoE expectations and support GBP.",
+        assets: [{ symbol: "GBP/USD", bias: "supportive" }],
+      },
+      lower: {
+        currency: "GBP negative",
+        summary: "Cooler inflation can increase dovish BoE expectations and weigh on GBP.",
+        assets: [{ symbol: "GBP/USD", bias: "negative" }],
+      },
+      caveat: "The direction depends on the inflation composition and the BoE policy context.",
+    },
+  },
+  {
+    id: "fomc",
+    date: "Thursday · September 24",
+    time: "18:00",
+    currency: "USD",
+    country: "United States",
+    impact: "high",
+    title: "FOMC Member Speech",
+    category: "Central bank",
+    forecast: "—",
+    previous: "—",
+    actual: "—",
+    description:
+      "Scheduled Federal Reserve communication. Volatility depends on tone, guidance and deviation from current rate expectations.",
+    affected: USD_ASSETS.map((item) => item.symbol),
+    tradeExposure: "3 trades nearby",
+    read: {
+      higher: {
+        currency: "Hawkish USD",
+        summary: "More hawkish guidance can support USD and pressure dollar-sensitive assets.",
+        assets: USD_ASSETS,
+      },
+      lower: {
+        currency: "Dovish USD",
+        summary: "More dovish guidance can weigh on USD and support risk-sensitive assets.",
+        assets: USD_ASSETS.map((item) => ({
+          ...item,
+          bias: item.bias === "negative" ? "supportive" : item.bias,
+        })),
+      },
+      caveat: "Speeches are qualitative; there is no reliable higher/lower forecast rule.",
+    },
+  },
+  {
+    id: "nfp",
+    date: "Friday · September 25",
+    time: "12:30",
+    currency: "USD",
+    country: "United States",
+    impact: "high",
+    title: "Non-Farm Payrolls",
+    category: "Employment",
+    forecast: "175K",
+    previous: "177K",
+    actual: "—",
+    description:
+      "Monthly US employment release, usually relevant for USD, rates, gold, indices and broader risk sentiment.",
+    affected: USD_ASSETS.map((item) => item.symbol),
+    tradeExposure: "4 trades nearby",
+    read: {
+      higher: {
+        currency: "USD supportive",
+        summary: "Stronger payrolls can support USD through firmer labor and rate expectations.",
+        assets: USD_ASSETS,
+      },
+      lower: {
+        currency: "USD negative",
+        summary: "Weaker payrolls can pressure USD through softer labor and rate expectations.",
+        assets: USD_ASSETS.map((item) => ({
+          ...item,
+          bias: item.bias === "negative" ? "supportive" : item.bias,
+        })),
+      },
+      caveat: "Read payrolls together with unemployment, wages and revisions.",
+    },
+  },
 ];
 
-const impactStyles: Record<Impact, string> = { high: "border-red-400/30 bg-red-500/10 text-red-300", medium: "border-amber-300/30 bg-amber-400/10 text-amber-200", low: "border-white/10 bg-white/[0.04] text-muted-foreground" };
+const impactStyles: Record<Impact, string> = {
+  high: "border-red-400/30 bg-red-500/10 text-red-300",
+  medium: "border-amber-300/30 bg-amber-400/10 text-amber-200",
+  low: "border-white/10 bg-white/[0.04] text-muted-foreground",
+};
 
 export function CalendarTab() {
   const [mode, setMode] = useState<ViewMode>("calendar");
   const [impact, setImpact] = useState<"all" | Impact>("all");
   const [currency, setCurrency] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const filtered = useMemo(() => EVENTS.filter((event) => (impact === "all" || event.impact === impact) && (currency === "all" || event.currency === currency)), [impact, currency]);
+  const filtered = useMemo(
+    () =>
+      EVENTS.filter(
+        (event) =>
+          (impact === "all" || event.impact === impact) &&
+          (currency === "all" || event.currency === currency)
+      ),
+    [impact, currency]
+  );
   const highCount = EVENTS.filter((event) => event.impact === "high").length;
 
-  return <div className="min-h-full p-4 sm:p-6 space-y-5">
-    <div className="flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>Economic Calendar</h1><p className="mt-1 text-xs text-muted-foreground">Macro events · news exposure · Trade Vault analytics</p></div><div className="flex items-center gap-2 rounded-xl border border-border bg-card/70 px-3 py-2 text-xs text-muted-foreground"><Clock3 className="h-3.5 w-3.5" /> Europe/Kyiv <span className="text-primary">· Mock data</span></div></div>
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Summary label="Today" value={`${EVENTS.length} events`} hint={`${highCount} high impact`} /><Summary label="Next high impact" value="USD · Core PCE" hint="Tuesday · 12:30" /><Summary label="Your exposure" value="2 trades" hint="USD-related events" /><Summary label="News risk this week" value={`${highCount} high impact`} hint="Mock analytics preview" /></div>
-    <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card/70 p-3"><div className="flex rounded-lg border border-border bg-secondary/50 p-1">{(["calendar", "exposure"] as ViewMode[]).map((value) => <button key={value} onClick={() => setMode(value)} className={`rounded-md px-3 py-1.5 text-xs ${mode === value ? "bg-primary/15 text-primary" : "text-muted-foreground"}`}>{value === "calendar" ? "Calendar" : "My trades"}</button>)}</div><div className="h-5 w-px bg-border" />{(["all", "high", "medium", "low"] as const).map((value) => <button key={value} onClick={() => setImpact(value)} className={`rounded-lg border px-3 py-1.5 text-xs ${impact === value ? "border-primary/30 bg-primary/10 text-primary" : "border-border bg-secondary/50 text-muted-foreground"}`}>{value === "all" ? "All impact" : `${value[0].toUpperCase()}${value.slice(1)}`}</button>)}<select value={currency} onChange={(event) => setCurrency(event.target.value)} className="rounded-lg border border-border bg-secondary/50 px-3 py-1.5 text-xs text-foreground outline-none"><option value="all">All currencies</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option></select></div>
-    <section className="overflow-hidden rounded-2xl border border-border bg-card/75"><div className="flex items-center justify-between border-b border-border px-4 py-3"><div><h2 className="text-sm font-semibold">{mode === "calendar" ? "Upcoming events" : "News-exposed trades"}</h2><p className="mt-0.5 text-xs text-muted-foreground">{filtered.length} events in current view</p></div><CalendarDays className="h-4 w-4 text-primary" /></div><div className="divide-y divide-border/70">{filtered.map((event) => <EventRow key={event.id} event={event} expanded={selectedId === event.id} onToggle={() => setSelectedId(selectedId === event.id ? null : event.id)} mode={mode} />)}</div></section>
-  </div>;
+  return (
+    <div className="min-h-full p-4 sm:p-6 space-y-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
+            Economic Calendar
+          </h1>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Macro events · news exposure · Trade Vault analytics
+          </p>
+        </div>
+        <div className="flex items-center gap-2 rounded-xl border border-border bg-card/70 px-3 py-2 text-xs text-muted-foreground">
+          <Clock3 className="h-3.5 w-3.5" /> Europe/Kyiv{" "}
+          <span className="text-primary">· Mock data</span>
+        </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Summary
+          label="Today"
+          value={`${EVENTS.length} events`}
+          hint={`${highCount} high impact`}
+        />
+        <Summary label="Next high impact" value="USD · Core PCE" hint="Tuesday · 12:30" />
+        <Summary label="Your exposure" value="2 trades" hint="USD-related events" />
+        <Summary
+          label="News risk this week"
+          value={`${highCount} high impact`}
+          hint="Mock analytics preview"
+        />
+      </div>
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card/70 p-3">
+        <div className="flex rounded-lg border border-border bg-secondary/50 p-1">
+          {(["calendar", "exposure"] as ViewMode[]).map((value) => (
+            <button
+              key={value}
+              onClick={() => setMode(value)}
+              className={`rounded-md px-3 py-1.5 text-xs ${mode === value ? "bg-primary/15 text-primary" : "text-muted-foreground"}`}
+            >
+              {value === "calendar" ? "Calendar" : "My trades"}
+            </button>
+          ))}
+        </div>
+        <div className="h-5 w-px bg-border" />
+        {(["all", "high", "medium", "low"] as const).map((value) => (
+          <button
+            key={value}
+            onClick={() => setImpact(value)}
+            className={`rounded-lg border px-3 py-1.5 text-xs ${impact === value ? "border-primary/30 bg-primary/10 text-primary" : "border-border bg-secondary/50 text-muted-foreground"}`}
+          >
+            {value === "all" ? "All impact" : `${value[0].toUpperCase()}${value.slice(1)}`}
+          </button>
+        ))}
+        <select
+          value={currency}
+          onChange={(event) => setCurrency(event.target.value)}
+          className="rounded-lg border border-border bg-secondary/50 px-3 py-1.5 text-xs text-foreground outline-none"
+        >
+          <option value="all">All currencies</option>
+          <option value="USD">USD</option>
+          <option value="EUR">EUR</option>
+          <option value="GBP">GBP</option>
+        </select>
+      </div>
+      <section className="overflow-hidden rounded-2xl border border-border bg-card/75">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <div>
+            <h2 className="text-sm font-semibold">
+              {mode === "calendar" ? "Upcoming events" : "News-exposed trades"}
+            </h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {filtered.length} events in current view
+            </p>
+          </div>
+          <CalendarDays className="h-4 w-4 text-primary" />
+        </div>
+        <div className="divide-y divide-border/70">
+          {filtered.map((event) => (
+            <EventRow
+              key={event.id}
+              event={event}
+              expanded={selectedId === event.id}
+              onToggle={() => setSelectedId(selectedId === event.id ? null : event.id)}
+              mode={mode}
+            />
+          ))}
+        </div>
+      </section>
+    </div>
+  );
 }
 
-function EventRow({ event, expanded, onToggle, mode }: { event: EventItem; expanded: boolean; onToggle: () => void; mode: ViewMode }) {
-  return <div className={`transition ${expanded ? "bg-secondary/20" : ""}`}><button type="button" onClick={onToggle} className="grid w-full grid-cols-[64px_48px_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-left hover:bg-secondary/35"><div className="font-mono text-xs text-muted-foreground">{event.time}</div><div className="text-xs font-semibold">{event.currency}</div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="truncate text-sm font-medium">{event.title}</span><span className={`rounded-md border px-1.5 py-0.5 text-[10px] uppercase ${impactStyles[event.impact]}`}>{event.impact}</span></div><div className="mt-1 text-xs text-muted-foreground">{event.date} · {event.category} · Forecast {event.forecast} · Previous {event.previous}</div>{mode === "exposure" && <div className="mt-1 text-[11px] text-primary">{event.tradeExposure}</div>}</div><ChevronDown className={`h-4 w-4 text-muted-foreground transition ${expanded ? "rotate-180 text-primary" : ""}`} /></button>{expanded && <EventDetails event={event} />}</div>;
+function EventRow({
+  event,
+  expanded,
+  onToggle,
+  mode,
+}: {
+  event: EventItem;
+  expanded: boolean;
+  onToggle: () => void;
+  mode: ViewMode;
+}) {
+  return (
+    <div className={`transition ${expanded ? "bg-secondary/20" : ""}`}>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="grid w-full grid-cols-[64px_48px_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-left hover:bg-secondary/35"
+      >
+        <div className="font-mono text-xs text-muted-foreground">{event.time}</div>
+        <div className="text-xs font-semibold">{event.currency}</div>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="truncate text-sm font-medium">{event.title}</span>
+            <span
+              className={`rounded-md border px-1.5 py-0.5 text-[10px] uppercase ${impactStyles[event.impact]}`}
+            >
+              {event.impact}
+            </span>
+          </div>
+          <div className="mt-1 text-xs text-muted-foreground">
+            {event.date} · {event.category} · Forecast {event.forecast} · Previous {event.previous}
+          </div>
+          {mode === "exposure" && (
+            <div className="mt-1 text-[11px] text-primary">{event.tradeExposure}</div>
+          )}
+        </div>
+        <ChevronDown
+          className={`h-4 w-4 text-muted-foreground transition ${expanded ? "rotate-180 text-primary" : ""}`}
+        />
+      </button>
+      {expanded && <EventDetails event={event} />}
+    </div>
+  );
 }
 
 function EventDetails({ event }: { event: EventItem }) {
-  return <div className="border-t border-primary/15 bg-[#0c1211]/55 px-4 pb-5 pt-4 sm:px-6"><div className="grid gap-4 xl:grid-cols-4"><Metric label="Actual" value={event.actual} /><Metric label="Forecast" value={event.forecast} /><Metric label="Previous" value={event.previous} /><Metric label="Status" value="Upcoming" /></div><div className="mt-5 grid gap-5 lg:grid-cols-2"><Scenario title="Higher than forecast" icon={<TrendingUp className="h-4 w-4" />} tone="positive" data={event.read.higher} /><Scenario title="Lower than forecast" icon={<TrendingDown className="h-4 w-4" />} tone="negative" data={event.read.lower} /></div><div className="mt-5 grid gap-5 lg:grid-cols-[1.2fr_.8fr]"><div><div className="text-[10px] uppercase tracking-wider text-muted-foreground">What it measures</div><p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">{event.description}</p></div><div><div className="text-[10px] uppercase tracking-wider text-muted-foreground">Trade Vault context</div><div className="mt-2 rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm text-primary">{event.tradeExposure}</div></div></div><div className="mt-5 rounded-xl border border-border bg-secondary/20 p-3 text-xs text-muted-foreground">Note: {event.read.caveat}</div></div>;
+  return (
+    <div className="border-t border-primary/15 bg-[#0c1211]/55 px-4 pb-5 pt-4 sm:px-6">
+      <div className="grid gap-4 xl:grid-cols-4">
+        <Metric label="Actual" value={event.actual} />
+        <Metric label="Forecast" value={event.forecast} />
+        <Metric label="Previous" value={event.previous} />
+        <Metric label="Status" value="Upcoming" />
+      </div>
+      <div className="mt-5 grid gap-5 lg:grid-cols-2">
+        <Scenario
+          title="Higher than forecast"
+          icon={<TrendingUp className="h-4 w-4" />}
+          tone="positive"
+          data={event.read.higher}
+        />
+        <Scenario
+          title="Lower than forecast"
+          icon={<TrendingDown className="h-4 w-4" />}
+          tone="negative"
+          data={event.read.lower}
+        />
+      </div>
+      <div className="mt-5 grid gap-5 lg:grid-cols-[1.2fr_.8fr]">
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            What it measures
+          </div>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+            {event.description}
+          </p>
+        </div>
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Trade Vault context
+          </div>
+          <div className="mt-2 rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm text-primary">
+            {event.tradeExposure}
+          </div>
+        </div>
+      </div>
+      <div className="mt-5 rounded-xl border border-border bg-secondary/20 p-3 text-xs text-muted-foreground">
+        Note: {event.read.caveat}
+      </div>
+    </div>
+  );
 }
 
-function Scenario({ title, icon, tone, data }: { title: string; icon: React.ReactNode; tone: "positive" | "negative"; data: MarketRead["higher"] }) { return <div className={`rounded-2xl border p-4 ${tone === "positive" ? "border-emerald-400/20 bg-emerald-400/[.05]" : "border-rose-400/20 bg-rose-400/[.05]"}`}><div className="flex items-center gap-2 text-sm font-semibold">{icon}{title}</div><div className="mt-3 text-sm font-medium">{data.currency}</div><p className="mt-1 text-xs leading-5 text-muted-foreground">{data.summary}</p><div className="mt-4 flex flex-wrap gap-2">{data.assets.map((asset) => <span key={asset.symbol} className="rounded-md border border-border bg-black/15 px-2 py-1 text-xs">{asset.symbol} · {asset.bias}</span>)}</div></div>; }
-function Metric({ label, value }: { label: string; value: string }) { return <div className="rounded-xl border border-border bg-secondary/30 p-3"><div className="text-[10px] uppercase text-muted-foreground">{label}</div><div className="mt-1 font-mono text-sm">{value}</div></div>; }
-function Summary({ label, value, hint }: { label: string; value: string; hint: string }) { return <div className="rounded-2xl border border-border bg-card/75 p-4"><div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div><div className="mt-2 text-lg font-semibold">{value}</div><div className="mt-1 text-xs text-muted-foreground">{hint}</div></div>; }
+function Scenario({
+  title,
+  icon,
+  tone,
+  data,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  tone: "positive" | "negative";
+  data: MarketRead["higher"];
+}) {
+  return (
+    <div
+      className={`rounded-2xl border p-4 ${tone === "positive" ? "border-emerald-400/20 bg-emerald-400/[.05]" : "border-rose-400/20 bg-rose-400/[.05]"}`}
+    >
+      <div className="flex items-center gap-2 text-sm font-semibold">
+        {icon}
+        {title}
+      </div>
+      <div className="mt-3 text-sm font-medium">{data.currency}</div>
+      <p className="mt-1 text-xs leading-5 text-muted-foreground">{data.summary}</p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {data.assets.map((asset) => (
+          <span
+            key={asset.symbol}
+            className="rounded-md border border-border bg-black/15 px-2 py-1 text-xs"
+          >
+            {asset.symbol} · {asset.bias}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-border bg-secondary/30 p-3">
+      <div className="text-[10px] uppercase text-muted-foreground">{label}</div>
+      <div className="mt-1 font-mono text-sm">{value}</div>
+    </div>
+  );
+}
+function Summary({ label, value, hint }: { label: string; value: string; hint: string }) {
+  return (
+    <div className="rounded-2xl border border-border bg-card/75 p-4">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="mt-2 text-lg font-semibold">{value}</div>
+      <div className="mt-1 text-xs text-muted-foreground">{hint}</div>
+    </div>
+  );
+}

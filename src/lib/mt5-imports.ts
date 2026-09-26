@@ -1,9 +1,9 @@
-import type { Trade } from './trade-types';
+import type { Trade } from "./trade-types";
 
 /**
  * Джерело імпорту.
  */
-export type MT5ImportSource = 'MT5_CSV' | 'MT5_HTML';
+export type MT5ImportSource = "MT5_CSV" | "MT5_HTML";
 
 /**
  * Сирий рядок імпорту (CSV/HTML) у вигляді об'єкта.
@@ -73,10 +73,7 @@ export function addMT5Import(userId: string, record: MT5ImportRecord): void {
 /**
  * Отримує конкретний імпорт за importId.
  */
-export function getMT5ImportById(
-  userId: string,
-  importId: string
-): MT5ImportRecord | undefined {
+export function getMT5ImportById(userId: string, importId: string): MT5ImportRecord | undefined {
   const imports = loadMT5Imports(userId);
   return imports.find((imp) => imp.importId === importId);
 }
@@ -120,21 +117,21 @@ export function createMT5ImportRecord(params: {
  */
 export function exportMT5ImportsToCSV(imports: MT5ImportRecord[]): string {
   const headers = [
-    'importId',
-    'importedAt',
-    'source',
-    'rawFileName',
-    'tradeId',
-    'symbol',
-    'type',
-    'status',
-    'entryPrice',
-    'closePrice',
-    'volume',
-    'result_usd',
-    'mt5TicketId',
-    'mt5Magic',
-    'mt5Comment',
+    "importId",
+    "importedAt",
+    "source",
+    "rawFileName",
+    "tradeId",
+    "symbol",
+    "type",
+    "status",
+    "entryPrice",
+    "closePrice",
+    "volume",
+    "result_usd",
+    "mt5TicketId",
+    "mt5Magic",
+    "mt5Comment",
   ];
 
   const rows: string[] = [];
@@ -145,22 +142,22 @@ export function exportMT5ImportsToCSV(imports: MT5ImportRecord[]): string {
         imp.importId,
         new Date(imp.importedAt).toISOString(),
         imp.source,
-        imp.rawFileName ?? '',
-        trade.id ?? '',
-        trade.symbol ?? '',
-        trade.type ?? '',
-        trade.status ?? '',
-        String(trade.entryPrice ?? ''),
-        String(trade.closePrice ?? ''),
-        String(trade.volume ?? ''),
-        String(trade.result_usd ?? ''),
-        String(trade.mt5TicketId ?? ''),
-        String(trade.mt5Magic ?? ''),
-        String(trade.mt5Comment ?? ''),
+        imp.rawFileName ?? "",
+        trade.id ?? "",
+        trade.symbol ?? "",
+        trade.type ?? "",
+        trade.status ?? "",
+        String(trade.entryPrice ?? ""),
+        String(trade.closePrice ?? ""),
+        String(trade.volume ?? ""),
+        String(trade.result_usd ?? ""),
+        String(trade.mt5TicketId ?? ""),
+        String(trade.mt5Magic ?? ""),
+        String(trade.mt5Comment ?? ""),
       ];
-      rows.push(row.join(','));
+      rows.push(row.join(","));
     }
   }
 
-  return [headers.join(','), ...rows].join('\n');
+  return [headers.join(","), ...rows].join("\n");
 }

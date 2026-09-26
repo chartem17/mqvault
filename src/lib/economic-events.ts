@@ -43,7 +43,16 @@ export type EconomicEvent = {
   marketRead?: EconomicMarketRead;
 };
 
-export type EconomicEventSnapshot = Pick<EconomicEvent, "actual" | "forecast" | "previous" | "revisedPrevious" | "actualText" | "forecastText" | "previousText"> & {
+export type EconomicEventSnapshot = Pick<
+  EconomicEvent,
+  | "actual"
+  | "forecast"
+  | "previous"
+  | "revisedPrevious"
+  | "actualText"
+  | "forecastText"
+  | "previousText"
+> & {
   eventId: string;
   capturedAt: string;
 };

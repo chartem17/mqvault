@@ -1,8 +1,8 @@
-import type { TradeFinancials } from './trade-financials';
+import type { TradeFinancials } from "./trade-financials";
 
-export type TradeType = 'BUY' | 'SELL';
-export type TradeStatus = 'OPEN' | 'CLOSED';
-export type TradeSource = 'MANUAL' | 'MT5_EXPORT';
+export type TradeType = "BUY" | "SELL";
+export type TradeStatus = "OPEN" | "CLOSED";
+export type TradeSource = "MANUAL" | "MT5_EXPORT";
 
 /**
  * Основний тип угоди з фінансовими полями та MT5-метаданими.
@@ -44,7 +44,7 @@ export interface Trade extends TradeFinancials {
 /**
  * Тип для форми створення/редагування угоди.
  */
-export type TradeInput = Omit<Partial<Trade>, 'id'>;
+export type TradeInput = Omit<Partial<Trade>, "id">;
 
 /**
  * Фільтри для списку угод.

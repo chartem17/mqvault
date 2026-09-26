@@ -1,7 +1,8 @@
 import type { AccountTrade } from "@/hooks/use-trades";
 import type { EconomicEvent, EconomicImpact } from "@/lib/economic-events";
 
-export type NewsRelation = "before_entry" | "near_entry" | "during_trade" | "near_exit" | "after_exit";
+export type NewsRelation =
+  "before_entry" | "near_entry" | "during_trade" | "near_exit" | "after_exit";
 export type ExposureScore = "none" | "low" | "medium" | "high";
 
 export type TradeNewsLink = {
@@ -43,7 +44,9 @@ function parseTradeDateTime(trade: AccountTrade) {
 }
 
 function parseCloseTime(trade: AccountTrade) {
-  const candidate = (trade as AccountTrade & { closedAt?: string; closedAtUtc?: string }).closedAtUtc ?? (trade as AccountTrade & { closedAt?: string }).closedAt;
+  const candidate =
+    (trade as AccountTrade & { closedAt?: string; closedAtUtc?: string }).closedAtUtc ??
+    (trade as AccountTrade & { closedAt?: string }).closedAt;
   if (!candidate) return null;
   const parsed = new Date(candidate);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
@@ -55,14 +58,21 @@ function eventMatchesTrade(trade: AccountTrade, event: EconomicEvent) {
   return assets.some((asset) => asset.toUpperCase() === pair);
 }
 
-export function getExposureScore(impact: EconomicImpact, overlapsRelease: boolean, relation: NewsRelation): ExposureScore {
+export function getExposureScore(
+  impact: EconomicImpact,
+  overlapsRelease: boolean,
+  relation: NewsRelation
+): ExposureScore {
   if (!overlapsRelease && relation === "after_exit") return "none";
   if (impact === "high" && overlapsRelease) return "high";
   if (impact === "high" || relation === "near_entry" || relation === "near_exit") return "medium";
   return "low";
 }
 
-export function buildTradeNewsLink(trade: AccountTrade, event: EconomicEvent): TradeNewsLink | null {
+export function buildTradeNewsLink(
+  trade: AccountTrade,
+  event: EconomicEvent
+): TradeNewsLink | null {
   const openedAt = parseTradeDateTime(trade);
   const releasedAt = new Date(event.scheduledAtUtc);
   if (!openedAt || Number.isNaN(releasedAt.getTime())) return null;
@@ -103,5 +113,9 @@ export function buildTradeNewsLink(trade: AccountTrade, event: EconomicEvent): T
 }
 
 export function buildTradeNewsLinks(trades: AccountTrade[], events: EconomicEvent[]) {
-  return trades.flatMap((trade) => events.map((event) => buildTradeNewsLink(trade, event)).filter((link): link is TradeNewsLink => link !== null));
+  return trades.flatMap((trade) =>
+    events
+      .map((event) => buildTradeNewsLink(trade, event))
+      .filter((link): link is TradeNewsLink => link !== null)
+  );
 }

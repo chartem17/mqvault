@@ -58,12 +58,15 @@ async function fetchBinanceBatch(items: WatchlistInstrument[]): Promise<MarketQu
   binanceInFlight = (async () => {
     try {
       const symbols = items.map((item) => item.providerSymbol);
-      const response = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(JSON.stringify(symbols))}`, {
-        cache: "no-store",
-        signal: AbortSignal.timeout(8_000),
-      });
+      const response = await fetch(
+        `https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(JSON.stringify(symbols))}`,
+        {
+          cache: "no-store",
+          signal: AbortSignal.timeout(8_000),
+        }
+      );
       if (!response.ok) throw new Error(`Binance HTTP ${response.status}`);
-      const payload = await response.json() as Array<Record<string, unknown>>;
+      const payload = (await response.json()) as Array<Record<string, unknown>>;
       const bySymbol = new Map(payload.map((quote) => [String(quote.symbol), quote]));
       const quotes = items.map((item) => {
         const data = bySymbol.get(item.providerSymbol);
@@ -83,7 +86,9 @@ async function fetchBinanceBatch(items: WatchlistInstrument[]): Promise<MarketQu
       binanceCache = { quotes, expiresAt: Date.now() + BINANCE_CACHE_MS };
       return quotes;
     } catch (error) {
-      return items.map((item) => unavailable(item, error instanceof Error ? error.message : "Binance unavailable"));
+      return items.map((item) =>
+        unavailable(item, error instanceof Error ? error.message : "Binance unavailable")
+      );
     } finally {
       binanceInFlight = null;
     }
@@ -93,11 +98,14 @@ async function fetchBinanceBatch(items: WatchlistInstrument[]): Promise<MarketQu
 }
 
 async function fetchTwelveBatch(items: WatchlistInstrument[]): Promise<MarketQuote[]> {
-  if (!twelveApiKey) return items.map((item) => unavailable(item, "TWELVE_DATA_API_KEY is not configured"));
+  if (!twelveApiKey)
+    return items.map((item) => unavailable(item, "TWELVE_DATA_API_KEY is not configured"));
   if (twelveCache && Date.now() < twelveCache.expiresAt) return twelveCache.quotes;
   if (Date.now() < twelveBlockedUntil) {
     const seconds = Math.ceil((twelveBlockedUntil - Date.now()) / 1_000);
-    return items.map((item) => unavailable(item, `Twelve Data rate limit: retrying automatically in ${seconds}s`));
+    return items.map((item) =>
+      unavailable(item, `Twelve Data rate limit: retrying automatically in ${seconds}s`)
+    );
   }
   if (twelveInFlight) return twelveInFlight;
 
@@ -111,21 +119,28 @@ async function fetchTwelveBatch(items: WatchlistInstrument[]): Promise<MarketQuo
 
       if (response.status === 429) {
         twelveBlockedUntil = Date.now() + TWELVE_RETRY_AFTER_429_MS;
-        throw new Error("Twelve Data HTTP 429 — rate limit reached; cached data will resume automatically");
+        throw new Error(
+          "Twelve Data HTTP 429 — rate limit reached; cached data will resume automatically"
+        );
       }
       if (!response.ok) throw new Error(`Twelve Data HTTP ${response.status}`);
 
-      const payload = await response.json() as Record<string, TwelveResponse> | TwelveResponse;
+      const payload = (await response.json()) as Record<string, TwelveResponse> | TwelveResponse;
       if ((payload as TwelveResponse).status === "error") {
-        throw new Error(String((payload as TwelveResponse).message ?? "Twelve Data rejected the request"));
+        throw new Error(
+          String((payload as TwelveResponse).message ?? "Twelve Data rejected the request")
+        );
       }
 
       const quotes = items.map((item) => {
-        const data = (payload as Record<string, TwelveResponse>)[item.providerSymbol] ??
+        const data =
+          (payload as Record<string, TwelveResponse>)[item.providerSymbol] ??
           (payload as Record<string, TwelveResponse>)[item.providerSymbol.replace("/", "")] ??
-          (items.length === 1 ? payload as TwelveResponse : undefined);
+          (items.length === 1 ? (payload as TwelveResponse) : undefined);
         if (!data || data.status === "error") {
-          const reason = data?.message ? String(data.message) : "Twelve Data returned no quote for this symbol";
+          const reason = data?.message
+            ? String(data.message)
+            : "Twelve Data returned no quote for this symbol";
           return unavailable(item, reason);
         }
         return quoteFromTwelve(item, data);
@@ -157,5 +172,7 @@ export async function fetchMarketQuotes(symbols?: string[]): Promise<MarketQuote
     twelveItems.length ? fetchTwelveBatch(twelveItems) : Promise.resolve([]),
   ]);
   const bySymbol = new Map([...binance, ...twelve].map((quote) => [quote.symbol, quote]));
-  return requested.map((item) => bySymbol.get(item.symbol) ?? unavailable(item, "Quote not returned"));
+  return requested.map(
+    (item) => bySymbol.get(item.symbol) ?? unavailable(item, "Quote not returned")
+  );
 }

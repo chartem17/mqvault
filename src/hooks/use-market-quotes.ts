@@ -12,7 +12,7 @@ export function useMarketQuotes(symbols?: string[], refreshMs = 15_000) {
       const params = symbols?.length ? `?symbols=${encodeURIComponent(symbols.join(","))}` : "";
       const response = await fetch(`/api/market/quotes${params}`, { cache: "no-store" });
       if (!response.ok) throw new Error(`Market API HTTP ${response.status}`);
-      const payload = await response.json() as { quotes: MarketQuote[]; generatedAt: number };
+      const payload = (await response.json()) as { quotes: MarketQuote[]; generatedAt: number };
       setQuotes(payload.quotes);
       setUpdatedAt(payload.generatedAt);
       setState(payload.quotes.some((quote) => quote.error) ? "degraded" : "ready");
@@ -20,6 +20,10 @@ export function useMarketQuotes(symbols?: string[], refreshMs = 15_000) {
       setState("error");
     }
   }, [symbols?.join(",")]);
-  useEffect(() => { load(); const timer = window.setInterval(load, refreshMs); return () => window.clearInterval(timer); }, [load, refreshMs]);
+  useEffect(() => {
+    load();
+    const timer = window.setInterval(load, refreshMs);
+    return () => window.clearInterval(timer);
+  }, [load, refreshMs]);
   return { quotes, state, updatedAt, refresh: load };
 }

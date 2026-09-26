@@ -15,9 +15,7 @@ export function computeAdvancedStats(trades: AccountTrade[]) {
 
   const winRate = trades.length ? wins.length / trades.length : 0;
   const lossRate = trades.length ? losses.length / trades.length : 0;
-  const avgWin = wins.length
-    ? wins.reduce((s, t) => s + (t.result_usd ?? 0), 0) / wins.length
-    : 0;
+  const avgWin = wins.length ? wins.reduce((s, t) => s + (t.result_usd ?? 0), 0) / wins.length : 0;
   const avgLoss = losses.length
     ? Math.abs(losses.reduce((s, t) => s + (t.result_usd ?? 0), 0)) / losses.length
     : 0;
@@ -55,7 +53,11 @@ export function computeAdvancedStats(trades: AccountTrade[]) {
       return r > lower && r <= upper;
     }).length;
     const label =
-      lower === -Infinity ? `<${upper}R` : upper === Infinity ? `>${lower}R` : `${lower}..${upper}R`;
+      lower === -Infinity
+        ? `<${upper}R`
+        : upper === Infinity
+          ? `>${lower}R`
+          : `${lower}..${upper}R`;
     rDistribution.push({ range: label, count });
   }
 

@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import { ruleLibrary } from "@/lib/strategy-control/rule-library";
-import type { ParamDefinition, RuleInstance, RuleType, StrategyProfile } from "@/lib/strategy-control/types";
+import type {
+  ParamDefinition,
+  RuleInstance,
+  RuleType,
+  StrategyProfile,
+} from "@/lib/strategy-control/types";
 
 type Props = {
   onSave: (strategy: StrategyProfile) => void;
@@ -54,7 +59,9 @@ function ParamField({
               <button
                 key={option}
                 type="button"
-                onClick={() => onChange(active ? selected.filter((v) => v !== option) : [...selected, option])}
+                onClick={() =>
+                  onChange(active ? selected.filter((v) => v !== option) : [...selected, option])
+                }
                 className={`rounded-full border px-3 py-1 text-xs transition ${
                   active
                     ? "border-blue-300/40 bg-blue-300/[0.14] text-blue-200"
@@ -83,7 +90,11 @@ export function StrategyBuilder({ onSave, onCancel }: Props) {
   };
 
   const updateParam = (ruleType: RuleType, key: string, value: unknown) => {
-    setRules((prev) => prev.map((r) => (r.ruleType === ruleType ? { ...r, params: { ...r.params, [key]: value } } : r)));
+    setRules((prev) =>
+      prev.map((r) =>
+        r.ruleType === ruleType ? { ...r, params: { ...r.params, [key]: value } } : r
+      )
+    );
   };
 
   const handleSave = () => {
@@ -139,10 +150,15 @@ export function StrategyBuilder({ onSave, onCancel }: Props) {
         {rules.map((rule) => {
           const definition = ruleLibrary[rule.ruleType];
           return (
-            <div key={rule.ruleType} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+            <div
+              key={rule.ruleType}
+              className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.1em] text-white/30">{categories[definition.category]}</p>
+                  <p className="text-[10px] uppercase tracking-[0.1em] text-white/30">
+                    {categories[definition.category]}
+                  </p>
                   <p className="mt-1 text-sm text-white">{definition.title}</p>
                   <p className="mt-1 text-xs text-white/40">{definition.description}</p>
                 </div>
@@ -174,7 +190,10 @@ export function StrategyBuilder({ onSave, onCancel }: Props) {
       </div>
 
       <div className="mt-5 flex justify-end gap-2">
-        <button onClick={onCancel} className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-xs text-white/60 hover:bg-white/[0.06]">
+        <button
+          onClick={onCancel}
+          className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-xs text-white/60 hover:bg-white/[0.06]"
+        >
           Скасувати
         </button>
         <button
