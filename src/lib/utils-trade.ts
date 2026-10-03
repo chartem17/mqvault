@@ -1,12 +1,54 @@
-import type { Trade } from "./trade-data";
+import type { JournalTrade } from "@/hooks/use-trades";
 
-export function computeStats(trades: Trade[]) {
-  const wins = trades.filter(t => t.result_usd > 0);
-  const losses = trades.filter(t => t.result_usd < 0);
-  const be = trades.filter(t => t.result_usd === 0);
-  const totalPnl = trades.reduce((s, t) => s + t.result_usd, 0);
-  const grossWin = wins.reduce((s, t) => s + t.result_usd, 0);
-  const grossLoss = Math.abs(losses.reduce((s, t) => s + t.result_usd, 0));
+function toNumber(value: unknown, fallback = 0) {
+  if (typeof value === "number")
+    return Number.isFinite(value) ? value : fallback;
+  if (typeof value === "string" && value.trim() !== "") {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  }
+  return fallback;
+}
+
+function toDate(value: string | null | undefined) {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function toMonthKey(value: string | null | undefined) {
+  const d = toDate(value);
+  if (!d) return null;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function toDateLabel(value: string | null | undefined) {
+  const d = toDate(value);
+  if (!d) return "";
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function toTimeLabel(value: string | null | undefined) {
+  const d = toDate(value);
+  if (!d) return "";
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+function sortByOpenedAt(a: JournalTrade, b: JournalTrade) {
+  return (a.opened_at ?? "").localeCompare(b.opened_at ?? "");
+}
+
+export function computeStats(trades: JournalTrade[]) {
+  const wins = trades.filter((t) => toNumber(t.net_pnl) > 0);
+  const losses = trades.filter((t) => toNumber(t.net_pnl) < 0);
+  const be = trades.filter((t) => toNumber(t.net_pnl) === 0);
+
+  const totalPnl = trades.reduce((s, t) => s + toNumber(t.net_pnl), 0);
+  const grossWin = wins.reduce((s, t) => s + toNumber(t.net_pnl), 0);
+  const grossLoss = Math.abs(
+    losses.reduce((s, t) => s + toNumber(t.net_pnl), 0),
+  );
+
   return {
     total: trades.length,
     wins: wins.length,
@@ -16,47 +58,65 @@ export function computeStats(trades: Trade[]) {
     totalPnl,
     avgWin: wins.length ? grossWin / wins.length : 0,
     avgLoss: losses.length ? -(grossLoss / losses.length) : 0,
-    avgR: trades.length ? trades.reduce((s, t) => s + t.result_r, 0) / trades.length : 0,
+    avgR: trades.length
+      ? trades.reduce((s, t) => s + toNumber(t.result_r), 0) / trades.length
+      : 0,
     profitFactor: grossLoss ? grossWin / grossLoss : 0,
-    bestTrade: trades.length ? Math.max(...trades.map(t => t.result_usd)) : 0,
-    worstTrade: trades.length ? Math.min(...trades.map(t => t.result_usd)) : 0,
+    bestTrade: trades.length
+      ? Math.max(...trades.map((t) => toNumber(t.net_pnl)))
+      : 0,
+    worstTrade: trades.length
+      ? Math.min(...trades.map((t) => toNumber(t.net_pnl)))
+      : 0,
   };
 }
 
-export function computeEquity(trades: Trade[]) {
-  const sorted = [...trades].sort((a, b) =>
-    `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`)
-  );
+export function computeEquity(trades: JournalTrade[]) {
+  const sorted = [...trades].sort(sortByOpenedAt);
 
   let cum = 0;
 
   return sorted.map((t, index) => {
-    cum += t.result_usd;
+    const tradePnl = toNumber(t.net_pnl);
+    cum += tradePnl;
 
     return {
       index,
-      date: t.date,
-      time: t.time,
-      pair: t.pair,
-      session: t.session,
-      emotion: t.emotion,
-      tradePnl: t.result_usd,
-      resultR: t.result_r,
+      date: toDateLabel(t.opened_at),
+      time: toTimeLabel(t.opened_at),
+      pair: t.symbol ?? "",
+      session: t.session ?? "",
+      emotion: t.emotion ?? "",
+      tradePnl,
+      resultR: toNumber(t.result_r),
       pnl: +cum.toFixed(2),
     };
   });
 }
 
-export function groupByKey<K extends keyof Trade>(trades: Trade[], key: K) {
-  const m: Record<string, { name: string; trades: number; pnl: number; wins: number }> = {};
-  trades.forEach(t => {
-    const k = String(t[key] || "—");
+export function groupByKey<K extends keyof JournalTrade>(
+  trades: JournalTrade[],
+  key: K,
+) {
+  const m: Record<
+    string,
+    { name: string; trades: number; pnl: number; wins: number }
+  > = {};
+
+  trades.forEach((t) => {
+    const raw = t[key];
+    const k = typeof raw === "string" && raw.trim() ? raw : "—";
+
     if (!m[k]) m[k] = { name: k, trades: 0, pnl: 0, wins: 0 };
+
+    const pnl = toNumber(t.net_pnl);
+
     m[k].trades++;
-    m[k].pnl += t.result_usd;
-    if (t.result_usd > 0) m[k].wins++;
+    m[k].pnl += pnl;
+    if (pnl > 0) m[k].wins++;
   });
-  return Object.values(m).map(x => ({
+
+  return Object.values(m).map((x) => ({
     name: x.name,
     trades: x.trades,
     pnl: +x.pnl.toFixed(2),
@@ -65,13 +125,18 @@ export function groupByKey<K extends keyof Trade>(trades: Trade[], key: K) {
   }));
 }
 
-export function computeMonthly(trades: Trade[]) {
+export function computeMonthly(trades: JournalTrade[]) {
   const m: Record<string, number> = {};
-  trades.forEach(t => {
-    const mo = t.date.slice(0, 7);
-    if (mo) m[mo] = (m[mo] || 0) + t.result_usd;
+
+  trades.forEach((t) => {
+    const mo = toMonthKey(t.opened_at);
+    if (!mo) return;
+    m[mo] = (m[mo] || 0) + toNumber(t.net_pnl);
   });
-  return Object.entries(m).sort((a, b) => a[0].localeCompare(b[0])).map(([month, pnl]) => ({ month, pnl: +pnl.toFixed(2) }));
+
+  return Object.entries(m)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([month, pnl]) => ({ month, pnl: +pnl.toFixed(2) }));
 }
 
 export const fmt = {

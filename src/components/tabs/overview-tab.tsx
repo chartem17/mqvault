@@ -1,29 +1,37 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
-import { Target, ShieldAlert, Wallet, Flag, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
-import { useTrades } from "@/hooks/use-trades";
-import { phaseLabel } from "@/lib/account-data";
-import { useMt5 } from "@/hooks/use-mt5";
+import { useCallback, useMemo, useState } from "react";
 import {
-  computeStats,
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+  Flag,
+  ShieldAlert,
+  Target,
+  Wallet,
+} from "lucide-react";
+
+import { useTrades, type JournalTrade } from "@/hooks/use-trades";
+import { phaseLabel, type TradingAccount } from "@/lib/account-data";
+import {
   computeEquity,
   computeMonthly,
-  groupByKey,
+  computeStats,
   fmt,
+  groupByKey,
 } from "@/lib/utils-trade";
+import { computeAdvancedStats, type RBucket } from "@/lib/advanced-stats";
 import { StatCard } from "@/components/ui/stat-card";
 import LightRays from "@/components/ui/light-rays";
 import { DrawdownPanel } from "@/components/ui/drawdown-panel";
 import { StreakStatCard } from "@/components/ui/streak-stat-card";
 import { SectionHeader } from "@/components/ui/section-header";
-import { computeAdvancedStats, type RBucket } from "@/lib/advanced-stats";
 import { RiskSummary } from "@/components/ui/risk-summary";
 
 type EqPoint = {
   date: string;
   time?: string;
-  pair?: string;
+  symbol?: string;
   session?: string;
   emotion?: string;
   tradePnl?: number;
@@ -31,12 +39,165 @@ type EqPoint = {
   pnl: number;
 };
 
+type CalendarTrade = {
+  date: string;
+  symbol?: string;
+  direction?: "Long" | "Short" | string;
+  net_pnl?: number;
+  result_r?: number;
+};
+
 const GREEN = "var(--color-green)";
 const RED = "var(--color-red)";
 const CARD = "rounded-2xl border border-white/10 bg-background";
 
-function EquityChart({ points, totalPnl }: { points: EqPoint[]; totalPnl: number }) {
-  const [hover, setHover] = useState<{ idx: number; px: number; py: number } | null>(null);
+function clampPercent(value: number) {
+  return Math.max(0, Math.min(100, value));
+}
+
+function AccountProgressCard({
+  activeAccount,
+  activeAccountId,
+  visibleTrades,
+}: {
+  activeAccount: TradingAccount | null;
+  activeAccountId: "all" | string;
+  visibleTrades: JournalTrade[];
+}) {
+  if (activeAccountId === "all" || !activeAccount) {
+    return (
+      <div className={`${CARD} relative overflow-hidden p-5`}>
+        <div className="pointer-events-none absolute inset-0 opacity-60">
+          <LightRays />
+        </div>
+
+        <div className="relative z-10">
+          <div className="text-sm font-medium text-white">
+            All accounts view
+          </div>
+          <div className="mt-1 text-sm text-white/60">
+            Combined statistics across all included accounts
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const totalPnl = visibleTrades.reduce(
+    (sum, trade) => sum + (trade.net_pnl ?? 0),
+    0,
+  );
+
+  const pnlPercent = activeAccount.initialBalance
+    ? (totalPnl / activeAccount.initialBalance) * 100
+    : 0;
+
+  const targetPercent = activeAccount.targetPercent ?? 0;
+  const maxLossPercent = activeAccount.maxLossPercent ?? 0;
+  const dailyLossPercent = activeAccount.dailyLossPercent ?? 0;
+
+  const targetProgress =
+    targetPercent > 0 ? clampPercent((pnlPercent / targetPercent) * 100) : 0;
+
+  const drawdownUsed =
+    maxLossPercent > 0
+      ? clampPercent((Math.abs(Math.min(pnlPercent, 0)) / maxLossPercent) * 100)
+      : 0;
+
+  const currentEquity = activeAccount.initialBalance + totalPnl;
+
+  return (
+    <div className={`${CARD} p-5`}>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="text-base font-semibold text-white">
+            {activeAccount.name}
+          </div>
+          <div className="mt-1 text-xs text-white/60">
+            {phaseLabel[activeAccount.phase]} · {activeAccount.broker || "—"} ·{" "}
+            {activeAccount.platform.toUpperCase()} · старт{" "}
+            {fmt.usd(activeAccount.initialBalance)}
+          </div>
+        </div>
+
+        <div className="text-right">
+          <div className="text-xs uppercase tracking-[0.18em] text-white/45">
+            Current equity
+          </div>
+          <div
+            className="mt-1 text-lg font-semibold"
+            style={{ color: totalPnl >= 0 ? GREEN : RED }}
+          >
+            {fmt.usd(currentEquity)}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-4 md:grid-cols-3">
+        <div>
+          <div className="mb-1 flex items-center justify-between text-xs text-white/55">
+            <span>Target progress</span>
+            <span>{targetPercent ? `of ${fmt.pct(targetPercent)}` : "—"}</span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-white/8">
+            <div
+              className="h-full rounded-full bg-[var(--color-green)]"
+              style={{ width: `${targetProgress}%` }}
+            />
+          </div>
+          <div className="mt-2 text-sm text-white">{fmt.pct(pnlPercent)}</div>
+        </div>
+
+        <div>
+          <div className="mb-1 flex items-center justify-between text-xs text-white/55">
+            <span>Max loss used</span>
+            <span>
+              {maxLossPercent ? `of ${fmt.pct(maxLossPercent)}` : "—"}
+            </span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-white/8">
+            <div
+              className="h-full rounded-full bg-[var(--color-red)]"
+              style={{ width: `${drawdownUsed}%` }}
+            />
+          </div>
+          <div className="mt-2 text-sm text-white">
+            {fmt.pct(Math.abs(Math.min(pnlPercent, 0)))}
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-1 flex items-center justify-between text-xs text-white/55">
+            <span>Daily limit</span>
+            <span>{dailyLossPercent ? fmt.pct(dailyLossPercent) : "—"}</span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-white/8">
+            <div
+              className="h-full rounded-full bg-white/30"
+              style={{ width: `${dailyLossPercent ? 100 : 0}%` }}
+            />
+          </div>
+          <div className="mt-2 text-sm text-white">
+            Trade count: {visibleTrades.length}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EquityChart({
+  points,
+  totalPnl,
+}: {
+  points: EqPoint[];
+  totalPnl: number;
+}) {
+  const [hover, setHover] = useState<{
+    idx: number;
+    px: number;
+    py: number;
+  } | null>(null);
 
   const W = 900;
   const H = 300;
@@ -46,11 +207,10 @@ function EquityChart({ points, totalPnl }: { points: EqPoint[]; totalPnl: number
   const PAD_B = 22;
 
   const eq = points.slice(-120);
-
   const chartW = W - PAD_L - PAD_R;
   const chartH = H - PAD_T - PAD_B;
 
- const pnlValues = eq.length > 0 ? eq.map((p) => p.pnl) : [0];
+  const pnlValues = eq.length > 0 ? eq.map((p) => p.pnl) : [0];
   const rawMin = Math.min(...pnlValues);
   const rawMax = Math.max(...pnlValues);
   const range = Math.max(rawMax - rawMin, 1);
@@ -78,6 +238,7 @@ function EquityChart({ points, totalPnl }: { points: EqPoint[]; totalPnl: number
 
   for (let i = 0; i < coords.length; i++) {
     const isPos = eq[i].pnl >= 0;
+
     if (!current || current.positive !== isPos) {
       if (current && i > 0) {
         const prev = coords[i - 1];
@@ -92,8 +253,10 @@ function EquityChart({ points, totalPnl }: { points: EqPoint[]; totalPnl: number
         current = { pts: [], positive: isPos };
       }
     }
+
     current.pts.push(coords[i]);
   }
+
   if (current) segments.push(current);
 
   const yTicks = 4;
@@ -102,28 +265,46 @@ function EquityChart({ points, totalPnl }: { points: EqPoint[]; totalPnl: number
     return { y: toY(val), val };
   });
 
-  const rawXLabelIndices = [0, Math.floor(eq.length / 3), Math.floor((eq.length * 2) / 3), eq.length - 1];
-  const xLabelIndices = Array.from(new Set(rawXLabelIndices)).filter((idx) => eq[idx]);
-  const xLabels = xLabelIndices.map((idx) => ({ x: toX(idx), label: eq[idx].date }));
+  const rawXLabelIndices = [
+    0,
+    Math.floor(eq.length / 3),
+    Math.floor((eq.length * 2) / 3),
+    eq.length - 1,
+  ];
+
+  const xLabelIndices = Array.from(new Set(rawXLabelIndices)).filter(
+    (idx) => eq[idx],
+  );
+
+  const xLabels = xLabelIndices.map((idx) => ({
+    x: toX(idx),
+    label: eq[idx].date,
+  }));
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<SVGSVGElement>) => {
       const rect = e.currentTarget.getBoundingClientRect();
       if (!rect || eq.length < 2) return;
+
       const mx = ((e.clientX - rect.left) / rect.width) * W;
       const idx = Math.round(((mx - PAD_L) / chartW) * (eq.length - 1));
       const clamped = Math.max(0, Math.min(eq.length - 1, idx));
-      setHover({ idx: clamped, px: toX(clamped), py: toY(eq[clamped].pnl) });
+
+      setHover({
+        idx: clamped,
+        px: toX(clamped),
+        py: toY(eq[clamped].pnl),
+      });
     },
-    [eq, chartW]
+    [eq, chartW],
   );
 
   const hoverPoint = hover !== null ? eq[hover.idx] : null;
 
   return (
-    <div className={`${CARD} flex flex-col h-full relative overflow-hidden`}>
+    <div className={`${CARD} relative overflow-hidden p-5`}>
       <div
-        className="absolute inset-0 pointer-events-none"
+        className="pointer-events-none absolute inset-0 opacity-100"
         style={{
           background:
             totalPnl >= 0
@@ -131,34 +312,59 @@ function EquityChart({ points, totalPnl }: { points: EqPoint[]; totalPnl: number
               : "radial-gradient(circle at 20% 0%, rgba(240,106,115,0.07), transparent 60%)",
         }}
       />
-      <div className="p-4 pb-2 flex items-center justify-between relative z-10">
+
+      <div className="relative z-10 mb-4 flex items-start justify-between gap-4">
         <div>
-          <div className="text-xs font-medium text-white/50 flex items-center gap-2">
-            P&amp;L <span className="text-white/70">Equity Curve</span>
+          <div className="text-sm font-medium text-white">
+            P&amp;L Equity Curve
           </div>
-          <div className="text-xl font-bold mt-0.5" style={{ color: totalPnl >= 0 ? GREEN : RED }}>
-            {fmt.usd(totalPnl)}
-          </div>
+          <div className="mt-1 text-xs text-white/55">{eq.length} точок</div>
         </div>
-        <div className="text-[11px] text-white/40">{eq.length} точок</div>
+
+        <div
+          className="text-right text-lg font-semibold"
+          style={{ color: totalPnl >= 0 ? GREEN : RED }}
+        >
+          {fmt.usd(totalPnl)}
+        </div>
       </div>
 
-      <div className="relative z-10 flex-1 min-h-0 px-4 pb-4">
+      <div className="relative">
         <svg
           viewBox={`0 0 ${W} ${H}`}
-          preserveAspectRatio="none"
-          className="w-full h-full"
+          className="h-[300px] w-full"
           onMouseMove={handleMouseMove}
           onMouseLeave={() => setHover(null)}
         >
           {yLabels.map((l, i) => (
-            <line key={i} x1={PAD_L} y1={l.y} x2={W - PAD_R} y2={l.y} stroke="rgba(255,255,255,0.06)" />
+            <line
+              key={i}
+              x1={PAD_L}
+              x2={W - PAD_R}
+              y1={l.y}
+              y2={l.y}
+              stroke="rgba(255,255,255,0.07)"
+              strokeDasharray={l.val === 0 ? "0" : "4 6"}
+            />
           ))}
 
           {segments.map((seg, si) => {
             if (seg.pts.length < 2) return null;
-            const areaPath = `${buildPath(seg.pts)} L${seg.pts[seg.pts.length - 1].x},${zeroY} L${seg.pts[0].x},${zeroY} Z`;
-            return <path key={`area-${si}`} d={areaPath} fill={seg.positive ? GREEN : RED} fillOpacity={0.18} />;
+            const areaPath = `${buildPath(seg.pts)} L${
+              seg.pts[seg.pts.length - 1].x
+            },${zeroY} L${seg.pts[0].x},${zeroY} Z`;
+
+            return (
+              <path
+                key={`area-${si}`}
+                d={areaPath}
+                fill={
+                  seg.positive
+                    ? "rgba(118,208,90,0.12)"
+                    : "rgba(240,106,115,0.12)"
+                }
+              />
+            );
           })}
 
           {segments.map((seg, si) => {
@@ -169,37 +375,69 @@ function EquityChart({ points, totalPnl }: { points: EqPoint[]; totalPnl: number
                 d={buildPath(seg.pts)}
                 fill="none"
                 stroke={seg.positive ? GREEN : RED}
-                strokeWidth={2}
-                vectorEffect="non-scaling-stroke"
+                strokeWidth="3"
+                strokeLinecap="round"
               />
             );
           })}
 
-          {hover && hoverPoint && (
+          {hover && hoverPoint ? (
             <>
-              <line x1={hover.px} y1={PAD_T} x2={hover.px} y2={H - PAD_B} stroke="rgba(255,255,255,0.15)" />
-              <circle cx={hover.px} cy={hover.py} r={4} fill="var(--background)" stroke={hoverPoint.pnl >= 0 ? GREEN : RED} strokeWidth="2" />
+              <line
+                x1={hover.px}
+                x2={hover.px}
+                y1={PAD_T}
+                y2={H - PAD_B}
+                stroke="rgba(255,255,255,0.22)"
+                strokeDasharray="4 5"
+              />
+              <circle
+                cx={hover.px}
+                cy={hover.py}
+                r="5"
+                fill="rgba(9,10,15,0.98)"
+                stroke={hoverPoint.pnl >= 0 ? GREEN : RED}
+                strokeWidth="2"
+              />
             </>
-          )}
+          ) : null}
 
           {yLabels.map((l, i) => (
-            <text key={i} x={W - PAD_R + 8} y={l.y + 4} fontSize="11" fill="rgba(255,255,255,0.4)">
-              {l.val === 0 ? "0" : l.val > 0 ? `+${Math.round(l.val)}` : `${Math.round(l.val)}`}
+            <text
+              key={`ylabel-${i}`}
+              x={W - PAD_R + 8}
+              y={l.y + 4}
+              fontSize="11"
+              fill="rgba(255,255,255,0.45)"
+            >
+              {l.val === 0
+                ? "0"
+                : l.val > 0
+                  ? `+${Math.round(l.val)}`
+                  : `${Math.round(l.val)}`}
             </text>
           ))}
 
           {xLabels.map((l, i) => (
-            <text key={i} x={l.x} y={H - 5} fontSize="11" fill="rgba(255,255,255,0.35)" textAnchor="middle">
+            <text
+              key={`xlabel-${i}`}
+              x={l.x}
+              y={H - 4}
+              textAnchor="middle"
+              fontSize="11"
+              fill="rgba(255,255,255,0.38)"
+            >
               {l.label}
             </text>
           ))}
         </svg>
 
-        {hover && hoverPoint && (
+        {hover && hoverPoint ? (
           <div
-            className="absolute rounded-lg p-2.5 text-xs z-20"
+            className="pointer-events-none absolute rounded-xl px-3 py-2 text-xs text-white"
             style={{
-              left: hover.px / W > 0.68 ? "auto" : `${(hover.px / W) * 100 + 1.5}%`,
+              left:
+                hover.px / W > 0.68 ? "auto" : `${(hover.px / W) * 100 + 1.5}%`,
               right: hover.px / W > 0.68 ? "36px" : "auto",
               top: "8px",
               background: "rgba(9,10,15,0.96)",
@@ -208,75 +446,80 @@ function EquityChart({ points, totalPnl }: { points: EqPoint[]; totalPnl: number
               minWidth: 148,
             }}
           >
-            <div className="text-white/50 mb-1">
+            <div className="font-medium text-white/95">
               {hoverPoint.date}
               {hoverPoint.time ? ` · ${hoverPoint.time}` : ""}
             </div>
-            <div className="flex justify-between mb-1">
-              <span className="text-white/50">P&amp;L</span>
-              <span style={{ color: hoverPoint.pnl >= 0 ? GREEN : RED }}>{fmt.usd(hoverPoint.pnl)}</span>
+
+            <div className="mt-1 flex items-center justify-between gap-4">
+              <span className="text-white/55">P&amp;L</span>
+              <span style={{ color: hoverPoint.pnl >= 0 ? GREEN : RED }}>
+                {fmt.usd(hoverPoint.pnl)}
+              </span>
             </div>
-            {(hoverPoint.pair || hoverPoint.session || hoverPoint.emotion || hoverPoint.tradePnl !== undefined) && (
-              <div className="space-y-1 pt-1 border-t border-white/10">
-                <div className="flex justify-between">
-                  <span className="text-white/40">Пара</span>
-                  <span>{hoverPoint.pair || "—"}</span>
+
+            {hoverPoint.symbol ||
+            hoverPoint.session ||
+            hoverPoint.emotion ||
+            hoverPoint.tradePnl !== undefined ? (
+              <div className="mt-2 space-y-1 border-t border-white/10 pt-2">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-white/55">Пара</span>
+                  <span>{hoverPoint.symbol || "—"}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-white/40">Сесія</span>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-white/55">Сесія</span>
                   <span>{hoverPoint.session || "—"}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-white/40">Емоція</span>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-white/55">Емоція</span>
                   <span>{hoverPoint.emotion || "—"}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-white/40">Trade P&amp;L</span>
-                  <span style={{ color: (hoverPoint.tradePnl ?? 0) >= 0 ? GREEN : RED }}>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-white/55">Trade P&amp;L</span>
+                  <span
+                    style={{
+                      color: (hoverPoint.tradePnl ?? 0) >= 0 ? GREEN : RED,
+                    }}
+                  >
                     {fmt.usd(hoverPoint.tradePnl ?? 0)}
                   </span>
                 </div>
               </div>
-            )}
+            ) : null}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
 }
 
-// =====================================================
-// TradesCalendar — цифра PnL під датою (замість крапки),
-// клік на день з угодами відкриває деталізацію: пара, напрямок, R, PnL
-// =====================================================
-type CalendarTrade = {
-  date: string;
-  pair?: string;
-  direction?: "Long" | "Short" | string;
-  result_usd?: number;
-  result_r?: number;
-};
-
 function TradesCalendar({ trades }: { trades: CalendarTrade[] }) {
   const [cursor, setCursor] = useState(() => new Date());
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
-  const monthLabel = cursor.toLocaleString("uk-UA", { month: "long", year: "numeric" });
-  const weekDays = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+  const monthLabel = cursor.toLocaleString("uk-UA", {
+    month: "long",
+    year: "numeric",
+  });
 
+  const weekDays = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
 
   const dayMap = useMemo(() => {
     const list = Array.isArray(trades) ? trades : [];
     const map: Record<string, { pnl: number; trades: CalendarTrade[] }> = {};
+
     for (const t of list) {
       const key = t.date;
       if (!key) continue;
+
       if (!map[key]) map[key] = { pnl: 0, trades: [] };
-      map[key].pnl += t.result_usd ?? 0;
+      map[key].pnl += t.net_pnl ?? 0;
       map[key].trades.push(t);
     }
+
     return map;
   }, [trades]);
 
@@ -288,163 +531,185 @@ function TradesCalendar({ trades }: { trades: CalendarTrade[] }) {
   for (let i = 0; i < 42; i++) {
     const d = new Date(startDate);
     d.setDate(startDate.getDate() + i);
-    days.push({ date: d, inMonth: d.getMonth() === month, key: d.toISOString().slice(0, 10) });
+
+    days.push({
+      date: d,
+      inMonth: d.getMonth() === month,
+      key: d.toISOString().slice(0, 10),
+    });
   }
 
   const today = new Date();
   const isToday = (d: Date) =>
-    d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
+    d.getFullYear() === today.getFullYear() &&
+    d.getMonth() === today.getMonth() &&
+    d.getDate() === today.getDate();
 
   const selectedDay = selectedKey ? dayMap[selectedKey] : null;
 
   return (
-    <div className={`${CARD} flex flex-col h-full relative overflow-hidden`}>
-      <div className="p-4 border-b border-white/10 flex items-center justify-between shrink-0">
-        <div className="text-xs font-medium text-white/80 flex items-center gap-2">
-          <CalendarIcon size={14} className="text-white/40" />
-          Trades Calendar
+    <div className={`${CARD} p-5`}>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <div className="text-sm font-medium text-white">Trades Calendar</div>
+          <div className="mt-1 text-xs text-white/55">
+            Натисни на день з угодами
+          </div>
         </div>
-        <div className="flex items-center gap-1">
+
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => { setCursor(new Date(year, month - 1, 1)); setSelectedKey(null); }}
-            className="p-1 rounded-md hover:bg-white/5 transition-colors text-white/50"
+            type="button"
+            onClick={() => {
+              setCursor(new Date(year, month - 1, 1));
+              setSelectedKey(null);
+            }}
+            className="rounded-md p-1 text-white/50 transition-colors hover:bg-white/5"
           >
-            <ChevronLeft size={14} />
+            <ChevronLeft className="h-4 w-4" />
           </button>
+
+          <div className="min-w-[140px] text-center text-sm text-white/80">
+            {monthLabel}
+          </div>
+
           <button
-            onClick={() => { setCursor(new Date(year, month + 1, 1)); setSelectedKey(null); }}
-            className="p-1 rounded-md hover:bg-white/5 transition-colors text-white/50"
+            type="button"
+            onClick={() => {
+              setCursor(new Date(year, month + 1, 1));
+              setSelectedKey(null);
+            }}
+            className="rounded-md p-1 text-white/50 transition-colors hover:bg-white/5"
           >
-            <ChevronRight size={14} />
+            <ChevronRight className="h-4 w-4" />
           </button>
         </div>
       </div>
 
-      <div className="p-4 flex-1 flex flex-col min-h-0">
-        <div className="text-xs font-medium text-center mb-2 text-white/90 capitalize shrink-0">{monthLabel}</div>
-
-        <div className="grid grid-cols-7 gap-1 text-center mb-1 shrink-0">
-          {weekDays.map((d) => (
-            <div key={d} className="text-[10px] font-medium text-white/40 py-0.5">
-              {d}
-            </div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-7 gap-1 flex-1 min-h-0" style={{ gridTemplateRows: "repeat(6, minmax(0, 1fr))" }}>
-          {days.map((day) => {
-            const info = dayMap[day.key];
-            const hasTrade = day.inMonth && !!info;
-            const isPos = hasTrade && info.pnl > 0;
-            const isNeg = hasTrade && info.pnl < 0;
-            const isSelected = selectedKey === day.key;
-
-            return (
-              <button
-                key={day.key}
-                type="button"
-                disabled={!hasTrade}
-                onClick={() => setSelectedKey(isSelected ? null : hasTrade ? day.key : null)}
-                className={`relative flex flex-col items-center justify-center rounded-md text-[11px] transition-colors py-1 ${
-                  !day.inMonth
-                    ? "text-white/20 cursor-default"
-                    : hasTrade
-                    ? "text-white/80 hover:bg-white/5 cursor-pointer"
-                    : "text-white/50 cursor-default"
-                } ${isToday(day.date) ? "font-bold" : ""} ${isSelected ? "bg-white/10" : ""}`}
-              >
-                {isToday(day.date) && (
-                  <div className="absolute inset-0 border rounded-md pointer-events-none" style={{ borderColor: "rgba(118,208,90,0.5)" }} />
-                )}
-                <span>{day.date.getDate()}</span>
-                {hasTrade && (
-                  <span
-                   className="text-[8px] font-semibold leading-none mt-0.5"
-                    style={{ color: isPos ? GREEN : isNeg ? RED : "rgba(255,255,255,0.5)" }}
-                  >
-                    {info.pnl >= 0 ? "+" : ""}
-                    {Math.abs(info.pnl) >= 1000 ? `${(info.pnl / 1000).toFixed(1)}k` : info.pnl.toFixed(0)}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+      <div className="grid grid-cols-7 gap-1 text-center text-[11px] text-white/35">
+        {weekDays.map((d) => (
+          <div key={d} className="py-1">
+            {d}
+          </div>
+        ))}
       </div>
 
-      <div className="px-4 pb-4 pt-2 border-t border-white/10 flex items-center gap-3 text-[11px] text-white/40 shrink-0">
-        <div className="flex items-center gap-1">
-          <span style={{ color: GREEN }}>+</span>
+      <div className="mt-1 grid grid-cols-7 gap-1">
+        {days.map((day) => {
+          const info = dayMap[day.key];
+          const hasTrade = day.inMonth && !!info;
+          const isSelected = selectedKey === day.key;
+
+          return (
+            <button
+              key={day.key}
+              type="button"
+              onClick={() =>
+                setSelectedKey(isSelected ? null : hasTrade ? day.key : null)
+              }
+              className={`relative flex min-h-[54px] flex-col items-center justify-center rounded-md py-1 text-[11px] transition-colors ${
+                !day.inMonth
+                  ? "cursor-default text-white/20"
+                  : hasTrade
+                    ? "cursor-pointer text-white/80 hover:bg-white/5"
+                    : "cursor-default text-white/50"
+              } ${isToday(day.date) ? "font-bold" : ""} ${
+                isSelected ? "bg-white/10" : ""
+              }`}
+            >
+              {isToday(day.date) ? (
+                <span className="absolute left-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-white/80" />
+              ) : null}
+
+              <span>{day.date.getDate()}</span>
+
+              {hasTrade ? (
+                <span
+                  className="mt-1 text-[10px]"
+                  style={{ color: info.pnl >= 0 ? GREEN : RED }}
+                >
+                  {info.pnl >= 0 ? "+" : ""}
+                  {Math.abs(info.pnl) >= 1000
+                    ? `${(info.pnl / 1000).toFixed(1)}k`
+                    : info.pnl.toFixed(0)}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-4 flex items-center gap-4 text-[11px] text-white/45">
+        <div className="flex items-center gap-1.5">
+          <span
+            className="h-2 w-2 rounded-full"
+            style={{ background: GREEN }}
+          />
           <span>Прибуток</span>
         </div>
-        <div className="flex items-center gap-1">
-          <span style={{ color: RED }}>−</span>
+        <div className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full" style={{ background: RED }} />
           <span>Збиток</span>
         </div>
-        <div className="flex items-center gap-1">
-          <div className="w-2.5 h-2.5 rounded-sm border" style={{ borderColor: "rgba(118,208,90,0.5)" }} />
+        <div className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-white/80" />
           <span>Сьогодні</span>
         </div>
       </div>
 
-      {selectedDay && (
-        <div
-          className="absolute z-30 rounded-xl p-3 text-xs"
-          style={{
-            top: "56px",
-            right: "16px",
-            left: "16px",
-            background: "rgba(9,10,15,0.98)",
-            border: "1px solid rgba(255,255,255,0.12)",
-            backdropFilter: "blur(16px)",
-            maxHeight: "70%",
-            overflowY: "auto",
-          }}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-white/60">{selectedKey}</div>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold" style={{ color: selectedDay.pnl >= 0 ? GREEN : RED }}>
-                {fmt.usd(selectedDay.pnl)}
-              </span>
-              <button
-                onClick={() => setSelectedKey(null)}
-                className="text-white/40 hover:text-white/70 transition-colors text-sm leading-none"
+      {selectedDay ? (
+        <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <div className="text-sm font-medium text-white">
+                {selectedKey}
+              </div>
+              <div
+                className="mt-1 text-xs"
+                style={{ color: selectedDay.pnl >= 0 ? GREEN : RED }}
               >
-                ×
-              </button>
+                {fmt.usd(selectedDay.pnl)}
+              </div>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setSelectedKey(null)}
+              className="text-sm leading-none text-white/40 transition-colors hover:text-white/70"
+            >
+              ×
+            </button>
           </div>
 
-          <div className="space-y-1.5">
-            {selectedDay.trades.map((t, i) => {
-              const isLong = t.direction === "Long";
-              const pnlPos = (t.result_usd ?? 0) >= 0;
-              return (
-                <div key={i} className="flex items-center justify-between border-t border-white/5 pt-1.5 first:border-t-0 first:pt-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-white/80">{t.pair || "—"}</span>
-                    <span
-                      className="px-1.5 py-0.5 rounded text-[10px] font-medium"
-                      style={
-                        isLong
-                          ? { background: "rgba(118,208,90,0.12)", color: GREEN }
-                          : { background: "rgba(240,106,115,0.12)", color: RED }
-                      }
-                    >
-                      {t.direction || "—"}
-                    </span>
+          <div className="space-y-2">
+            {selectedDay.trades.map((t, i) => (
+              <div
+                key={`${t.date}-${t.symbol}-${i}`}
+                className="flex items-center justify-between gap-3 rounded-lg border border-white/6 bg-white/[0.02] px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <div className="truncate text-sm text-white">
+                    {t.symbol || "—"}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-white/40">{t.result_r !== undefined ? `${t.result_r.toFixed(1)}R` : ""}</span>
-                    <span style={{ color: pnlPos ? GREEN : RED }}>{fmt.usd(t.result_usd ?? 0)}</span>
+                  <div className="text-xs text-white/45">
+                    {t.direction || "—"}{" "}
+                    {typeof t.result_r === "number"
+                      ? `· ${t.result_r.toFixed(1)}R`
+                      : ""}
                   </div>
                 </div>
-              );
-            })}
+
+                <div
+                  className="shrink-0 text-sm font-medium"
+                  style={{ color: (t.net_pnl ?? 0) >= 0 ? GREEN : RED }}
+                >
+                  {fmt.usd(t.net_pnl ?? 0)}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -452,111 +717,59 @@ function TradesCalendar({ trades }: { trades: CalendarTrade[] }) {
 function RDistributionChart({ buckets }: { buckets: RBucket[] }) {
   const max = Math.max(...buckets.map((b) => b.count), 1);
   const totalTrades = buckets.reduce((s, b) => s + b.count, 0);
-  const bestBucket = buckets.reduce((a, b) => (b.count > a.count ? b : a), buckets[0]);
+  const bestBucket =
+    buckets.length > 0
+      ? buckets.reduce((a, b) => (b.count > a.count ? b : a), buckets[0])
+      : null;
 
   return (
-    <div className={`${CARD} p-4 flex flex-col h-full`}>
-      <div className="flex items-center justify-between mb-3 shrink-0">
+    <div className={`${CARD} p-5`}>
+      <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <div className="text-[11px] uppercase tracking-wide text-white/50">R-Multiple розподіл</div>
-          <div className="text-lg font-semibold text-white">{totalTrades} угод</div>
+          <div className="text-sm font-medium text-white">
+            R-Multiple розподіл
+          </div>
+          <div className="mt-1 text-xs text-white/55">{totalTrades} угод</div>
         </div>
-        <div className="text-right text-[11px] text-white/40">
-          Найчастіше: <span className="text-white/80">{bestBucket?.range}</span>
+
+        <div className="text-right text-xs text-white/55">
+          Найчастіше: {bestBucket?.range ?? "—"}
         </div>
       </div>
-      <div className="mt-1">
-  <RiskSummary />
-</div>
 
-      <div className="flex items-end gap-2 flex-1 min-h-0">
+      <div className="flex h-48 items-end gap-2">
         {buckets.map((b) => {
-          const heightPct = Math.max((b.count / max) * 100, b.count > 0 ? 6 : 0);
-          const isNeg = b.range.trim().startsWith("<") || b.range.startsWith("-2") || b.range.startsWith("-1");
+          const heightPct = Math.max(
+            (b.count / max) * 100,
+            b.count > 0 ? 6 : 0,
+          );
+          const isNeg =
+            b.range.trim().startsWith("<") ||
+            b.range.startsWith("-2") ||
+            b.range.startsWith("-1");
+
           const color = isNeg ? RED : GREEN;
+
           return (
-            <div key={b.range} className="flex flex-col items-center flex-1 gap-1 h-full justify-end">
-              <span className="text-xs font-semibold" style={{ color }}>{b.count}</span>
-              <div className="w-full rounded-t-md transition-all" style={{ height: `${heightPct}%`, background: color, opacity: 0.85 }} />
-              <span className="text-[10px] text-white/50 mt-1">{b.range}</span>
+            <div
+              key={b.range}
+              className="flex flex-1 flex-col items-center gap-2"
+            >
+              <div className="text-[10px] text-white/45">{b.count}</div>
+              <div className="flex h-36 w-full items-end">
+                <div
+                  className="w-full rounded-t-md"
+                  style={{
+                    height: `${heightPct}%`,
+                    background: color,
+                    opacity: b.count > 0 ? 0.9 : 0.18,
+                  }}
+                />
+              </div>
+              <div className="text-[10px] text-white/55">{b.range}</div>
             </div>
           );
         })}
-      </div>
-    </div>
-  );
-}
-
-function clampPercent(value: number) {
-  return Math.max(0, Math.min(100, value));
-}
-
-function AccountProgressCard() {
-  const { activeAccount, activeAccountId, visibleTrades } = useTrades();
-
-  if (activeAccountId === "all" || !activeAccount) {
-    return (
-      <div className={`${CARD} p-4`}>
-        <div className="text-sm font-medium text-white/80">All accounts view</div>
-        <div className="text-xs text-white/40 mt-1">Combined statistics across all accounts</div>
-      </div>
-    );
-  }
-
-  const totalPnl = visibleTrades.reduce((sum, trade) => sum + (trade.result_usd ?? 0), 0);
-  const pnlPercent = activeAccount.initialBalance ? (totalPnl / activeAccount.initialBalance) * 100 : 0;
-
-  const targetPercent = activeAccount.targetPercent ?? 0;
-  const maxLossPercent = activeAccount.maxLossPercent ?? 0;
-  const dailyLossPercent = activeAccount.dailyLossPercent ?? 0;
-
-  const targetProgress = targetPercent > 0 ? clampPercent((pnlPercent / targetPercent) * 100) : 0;
-  const drawdownUsed = maxLossPercent > 0 ? clampPercent((Math.abs(Math.min(pnlPercent, 0)) / maxLossPercent) * 100) : 0;
-  const currentEquity = activeAccount.initialBalance + totalPnl;
-
-  return (
-    <div className={`${CARD} p-4`}>
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <div className="text-sm font-medium text-white/80 flex items-center gap-2">
-            <Wallet size={14} /> {activeAccount.name}
-          </div>
-          <div className="text-xs text-white/40 mt-1">{phaseLabel[activeAccount.phase]}</div>
-        </div>
-        <div className="text-xs text-white/40 text-right">
-          {activeAccount.broker} · {activeAccount.platform.toUpperCase()} · старт {fmt.usd(activeAccount.initialBalance)}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-        <div>
-          <div className="text-xs text-white/40">Current equity</div>
-          <div className="text-base font-semibold text-white">{fmt.usd(currentEquity)}</div>
-        </div>
-        <div>
-          <div className="text-xs text-white/40 flex items-center gap-1"><Target size={12} /> Target progress</div>
-          <div className="text-base font-semibold" style={{ color: GREEN }}>{fmt.pct(pnlPercent)}</div>
-          <div className="text-[10px] text-white/30">{targetPercent ? `of ${fmt.pct(targetPercent)}` : "—"}</div>
-        </div>
-        <div>
-          <div className="text-xs text-white/40 flex items-center gap-1"><ShieldAlert size={12} /> Max loss used</div>
-          <div className="text-base font-semibold" style={{ color: RED }}>{fmt.pct(Math.abs(Math.min(pnlPercent, 0)))}</div>
-          <div className="text-[10px] text-white/30">{maxLossPercent ? `of ${fmt.pct(maxLossPercent)}` : "—"}</div>
-        </div>
-        <div>
-          <div className="text-xs text-white/40 flex items-center gap-1"><Flag size={12} /> Daily limit</div>
-          <div className="text-base font-semibold text-white">{dailyLossPercent ? fmt.pct(dailyLossPercent) : "—"}</div>
-          <div className="text-[10px] text-white/30">Trade count: {visibleTrades.length}</div>
-        </div>
-      </div>
-
-      <div className="space-y-1.5">
-        <div className="w-full h-1.5 rounded-full bg-white/5 overflow-hidden">
-          <div className="h-full" style={{ width: `${targetProgress}%`, background: GREEN }} />
-        </div>
-        <div className="w-full h-1.5 rounded-full bg-white/5 overflow-hidden">
-          <div className="h-full" style={{ width: `${drawdownUsed}%`, background: RED }} />
-        </div>
       </div>
     </div>
   );
@@ -566,12 +779,20 @@ export function OverviewTab() {
   const { visibleTrades, activeAccount, activeAccountId } = useTrades();
 
   const stats = useMemo(() => computeStats(visibleTrades), [visibleTrades]);
-  const advanced = useMemo(() => computeAdvancedStats(visibleTrades), [visibleTrades]);
-  const equity = useMemo(() => computeEquity(visibleTrades) as EqPoint[], [visibleTrades]);
+  const advanced = useMemo(
+    () => computeAdvancedStats(visibleTrades),
+    [visibleTrades],
+  );
+  const equity = useMemo(
+    () => computeEquity(visibleTrades) as EqPoint[],
+    [visibleTrades],
+  );
   const monthly = useMemo(() => computeMonthly(visibleTrades), [visibleTrades]);
 
   const byPair = useMemo(() => {
-    return groupByKey(visibleTrades, "pair").sort((a, b) => b.pnl - a.pnl).slice(0, 8);
+    return groupByKey(visibleTrades, "symbol")
+      .sort((a, b) => b.pnl - a.pnl)
+      .slice(0, 8);
   }, [visibleTrades]);
 
   const bySession = useMemo(() => {
@@ -579,143 +800,270 @@ export function OverviewTab() {
   }, [visibleTrades]);
 
   const byEmotion = useMemo(() => {
-    return groupByKey(visibleTrades, "emotion").sort((a, b) => b.trades - a.trades);
+    return groupByKey(visibleTrades, "emotion").sort(
+      (a, b) => b.trades - a.trades,
+    );
   }, [visibleTrades]);
+
+  const calendarTrades = useMemo<CalendarTrade[]>(
+    () =>
+      visibleTrades.map((trade) => ({
+        date: String(trade.opened_at ?? "").slice(0, 10),
+        symbol: trade.symbol,
+        direction: trade.direction,
+        net_pnl: trade.net_pnl ?? 0,
+        result_r: trade.result_r ?? undefined,
+      })),
+    [visibleTrades],
+  );
 
   let overviewSubtitle = `${visibleTrades.length} угод · Combined view`;
   if (activeAccountId !== "all") {
     const accountName = activeAccount ? activeAccount.name : "Account";
-    const accountPhase = activeAccount ? phaseLabel[activeAccount.phase] : "Manual";
+    const accountPhase = activeAccount
+      ? phaseLabel[activeAccount.phase]
+      : "Manual";
+
     overviewSubtitle = `${visibleTrades.length} угод · ${accountName} · ${accountPhase}`;
   }
 
+  const monthlyAbsMax = Math.max(...monthly.map((x) => Math.abs(x.pnl)), 1);
+
   return (
-    <div className="relative isolate overflow-hidden max-w-[1400px] mx-auto rounded-2xl px-1 py-1">
-      <LightRays
-        raysOrigin="top-center"
-        raysColor="#36d7b6"
-        raysSpeed={0.52}
-        lightSpread={0.92}
-        rayLength={1.22}
-        followMouse
-        mouseInfluence={0.12}
-        noiseAmount={0.03}
-        distortion={0.02}
+    <div className="space-y-6 p-6">
+      <SectionHeader
+        title="Огляд рахунку"
+        subtitle={overviewSubtitle}
+        icon={CalendarIcon}
       />
-      <div className="relative z-10 flex flex-col gap-4">
-      <div>
-        <h1 className="text-lg font-semibold text-white">Огляд рахунку</h1>
-        <p className="text-xs text-white/40 mt-0.5">{overviewSubtitle}</p>
-      </div>
 
-      <AccountProgressCard />
+      <AccountProgressCard
+        activeAccount={activeAccount}
+        activeAccountId={activeAccountId}
+        visibleTrades={visibleTrades}
+      />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="ЗАГАЛЬНИЙ P&L"
+          title="Net P&L"
           value={fmt.usd(stats.totalPnl)}
-          hint={`${stats.wins}W / ${stats.losses}L / ${stats.breakeven}BE`}
-          valueClassName={stats.totalPnl >= 0 ? "text-[var(--color-green)]" : "text-[var(--color-red)]"}
+          icon={Wallet}
+          valueClassName={
+            stats.totalPnl >= 0
+              ? "text-[var(--color-green)]"
+              : "text-[var(--color-red)]"
+          }
         />
-        <StatCard label="WINRATE" value={fmt.pct(stats.winRate)} hint={`${stats.wins} виграшів`} />
         <StatCard
-          label="PROFIT FACTOR"
-          value={advanced.profitFactor === Infinity ? "∞" : advanced.profitFactor.toFixed(2)}
-          hint="Gross Profit / Gross Loss"
-          valueClassName={advanced.profitFactor >= 1 ? "text-[var(--color-green)]" : "text-[var(--color-red)]"}
+          title="Win rate"
+          value={fmt.pct(stats.winRate)}
+          icon={Target}
+          valueClassName={
+            stats.winRate >= 50
+              ? "text-[var(--color-green)]"
+              : "text-[var(--color-red)]"
+          }
         />
-        <StatCard label="AVG WIN / R" value={`+${stats.avgR?.toFixed(2) ?? "0.00"}R`} hint="Avg Win: R-multiple" />
-        <StatCard label="BEST TRADE" value={fmt.usd(stats.bestTrade)} valueClassName="text-[var(--color-green)]" />
-        <StatCard label="WORST TRADE" value={fmt.usd(stats.worstTrade)} valueClassName="text-[var(--color-red)]" />
-        <StreakStatCard />
         <StatCard
-          label="EXPECTANCY"
-          value={fmt.usd(advanced.expectancy)}
-          hint="Очікуваний $ на угоду"
-          valueClassName={advanced.expectancy >= 0 ? "text-[var(--color-green)]" : "text-[var(--color-red)]"}
+          title="Avg R"
+          value={fmt.r(stats.avgR)}
+          icon={Flag}
+          valueClassName={
+            stats.avgR >= 0
+              ? "text-[var(--color-green)]"
+              : "text-[var(--color-red)]"
+          }
+        />
+        <StatCard
+          title="Profit factor"
+          value={fmt.num(stats.profitFactor, 2)}
+          icon={ShieldAlert}
+          valueClassName={
+            stats.profitFactor >= 1
+              ? "text-[var(--color-green)]"
+              : "text-[var(--color-red)]"
+          }
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-stretch">
-        <div style={{ height: "clamp(320px, 38vh, 400px)" }} className="w-full">
-          <EquityChart points={equity} totalPnl={stats.totalPnl} />
-        </div>
-        <div style={{ height: "clamp(320px, 38vh, 400px)" }} className="w-full">
-          <TradesCalendar trades={visibleTrades} />
-        </div>
+      <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
+        <EquityChart points={equity} totalPnl={stats.totalPnl} />
+        <TradesCalendar trades={calendarTrades} />
       </div>
-        <DrawdownPanel />
-      <div style={{ height: "clamp(180px, 20vh, 220px)" }} className="w-full">
+
+      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <DrawdownPanel
+          equity={equity.map((point) => point.pnl)}
+          title="Drawdown"
+          subtitle="Поточна та максимальна просадка"
+        />
         <RDistributionChart buckets={advanced.rDistribution} />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className={`${CARD} p-3.5`}>
-          <SectionHeader title="Місячний P&L" />
-          <div className="space-y-1.5 mt-2">
-            {monthly.map((m) => {
-              const isPos = m.pnl >= 0;
-              const max = Math.max(...monthly.map((x) => Math.abs(x.pnl)), 1);
-              const width = (Math.abs(m.pnl) / max) * 100;
-              return (
-                <div key={m.month} className="flex items-center gap-2 text-xs">
-                  <span className="w-14 text-white/40">{m.month}</span>
-                  <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
-                    <div className="h-full" style={{ width: `${width}%`, background: isPos ? GREEN : RED }} />
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StreakStatCard
+          title="Best trade"
+          value={fmt.usd(stats.bestTrade)}
+          positive={stats.bestTrade >= 0}
+        />
+        <StreakStatCard
+          title="Worst trade"
+          value={fmt.usd(stats.worstTrade)}
+          positive={stats.worstTrade >= 0}
+        />
+        <StreakStatCard
+          title="Avg win"
+          value={fmt.usd(stats.avgWin)}
+          positive={stats.avgWin >= 0}
+        />
+        <StreakStatCard
+          title="Avg loss"
+          value={fmt.usd(stats.avgLoss)}
+          positive={stats.avgLoss >= 0}
+        />
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-3">
+        <div className={`${CARD} p-5`}>
+          <div className="mb-4 text-sm font-medium text-white">
+            Monthly P&amp;L
+          </div>
+
+          <div className="space-y-3">
+            {monthly.length ? (
+              monthly.map((m) => {
+                const isPos = m.pnl >= 0;
+                const width = (Math.abs(m.pnl) / monthlyAbsMax) * 100;
+
+                return (
+                  <div key={m.month} className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <span className="text-white/65">{m.month}</span>
+                      <span style={{ color: isPos ? GREEN : RED }}>
+                        {fmt.usd(m.pnl)}
+                      </span>
+                    </div>
+
+                    <div className="h-2 overflow-hidden rounded-full bg-white/8">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${width}%`,
+                          background: isPos ? GREEN : RED,
+                        }}
+                      />
+                    </div>
                   </div>
-                  <span style={{ color: isPos ? GREEN : RED }} className="w-14 text-right">
-                    {fmt.usd(m.pnl)}
-                  </span>
+                );
+              })
+            ) : (
+              <div className="text-sm text-white/45">Немає даних.</div>
+            )}
+          </div>
+        </div>
+
+        <div className={`${CARD} p-5`}>
+          <div className="mb-4 text-sm font-medium text-white">Top symbols</div>
+
+          <div className="space-y-3">
+            {byPair.length ? (
+              byPair.map((item) => (
+                <div
+                  key={item.name}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-white/6 bg-white/[0.02] px-3 py-2.5"
+                >
+                  <div className="min-w-0">
+                    <div className="truncate text-sm text-white">
+                      {item.name || "—"}
+                    </div>
+                    <div className="text-xs text-white/45">
+                      {item.trades} trades · WR {fmt.pct(item.winRate)}
+                    </div>
+                  </div>
+
+                  <div
+                    className="shrink-0 text-sm font-medium"
+                    style={{ color: item.pnl >= 0 ? GREEN : RED }}
+                  >
+                    {fmt.usd(item.pnl)}
+                  </div>
                 </div>
-              );
-            })}
+              ))
+            ) : (
+              <div className="text-sm text-white/45">Немає даних.</div>
+            )}
           </div>
         </div>
-        <div className={`${CARD} p-3.5`}>
-          <SectionHeader title="По парам" />
-          <div className="space-y-1.5 mt-2">
-            {byPair.map((item) => (
-              <div key={item.name} className="flex items-center justify-between text-xs">
-                <span className="text-white/70 font-mono">{item.name || "—"}</span>
-                <span className="text-white/40">{item.trades}</span>
-                <span style={{ color: item.pnl >= 0 ? GREEN : RED }}>{fmt.usd(item.pnl)}</span>
-                <span className="text-white/40">{fmt.pct(item.winRate)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className={`${CARD} p-3.5`}>
-          <SectionHeader title="По сесіях" />
-          <div className="flex flex-wrap gap-1.5 mt-2">
-            {bySession.map((item) => (
-              <div
-                key={item.name || "unknown"}
-                className="px-2.5 py-1 rounded-lg border text-xs font-medium"
-                style={
-                  item.pnl >= 0
-                    ? { borderColor: "rgba(118,208,90,0.25)", background: "rgba(118,208,90,0.10)", color: GREEN }
-                    : { borderColor: "rgba(240,106,115,0.25)", background: "rgba(240,106,115,0.10)", color: RED }
-                }
-              >
-                {item.name || "—"} · {item.trades} угод · {fmt.usd(item.pnl)} · WR {fmt.pct(item.winRate)}
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className={`${CARD} p-3.5`}>
-          <SectionHeader title="Емоції vs P&L" />
-          <div className="space-y-1.5 mt-2">
-            {byEmotion.map((item) => (
-              <div key={item.name} className="flex items-center justify-between text-xs">
-                <span className="text-white/70">{item.name || "—"}</span>
-                <span className="text-white/40">{item.trades} угод</span>
-                <span style={{ color: item.pnl >= 0 ? GREEN : RED }}>{fmt.usd(item.pnl)}</span>
-              </div>
-            ))}
+
+        <div className={`${CARD} p-5`}>
+          <div className="mb-4 text-sm font-medium text-white">Sessions</div>
+
+          <div className="flex flex-wrap gap-2">
+            {bySession.length ? (
+              bySession.map((item) => (
+                <div
+                  key={item.name}
+                  className="rounded-full border px-3 py-1.5 text-xs"
+                  style={
+                    item.pnl >= 0
+                      ? {
+                          borderColor: "rgba(118,208,90,0.25)",
+                          background: "rgba(118,208,90,0.10)",
+                          color: GREEN,
+                        }
+                      : {
+                          borderColor: "rgba(240,106,115,0.25)",
+                          background: "rgba(240,106,115,0.10)",
+                          color: RED,
+                        }
+                  }
+                >
+                  {item.name || "—"} · {item.trades} угод · {fmt.usd(item.pnl)}{" "}
+                  · WR {fmt.pct(item.winRate)}
+                </div>
+              ))
+            ) : (
+              <div className="text-sm text-white/45">Немає даних.</div>
+            )}
           </div>
         </div>
       </div>
+
+      <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <RiskSummary stats={advanced} />
+
+        <div className={`${CARD} p-5`}>
+          <div className="mb-4 text-sm font-medium text-white">Emotions</div>
+
+          <div className="space-y-3">
+            {byEmotion.length ? (
+              byEmotion.map((item) => (
+                <div
+                  key={item.name}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-white/6 bg-white/[0.02] px-3 py-2.5"
+                >
+                  <div className="min-w-0">
+                    <div className="truncate text-sm text-white">
+                      {item.name || "—"}
+                    </div>
+                    <div className="text-xs text-white/45">
+                      {item.trades} угод
+                    </div>
+                  </div>
+
+                  <div
+                    className="shrink-0 text-sm font-medium"
+                    style={{ color: item.pnl >= 0 ? GREEN : RED }}
+                  >
+                    {fmt.usd(item.pnl)}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-sm text-white/45">Немає даних.</div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
