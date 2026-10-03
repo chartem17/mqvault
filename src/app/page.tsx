@@ -8,19 +8,31 @@ import { CalendarTab } from "@/components/tabs/calendar-tab";
 import { NewsTab } from "@/components/tabs/news-tab";
 import { ScreenshotsTab } from "@/components/tabs/screenshots-tab";
 
-export type TabId = "overview" | "journal" | "market" | "calendar" | "news" | "screenshots";
+export type TabId =
+  | "overview"
+  | "journal"
+  | "market"
+  | "calendar"
+  | "news"
+  | "screenshots";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
 
   const renderTab = () => {
     switch (activeTab) {
-      case "overview": return <OverviewTab />;
-      case "journal": return <JournalTab />;
-      case "market": return <MarketTab />;
-      case "calendar": return <CalendarTab />;
-      case "news": return <NewsTab />;
-      case "screenshots": return <ScreenshotsTab />;
+      case "overview":
+        return <OverviewTab />;
+      case "journal":
+        return <JournalTab />;
+      case "market":
+        return <MarketTab />;
+      case "calendar":
+        return <CalendarTab />;
+      case "news":
+        return <NewsTab />;
+      case "screenshots":
+        return <ScreenshotsTab />;
     }
   };
 

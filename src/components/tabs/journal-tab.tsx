@@ -1,82 +1,393 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { useTrades, type AccountTrade } from "@/hooks/use-trades";
-import { fmt } from "@/lib/utils-trade";
-import GlideSelect from "@/components/ui/glide-select";
-import { AlertTriangle, ChevronDown, ExternalLink, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Pencil, Plus, Search, Trash2, X } from "lucide-react";
 
-const ASSETS = [
-  { symbol: "BTC/USDT", market: "Crypto" }, { symbol: "ETH/USDT", market: "Crypto" }, { symbol: "EUR/USD", market: "Forex" }, { symbol: "GBP/USD", market: "Forex" }, { symbol: "XAU/USD", market: "Commodities" }, { symbol: "XAG/USD", market: "Commodities" }, { symbol: "US30", market: "Index" }, { symbol: "GER40", market: "Index" },
-] as const;
+import { ManualTradeModal } from "@/components/journal/manual-trade-modal";
+import {
+  useTrades,
+  type JournalTrade,
+  type TradeInput,
+  type UpdateTradeInput,
+} from "@/hooks/use-trades";
+import { fmt } from "@/lib/utils-trade";
+
 const MARKETS = ["Forex", "Crypto", "Commodities", "Index"] as const;
 const SESSIONS = ["Asia", "London", "NY", "Overlap"] as const;
+
 const POS = "var(--color-green)";
 const NEG = "var(--color-red)";
 const POS_BG = "color-mix(in srgb, var(--color-green) 14%, transparent)";
 const NEG_BG = "color-mix(in srgb, var(--color-red) 14%, transparent)";
-const UNDO_MS = 6000;
-type FormTrade = Omit<AccountTrade, "id">;
-type RequiredField = "date" | "time" | "pair" | "direction" | "entry" | "exit_price";
-type FormErrors = Partial<Record<RequiredField, string>>;
-const FIELD_NAMES: Record<RequiredField, string> = { date: "Date", time: "Time", pair: "Pair", direction: "Direction", entry: "Entry", exit_price: "Exit" };
-const shakeStyle: CSSProperties = { animation: "trade-ticket-shake 380ms ease-in-out" };
-const EMPTY: FormTrade = { accountId: "manual", source: "manual", date: "", time: "", openedAtUtc: undefined, closedAtUtc: undefined, pair: "", market: "", direction: "" as "Long" | "Short", entry: "", stop: "", tp: "", exit_price: "", risk_pct: "" as never, result_usd: "" as never, result_r: 0, session: "", setup: "", htf_bias: "", entry_reason: "", exit_reason: "", emotion: "", mistake: "", screenshot: "", notes: "" };
-function marketFor(pair: string) { return ASSETS.find((asset) => asset.symbol === pair)?.market ?? ""; }
-function sessionFor(time: string) { if (!time.includes(":")) return ""; const [h, m] = time.split(":").map(Number); if (Number.isNaN(h) || Number.isNaN(m)) return ""; const total = h * 60 + m; if (total < 8 * 60) return "Asia"; if (total < 13 * 60) return "London"; if (total < 17 * 60) return "Overlap"; return "NY"; }
-function formatAt(iso?: string, fallbackDate?: string, fallbackTime?: string) { const raw = iso ?? (fallbackDate && fallbackTime ? `${fallbackDate}T${fallbackTime}` : ""); const date = new Date(raw); if (Number.isNaN(date.getTime())) return "—"; const pad = (value: number) => String(value).padStart(2, "0"); return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`; }
-function datePart(iso?: string) { return iso ? iso.slice(0, 10) : ""; }
-function timePart(iso?: string) { return iso ? iso.slice(11, 16) : ""; }
 
-function UndoRing({ durationMs }: { durationMs: number }) {
-  const [progress, setProgress] = useState(1);
-  useEffect(() => {
-    const start = Date.now();
-    const id = window.setInterval(() => {
-      const elapsed = Date.now() - start;
-      const left = Math.max(0, 1 - elapsed / durationMs);
-      setProgress(left);
-      if (left <= 0) window.clearInterval(id);
-    }, 50);
-    return () => window.clearInterval(id);
-  }, [durationMs]);
-  const radius = 9;
-  const circumference = 2 * Math.PI * radius;
-  return (
-    <svg width="22" height="22" viewBox="0 0 22 22" className="shrink-0" style={{ transform: "rotate(-90deg)" }}>
-      <circle cx="11" cy="11" r={radius} stroke="rgba(255,255,255,.14)" strokeWidth="2.5" fill="none" />
-      <circle cx="11" cy="11" r={radius} stroke={POS} strokeWidth="2.5" fill="none" strokeDasharray={circumference} strokeDashoffset={circumference * (1 - progress)} strokeLinecap="round" style={{ transition: "stroke-dashoffset 50ms linear" }} />
-    </svg>
-  );
+function formatDateTime(value?: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString();
+}
+
+function matchesSearch(trade: JournalTrade, query: string) {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+
+  return [
+    trade.opened_at,
+    trade.closed_at,
+    trade.symbol,
+    trade.market,
+    trade.direction,
+    trade.session,
+    trade.setup,
+    trade.emotion,
+    trade.notes,
+    trade.account_id,
+    trade.entry_reason,
+    trade.exit_reason,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .includes(q);
+}
+
+function sortTrades(a: JournalTrade, b: JournalTrade) {
+  const aTime = new Date(a.opened_at).getTime();
+  const bTime = new Date(b.opened_at).getTime();
+
+  if (Number.isNaN(aTime) && Number.isNaN(bTime)) return 0;
+  if (Number.isNaN(aTime)) return 1;
+  if (Number.isNaN(bTime)) return -1;
+
+  return bTime - aTime;
+}
+
+function openAt(trade: JournalTrade) {
+  return formatDateTime(trade.opened_at);
+}
+
+function closeAt(trade: JournalTrade) {
+  return formatDateTime(trade.closed_at);
 }
 
 export function JournalTab() {
-  const { visibleTrades: trades, accounts, activeAccountId, activeAccount, addTrade, updateTrade, deleteTrade } = useTrades();
-  const [search, setSearch] = useState(""); const [filterMarket, setFilterMarket] = useState("All"); const [filterSession, setFilterSession] = useState("All");
-  const [showForm, setShowForm] = useState(false); const [editing, setEditing] = useState<AccountTrade | null>(null); const [form, setForm] = useState<FormTrade>(EMPTY); const [errors, setErrors] = useState<FormErrors>({}); const [warningFields, setWarningFields] = useState<Set<"risk_pct" | "result_usd">>(new Set()); const [submitError, setSubmitError] = useState<string | null>(null); const [shakeSubmit, setShakeSubmit] = useState(false);
-  const [pairQuery, setPairQuery] = useState(""); const [pairOpen, setPairOpen] = useState(false); const [confirmDelete, setConfirmDelete] = useState<AccountTrade | null>(null); const [pendingDelete, setPendingDelete] = useState<AccountTrade | null>(null); const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
-  const filtered = useMemo(() => trades.filter((trade) => { if (pendingDelete && trade.id === pendingDelete.id) return false; const q = search.trim().toLowerCase(); const matchesSearch = !q || [trade.pair, trade.date, trade.setup, trade.notes, trade.accountId].join(" ").toLowerCase().includes(q); return (filterMarket === "All" || trade.market === filterMarket) && (filterSession === "All" || trade.session === filterSession) && matchesSearch; }).sort((a, b) => `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`)), [trades, search, filterMarket, filterSession, pendingDelete]);
-  const matchingAssets = useMemo(() => { const q = pairQuery.toLowerCase(); return ASSETS.filter((asset) => !q || `${asset.symbol} ${asset.market}`.toLowerCase().includes(q)); }, [pairQuery]);
-  function accountName(id: string) { return accounts.find((account) => account.id === id)?.name ?? "Unknown"; }
-  function openAdd() { setEditing(null); setForm({ ...EMPTY, accountId: activeAccountId === "all" ? "manual" : activeAccountId, source: "manual" }); setPairQuery(""); setPairOpen(false); setErrors({}); setWarningFields(new Set()); setSubmitError(null); setShakeSubmit(false); setShowForm(true); }
-  function openEdit(trade: AccountTrade) { setEditing(trade); setForm({ ...trade }); setPairQuery(trade.pair); setPairOpen(false); setErrors({}); setWarningFields(new Set()); setSubmitError(null); setShakeSubmit(false); setShowForm(true); }
-  function closeForm() { setShowForm(false); setEditing(null); setPairOpen(false); setErrors({}); setWarningFields(new Set()); setSubmitError(null); setShakeSubmit(false); }
-  function choosePair(pair: string) { setForm((previous) => ({ ...previous, pair, market: marketFor(pair) || previous.market })); setPairQuery(pair); setPairOpen(false); }
-  function changeTime(time: string) { setForm((previous) => ({ ...previous, time, session: sessionFor(time) || previous.session })); }
-  function setClosedDate(value: string) { setForm((previous) => { const time = timePart(previous.closedAtUtc) || previous.time || "00:00"; return { ...previous, closedAtUtc: value ? `${value}T${time}:00` : undefined }; }); }
-  function setClosedTime(value: string) { setForm((previous) => { const date = datePart(previous.closedAtUtc) || previous.date; return { ...previous, closedAtUtc: date && value ? `${date}T${value}:00` : previous.closedAtUtc }; }); }
-  function save() { const next: FormErrors = {}; if (!form.date.trim()) next.date = "Обов’язкове поле"; if (!form.time.trim()) next.time = "Обов’язкове поле"; if (!form.pair.trim()) next.pair = "Обов’язкове поле"; if (form.direction !== "Long" && form.direction !== "Short") next.direction = "Обери Long або Short"; if (!form.entry.trim() || Number(form.entry) <= 0) next.entry = "Вкажи ціну входу"; if (!form.exit_price.trim() || Number(form.exit_price) <= 0) next.exit_price = "Вкажи ціну виходу"; const warnings = new Set<"risk_pct" | "result_usd">(); if (!String(form.risk_pct).trim() || Number(form.risk_pct) <= 0) warnings.add("risk_pct"); if (!String(form.result_usd).trim()) warnings.add("result_usd"); setWarningFields(warnings); if (Object.keys(next).length) { setErrors(next); setSubmitError(`Заповни: ${Object.keys(next).map((key) => FIELD_NAMES[key as RequiredField]).join(", ")}.`); setShakeSubmit(true); window.setTimeout(() => setShakeSubmit(false), 400); const first = Object.keys(next)[0]; window.setTimeout(() => document.querySelector<HTMLElement>(`[data-trade-field="${first}"]`)?.focus(), 0); return; } const openedAtUtc = form.openedAtUtc || (form.date && form.time ? `${form.date}T${form.time}:00` : undefined); const payload: FormTrade = { ...form, openedAtUtc, market: form.market || marketFor(form.pair) || "Forex", session: form.session || sessionFor(form.time) || "London", risk_pct: Number(form.risk_pct) || 0, result_usd: Number(form.result_usd) || 0, result_r: Number(form.result_r) || 0 }; if (editing) updateTrade({ ...payload, id: editing.id }); else addTrade(payload); closeForm(); }
-  function remove() { if (!confirmDelete) return; const trade = confirmDelete; setConfirmDelete(null); if (timer.current) clearTimeout(timer.current); setPendingDelete(trade); timer.current = setTimeout(() => { deleteTrade(trade.id); setPendingDelete(null); }, UNDO_MS); }
-  function undo() { if (timer.current) clearTimeout(timer.current); setPendingDelete(null); }
-  function setField<K extends keyof FormTrade>(key: K, value: FormTrade[K]) { setForm((previous) => ({ ...previous, [key]: value })); setErrors((previous) => { const next = { ...previous }; delete next[key as RequiredField]; return next; }); if (key === "risk_pct" || key === "result_usd") setWarningFields((previous) => { const next = new Set(previous); next.delete(key); return next; }); }
-  function input(key: keyof FormTrade, label: string, type = "text") { const error = errors[key as RequiredField]; const warning = warningFields.has(key as "risk_pct" | "result_usd"); return <label className="flex flex-col gap-1"><span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">{label}</span><input data-trade-field={key} type={type} value={String(form[key] ?? "")} onChange={(event) => setField(key, event.target.value as never)} className={`modern-control text-sm transition ${error ? "border-red-400/80 bg-red-500/[.07] focus:ring-red-400" : warning ? "border-amber-300/70 bg-amber-400/[.06] focus:ring-amber-300" : ""}`} />{error && <span className="text-[11px] text-red-300">{error}</span>}{warning && <span className="text-[11px] text-amber-200/90">Необов’язково, але потрібно для точної аналітики</span>}</label>; }
-  function select(key: keyof FormTrade, label: string, values: readonly string[]) { const error = errors[key as RequiredField]; return <label className="flex flex-col gap-1 min-w-0 relative"><span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">{label}</span><GlideSelect className={`w-full ${error ? "glide-select--error" : ""}`} options={values.map((value) => ({ value, label: value || "— Обери —" }))} value={String(form[key] ?? "")} onChange={(value) => setField(key, value as never)} placeholder="— Обери —" showTags={false} surfaceColor="#111817" highlightColor="#1b2b28" textColor="#e8f0ed" accentColor="#33d6ba" size="lg" radius={10} menuWidth={240} ariaLabel={label} />{error && <span className="text-[11px] text-red-300">{error}</span>}</label>; }
-  const accountOptions = useMemo(() => accounts.map((account) => ({ value: account.id, label: account.name })), [accounts]);
-  return <div className="p-6 space-y-4"><style>{`@keyframes trade-ticket-shake {0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-3px)}}
-    .modern-control { min-height: 40px; width: 100%; border: 1px solid rgba(255,255,255,.10); border-radius: 10px; background: rgba(0,0,0,.20); color: inherit; padding: 0 12px; outline: none; color-scheme: dark; font-size: 0.8125rem; }
-    .modern-control:focus { border-color: color-mix(in srgb, var(--primary) 70%, transparent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent); }
-    .modern-select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%); background-position: calc(100% - 17px) 17px, calc(100% - 12px) 17px; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 32px; }
-    @keyframes toast-in { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
-  `}</style><div className="flex flex-wrap items-center justify-between gap-4"><div><h1 className="text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>{activeAccount ? activeAccount.name : "All accounts · Journal"}</h1><p className="text-xs text-muted-foreground mt-0.5">{filtered.length} з {trades.length} угод{activeAccount ? ` · ${activeAccount.phase.replace("-", " ")}` : " · Combined view"}</p></div><button onClick={openAdd} className="flex items-center gap-1.5 bg-primary text-primary-foreground rounded-lg px-3 py-2 text-sm font-medium"><Plus className="w-4 h-4" />Нова угода</button></div><div className="flex flex-wrap gap-2"><div className="flex items-center gap-2 bg-secondary/60 border border-border rounded-lg px-3 py-1.5 flex-1 min-w-[180px]"><Search className="w-3.5 h-3.5 text-muted-foreground" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Пошук угоди" className="bg-transparent text-sm flex-1 outline-none" />{search && <button onClick={() => setSearch("")}><X className="w-3.5 h-3.5" /></button>}</div>{["All", ...MARKETS].map((value) => <button key={value} onClick={() => setFilterMarket(value)} className={`px-3 py-1.5 rounded-lg text-xs border ${filterMarket === value ? "bg-primary/10 text-primary border-primary/20" : "bg-secondary/60 border-border text-muted-foreground"}`}>{value}</button>)}{["All", ...SESSIONS].map((value) => <button key={value} onClick={() => setFilterSession(value)} className={`px-3 py-1.5 rounded-lg text-xs border ${filterSession === value ? "bg-primary/10 text-primary border-primary/20" : "bg-secondary/60 border-border text-muted-foreground"}`}>{value}</button>)}</div><div className="bg-card rounded-xl border border-border overflow-x-auto"><table className="w-full table-fixed text-xs"><colgroup><col className="w-[140px]" /><col className="w-[140px]" /><col className="w-[110px]" /><col className="w-[100px]" /><col className="w-[90px]" /><col className="w-[60px]" /><col className="w-[85px]" /><col className="w-[85px]" /><col className="w-[65px]" /><col className="w-[85px]" /><col className="w-[60px]" /><col className="w-[80px]" /><col className="w-[110px]" /><col className="w-[95px]" /><col className="w-[85px]" /></colgroup><thead><tr className="border-b border-border">{["Open at", "Close at", "Account", "Pair", "Market", "Dir", "Entry", "Exit", "Risk", "P&L", "R", "Session", "Setup", "Emotion", ""].map((header, index) => <th key={`${header}-${index}`} className="px-3 py-2.5 text-left text-muted-foreground font-semibold uppercase tracking-wider whitespace-nowrap">{header}</th>)}</tr></thead><tbody>{filtered.map((trade, index) => <tr key={trade.id} className={`border-b border-border/50 hover:bg-secondary/30 ${index % 2 ? "bg-background/30" : ""}`}><td className="px-3 py-2 font-mono whitespace-nowrap truncate">{formatAt(trade.openedAtUtc, trade.date, trade.time)}</td><td className="px-3 py-2 font-mono text-muted-foreground whitespace-nowrap truncate">{formatAt(trade.closedAtUtc)}</td><td className="px-3 py-2 whitespace-nowrap text-muted-foreground truncate">{accountName(trade.accountId)}</td><td className="px-3 py-2 font-mono font-semibold truncate">{trade.pair}</td><td className="px-3 py-2 text-muted-foreground truncate">{trade.market}</td><td className="px-3 py-2"><span className="px-1.5 py-0.5 rounded text-[10px] font-semibold" style={{ background: trade.direction === "Long" ? POS_BG : NEG_BG, color: trade.direction === "Long" ? POS : NEG }}>{trade.direction}</span></td><td className="px-3 py-2 font-mono truncate">{trade.entry}</td><td className="px-3 py-2 font-mono truncate">{trade.exit_price}</td><td className="px-3 py-2 font-mono truncate">{trade.risk_pct}%</td><td className="px-3 py-2 font-mono font-semibold truncate" style={{ color: trade.result_usd >= 0 ? POS : NEG }}>{fmt.usd(trade.result_usd)}</td><td className="px-3 py-2 font-mono truncate" style={{ color: trade.result_r >= 0 ? POS : NEG }}>{fmt.r(trade.result_r)}</td><td className="px-3 py-2 text-muted-foreground truncate">{trade.session}</td><td className="px-3 py-2 truncate">{trade.setup}</td><td className="px-3 py-2 truncate">{trade.emotion}</td><td className="px-3 py-2"><div className="flex gap-1">{trade.screenshot && <a href={trade.screenshot} target="_blank" rel="noreferrer" className="p-1 text-muted-foreground hover:text-primary"><ExternalLink className="w-3.5 h-3.5" /></a>}<button onClick={() => openEdit(trade)} className="p-1 text-muted-foreground hover:text-foreground"><Pencil className="w-3.5 h-3.5" /></button><button onClick={() => setConfirmDelete(trade)} className="p-1 text-muted-foreground hover:text-red-400"><Trash2 className="w-3.5 h-3.5" /></button></div></td></tr>)}</tbody></table></div>{showForm && <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6"><div className="absolute inset-0 bg-black/65 backdrop-blur-sm" onClick={closeForm} /><aside role="dialog" aria-modal="true" className="relative z-10 flex w-full max-w-4xl max-h-[calc(100dvh-1.5rem)] sm:max-h-[min(820px,calc(100dvh-3rem))] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0c1211] shadow-[0_28px_90px_rgba(0,0,0,.62)]"><header className="border-b border-white/10 bg-[#101816] px-5 py-4 flex justify-between"><div><p className="text-[10px] uppercase tracking-[.18em] text-muted-foreground">Trade ticket</p><h2 className="font-semibold mt-1">{editing ? "Редагувати угоду" : "Нова угода"}</h2></div><button onClick={closeForm}><X className="w-5 h-5" /></button></header><div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 bg-[#0c1211]"><section className="rounded-2xl border border-border bg-secondary/20 p-4 space-y-4"><div><h3 className="text-sm font-semibold">Execution</h3><p className="text-xs text-muted-foreground mt-1">Базові параметри входу, виходу та ризику.</p></div><div className="grid grid-cols-2 gap-3">{input("date", "Open date", "date")}<label className="flex flex-col gap-1"><span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Open time</span><input data-trade-field="time" type="time" value={form.time} onChange={(event) => { changeTime(event.target.value); setErrors((old) => { const next = { ...old }; delete next.time; return next; }); }} className={`modern-control text-sm ${errors.time ? "border-red-400/80 bg-red-500/[.07]" : ""}`} /></label><label className="flex flex-col gap-1"><span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Close date</span><input type="date" value={datePart(form.closedAtUtc)} onChange={(event) => setClosedDate(event.target.value)} className="modern-control text-sm" /><span className="text-[11px] text-muted-foreground">Якщо угода закрилась того ж дня — можна залишити пусто, підставиться дата входу.</span></label><label className="flex flex-col gap-1"><span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Close time</span><input type="time" value={timePart(form.closedAtUtc)} onChange={(event) => setClosedTime(event.target.value)} className="modern-control text-sm" /></label><label className="col-span-2 flex flex-col gap-1 relative"><span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Pair</span><div className="relative"><input data-trade-field="pair" value={pairQuery} onChange={(event) => { setPairQuery(event.target.value); setPairOpen(true); setField("pair", event.target.value); }} onFocus={() => setPairOpen(true)} className={`modern-control text-sm pr-9 ${errors.pair ? "border-red-400/80 bg-red-500/[.07]" : ""}`} /><button type="button" onClick={() => setPairOpen((value) => !value)} className="absolute right-2 top-2"><ChevronDown className="w-4 h-4" /></button></div>{pairOpen && <div className="absolute top-full z-20 mt-1 w-full rounded-xl border border-border bg-card shadow-2xl p-1 max-h-48 overflow-auto">{matchingAssets.map((asset) => <button key={asset.symbol} type="button" onClick={() => choosePair(asset.symbol)} className="w-full flex justify-between rounded-lg px-3 py-2 text-left hover:bg-secondary"><span>{asset.symbol}</span><span className="text-[10px] text-muted-foreground">{asset.market}</span></button>)}</div>}</label><label className="flex flex-col gap-1 relative"><span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Account</span><GlideSelect className="w-full" options={accountOptions} value={form.accountId} onChange={(value) => !editing && setField("accountId", value)} placeholder="— Обери —" showTags={false} surfaceColor="#111817" highlightColor="#1b2b28" textColor="#e8f0ed" accentColor="#33d6ba" size="lg" radius={10} menuWidth={240} ariaLabel="Account" /></label><label className="flex flex-col gap-1"><span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Market</span><input value={form.market} readOnly className="modern-control text-sm text-muted-foreground" /></label>{select("direction", "Direction", ["", "Long", "Short"])}{select("session", "Session", SESSIONS)}{input("entry", "Entry")}{input("stop", "Stop")}{input("tp", "Take profit")}{input("exit_price", "Exit")}{input("risk_pct", "Risk %", "number")}{input("result_usd", "P&L $", "number")}{input("result_r", "R", "number")}</div></section><section className="rounded-2xl border border-border bg-secondary/20 p-4 space-y-4"><div><h3 className="text-sm font-semibold">Context</h3><p className="text-xs text-muted-foreground mt-1">Сетап, емоція, HTF bias та нотатки.</p></div><div className="grid grid-cols-2 gap-3">{select("setup", "Setup", ["", "Retest", "Breakout", "Divergence", "FVG", "OB", "Other"])}{select("htf_bias", "HTF bias", ["", "Bullish", "Bearish", "Neutral"])}{select("emotion", "Emotion", ["", "Calm", "Neutral", "Fear", "Greed", "FOMO", "Confident"])}{input("entry_reason", "Entry reason")}<div className="col-span-2">{input("exit_reason", "Exit reason")}</div><div className="col-span-2">{input("mistake", "Mistake")}</div><div className="col-span-2">{input("screenshot", "Screenshot URL")}</div><label className="col-span-2 flex flex-col gap-1"><span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Notes</span><textarea value={form.notes} onChange={(event) => setField("notes", event.target.value)} rows={5} className="bg-secondary/60 border border-border rounded-lg px-3 py-2 text-sm resize-none outline-none" /></label></div></section></div><footer className="border-t border-white/10 bg-[#101816] p-4 flex items-center justify-end gap-2">{submitError && <p role="alert" className="mr-auto text-xs text-red-300">{submitError}</p>}<button onClick={closeForm} className="px-4 py-2 rounded-lg border border-border text-sm">Cancel</button><button onClick={save} style={shakeSubmit ? shakeStyle : undefined} className={`px-4 py-2 rounded-lg text-sm font-medium ${submitError ? "bg-red-500 text-white" : "bg-primary text-primary-foreground"}`}>{editing ? "Save changes" : "Add trade"}</button></footer></aside></div>}{confirmDelete && <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm"><div className="w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-2xl"><div className="flex gap-3"><div className="p-2 rounded-full" style={{ background: NEG_BG, color: NEG }}><AlertTriangle className="w-4 h-4" /></div><div><h3 className="text-sm font-semibold">Видалити угоду?</h3><p className="mt-1 text-sm text-muted-foreground">{confirmDelete.pair} від {confirmDelete.date} буде видалена.</p></div></div><div className="mt-5 flex justify-end gap-2"><button onClick={() => setConfirmDelete(null)} className="px-4 py-2 text-sm border border-border rounded-lg">Cancel</button><button onClick={remove} className="px-4 py-2 text-sm rounded-lg" style={{ background: NEG_BG, color: NEG }}>Delete</button></div></div></div>}{pendingDelete && <div key={pendingDelete.id} style={{ animation: "toast-in 180ms ease-out" }} className="fixed bottom-5 right-5 z-[70] flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-2xl"><UndoRing durationMs={UNDO_MS} /><div><p className="text-sm font-medium">Угоду видалено</p><p className="text-xs text-muted-foreground">{pendingDelete.pair} · {pendingDelete.date}</p></div><button onClick={undo} className="text-sm font-semibold px-2 py-1 rounded-md hover:bg-white/5 transition" style={{ color: POS }}>Undo</button><button onClick={() => { if (timer.current) clearTimeout(timer.current); deleteTrade(pendingDelete.id); setPendingDelete(null); }} className="p-1 text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button></div>}</div>;
+  const {
+    visibleTrades,
+    accounts,
+    activeAccountId,
+    loading,
+    saving,
+    error,
+    createTrade,
+    updateTrade,
+    deleteTrade,
+  } = useTrades();
+
+  const [search, setSearch] = useState("");
+  const [filterMarket, setFilterMarket] = useState<string>("All");
+  const [filterSession, setFilterSession] = useState<string>("All");
+  const [showManualModal, setShowManualModal] = useState(false);
+  const [editingTrade, setEditingTrade] = useState<JournalTrade | null>(null);
+
+  const filtered = useMemo(() => {
+    return [...visibleTrades]
+      .filter((trade) => matchesSearch(trade, search))
+      .filter(
+        (trade) => filterMarket === "All" || trade.market === filterMarket,
+      )
+      .filter(
+        (trade) => filterSession === "All" || trade.session === filterSession,
+      )
+      .sort(sortTrades);
+  }, [visibleTrades, search, filterMarket, filterSession]);
+
+  function accountName(id: string) {
+    return accounts.find((account) => account.id === id)?.name ?? "Unknown";
+  }
+
+  async function handleSubmit(values: TradeInput | UpdateTradeInput) {
+    try {
+      if ("id" in values) {
+        await updateTrade(values);
+      } else {
+        await createTrade({
+          ...values,
+          source: "manual",
+        });
+      }
+
+      setShowManualModal(false);
+      setEditingTrade(null);
+    } catch {
+      // error is handled in hook state
+    }
+  }
+
+  async function handleDelete(id: string) {
+    try {
+      await deleteTrade(id);
+    } catch {
+      // error is handled in hook state
+    }
+  }
+
+  return (
+    <div className="space-y-4 p-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-1 flex-wrap gap-2">
+          <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-lg border border-border bg-secondary/60 px-3 py-1.5">
+            <Search className="h-3.5 w-3.5 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search trades..."
+              className="flex-1 bg-transparent text-sm outline-none"
+            />
+            {search ? (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            ) : null}
+          </div>
+
+          {["All", ...MARKETS].map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setFilterMarket(value)}
+              className={`rounded-lg border px-3 py-1.5 text-xs ${
+                filterMarket === value
+                  ? "border-primary/20 bg-primary/10 text-primary"
+                  : "border-border bg-secondary/60 text-muted-foreground"
+              }`}
+            >
+              {value}
+            </button>
+          ))}
+
+          {["All", ...SESSIONS].map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setFilterSession(value)}
+              className={`rounded-lg border px-3 py-1.5 text-xs ${
+                filterSession === value
+                  ? "border-primary/20 bg-primary/10 text-primary"
+                  : "border-border bg-secondary/60 text-muted-foreground"
+              }`}
+            >
+              {value}
+            </button>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            setEditingTrade(null);
+            setShowManualModal(true);
+          }}
+          className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
+        >
+          <Plus className="h-4 w-4" />
+          Add trade
+        </button>
+      </div>
+
+      {error ? (
+        <div className="rounded-xl border border-red-400/30 bg-red-500/10 p-4">
+          <p className="text-sm text-red-300">{error}</p>
+        </div>
+      ) : null}
+
+      <div className="overflow-x-auto rounded-xl border border-border bg-card">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-border">
+              {[
+                "OPEN AT",
+                "CLOSE AT",
+                "ACCOUNT",
+                "SYMBOL",
+                "MARKET",
+                "DIR",
+                "ENTRY",
+                "EXIT",
+                "RISK",
+                "P/L",
+                "R",
+                "SESSION",
+                "SETUP",
+                "EMOTION",
+                "",
+              ].map((header) => (
+                <th
+                  key={header}
+                  className="whitespace-nowrap px-3 py-2.5 text-left font-semibold uppercase tracking-wider text-muted-foreground"
+                >
+                  {header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+
+          <tbody>
+            {loading ? (
+              Array.from({ length: 8 }).map((_, index) => (
+                <tr key={index} className="border-b border-border/50">
+                  <td className="px-3 py-3" colSpan={15}>
+                    <div className="grid grid-cols-8 gap-3">
+                      {Array.from({ length: 8 }).map((__, i) => (
+                        <div key={i} className="h-4 rounded bg-secondary/60" />
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={15}
+                  className="px-4 py-10 text-center text-sm text-muted-foreground"
+                >
+                  No trades found for the current filters.
+                </td>
+              </tr>
+            ) : (
+              filtered.map((trade, index) => (
+                <tr
+                  key={trade.id}
+                  className={`border-b border-border/50 hover:bg-secondary/30 ${
+                    index % 2 ? "bg-background/30" : ""
+                  }`}
+                >
+                  <td className="whitespace-nowrap px-3 py-2 font-mono">
+                    {openAt(trade)}
+                  </td>
+
+                  <td className="whitespace-nowrap px-3 py-2 font-mono text-muted-foreground">
+                    {closeAt(trade)}
+                  </td>
+
+                  <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
+                    {accountName(trade.account_id)}
+                  </td>
+
+                  <td className="whitespace-nowrap px-3 py-2 font-mono font-semibold">
+                    {trade.symbol}
+                  </td>
+
+                  <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
+                    {trade.market || "—"}
+                  </td>
+
+                  <td className="whitespace-nowrap px-3 py-2">
+                    <span
+                      className="rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                      style={{
+                        background:
+                          trade.direction === "Long" ? POS_BG : NEG_BG,
+                        color: trade.direction === "Long" ? POS : NEG,
+                      }}
+                    >
+                      {trade.direction}
+                    </span>
+                  </td>
+
+                  <td className="whitespace-nowrap px-3 py-2 font-mono">
+                    {trade.entry_price ?? "—"}
+                  </td>
+
+                  <td className="whitespace-nowrap px-3 py-2 font-mono">
+                    {trade.exit_price ?? "—"}
+                  </td>
+
+                  <td className="whitespace-nowrap px-3 py-2 font-mono">
+                    {typeof trade.risk_percent === "number"
+                      ? `${trade.risk_percent}%`
+                      : "—"}
+                  </td>
+
+                  <td
+                    className="whitespace-nowrap px-3 py-2 font-mono font-semibold"
+                    style={{ color: (trade.net_pnl ?? 0) >= 0 ? POS : NEG }}
+                  >
+                    {typeof trade.net_pnl === "number"
+                      ? fmt.usd(trade.net_pnl)
+                      : "—"}
+                  </td>
+
+                  <td
+                    className="whitespace-nowrap px-3 py-2 font-mono"
+                    style={{ color: (trade.result_r ?? 0) >= 0 ? POS : NEG }}
+                  >
+                    {typeof trade.result_r === "number"
+                      ? fmt.r(trade.result_r)
+                      : "—"}
+                  </td>
+
+                  <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
+                    {trade.session || "—"}
+                  </td>
+
+                  <td className="whitespace-nowrap px-3 py-2">
+                    {trade.setup || "—"}
+                  </td>
+
+                  <td className="whitespace-nowrap px-3 py-2">
+                    {trade.emotion || "—"}
+                  </td>
+
+                  <td className="whitespace-nowrap px-3 py-2">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingTrade(trade);
+                          setShowManualModal(true);
+                        }}
+                        className="rounded p-1 text-muted-foreground hover:text-foreground"
+                        aria-label="Edit trade"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => void handleDelete(trade.id)}
+                        disabled={saving}
+                        className="rounded p-1 text-muted-foreground hover:text-red-400 disabled:opacity-50"
+                        aria-label="Delete trade"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <ManualTradeModal
+        open={showManualModal}
+        accounts={accounts}
+        defaultAccountId={
+          activeAccountId !== "all" ? activeAccountId : undefined
+        }
+        initialTrade={editingTrade}
+        submitting={saving}
+        onClose={() => {
+          setShowManualModal(false);
+          setEditingTrade(null);
+        }}
+        onSubmit={handleSubmit}
+      />
+    </div>
+  );
 }
