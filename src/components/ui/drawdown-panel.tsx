@@ -2,23 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, TrendingDown } from "lucide-react";
-import { useTrades } from "@/hooks/use-trades";
+import { useTrades, type JournalTrade } from "@/hooks/use-trades";
 import { fmt } from "@/lib/utils-trade";
 
 const RED = "var(--color-red)";
 const GREEN = "var(--color-green)";
 const CARD = "rounded-2xl border border-white/10 bg-background";
 
-type DDTrade = {
-  id: number;
-  accountId: string;
-  date: string;
-  time?: string;
-  pair?: string;
-  session?: string;
-  result_usd?: number;
-  risk_pct?: number;
-};
+type DDTrade = JournalTrade;
 
 type Point = {
   trade: DDTrade;
@@ -41,8 +32,12 @@ type Episode = {
   trades: DDTrade[];
 };
 
-function chronological<T extends { date: string; time?: string }>(items: T[]) {
-  return [...items].sort((a, b) => `${a.date}T${a.time || "00:00"}`.localeCompare(`${b.date}T${b.time || "00:00"}`));
+function dayOf(trade: { opened_at?: string | null }) {
+  return (trade.opened_at ?? "").slice(0, 10);
+}
+
+function chronological<T extends { opened_at?: string | null }>(items: T[]) {
+  return [...items].sort((a, b) => (a.opened_at ?? "").localeCompare(b.opened_at ?? ""));
 }
 
 function daysBetween(a: string, b: string) {
@@ -59,7 +54,7 @@ function buildEpisodes(trades: DDTrade[], baseBalance: number) {
   let peak = 0;
 
   for (const trade of sorted) {
-    pnl += trade.result_usd ?? 0;
+    pnl += trade.net_pnl ?? 0;
     peak = Math.max(peak, pnl);
     const ddAmount = pnl - peak;
     const denominator = baseBalance + peak;
@@ -87,9 +82,9 @@ function buildEpisodes(trades: DDTrade[], baseBalance: number) {
         peakIndex,
         troughIndex: trough,
         recoverIndex: index,
-        peakDate: points[peakIndex].trade.date,
-        troughDate: points[trough].trade.date,
-        recoverDate: point.trade.date,
+        peakDate: dayOf(points[peakIndex].trade),
+        troughDate: dayOf(points[trough].trade),
+        recoverDate: dayOf(point.trade),
         ddAmount: points[trough].ddAmount,
         ddPct: points[trough].ddPct,
         trades: sorted.slice(peakIndex + 1, index + 1),
@@ -106,8 +101,8 @@ function buildEpisodes(trades: DDTrade[], baseBalance: number) {
       peakIndex,
       troughIndex: trough,
       recoverIndex: null,
-      peakDate: points[peakIndex].trade.date,
-      troughDate: points[trough].trade.date,
+      peakDate: dayOf(points[peakIndex].trade),
+      troughDate: dayOf(points[trough].trade),
       recoverDate: null,
       ddAmount: points[trough].ddAmount,
       ddPct: points[trough].ddPct,
@@ -130,12 +125,12 @@ function mostFrequent(values: string[]) {
 
 function EpisodeDetails({ episode, accountNames }: { episode: Episode; accountNames: Record<string, string> }) {
   const trades = episode.trades;
-  const wins = trades.filter((trade) => (trade.result_usd ?? 0) > 0).length;
-  const losses = trades.filter((trade) => (trade.result_usd ?? 0) < 0).length;
-  const totalPnl = trades.reduce((sum, trade) => sum + (trade.result_usd ?? 0), 0);
-  const averageRisk = trades.filter((trade) => (trade.risk_pct ?? 0) > 0).reduce((sum, trade, _, list) => sum + (trade.risk_pct ?? 0) / list.length, 0);
-  const largestLoss = Math.min(0, ...trades.map((trade) => trade.result_usd ?? 0));
-  const involvedAccounts = [...new Set(trades.map((trade) => accountNames[trade.accountId] || "Unknown account"))];
+  const wins = trades.filter((trade) => (trade.net_pnl ?? 0) > 0).length;
+  const losses = trades.filter((trade) => (trade.net_pnl ?? 0) < 0).length;
+  const totalPnl = trades.reduce((sum, trade) => sum + (trade.net_pnl ?? 0), 0);
+  const averageRisk = trades.filter((trade) => (trade.risk_percent ?? 0) > 0).reduce((sum, trade, _, list) => sum + (trade.risk_percent ?? 0) / list.length, 0);
+  const largestLoss = Math.min(0, ...trades.map((trade) => trade.net_pnl ?? 0));
+  const involvedAccounts = [...new Set(trades.map((trade) => accountNames[trade.account_id] || "Unknown account"))];
   const durationEnd = episode.recoverDate ?? episode.troughDate;
 
   return (
@@ -155,7 +150,7 @@ function EpisodeDetails({ episode, accountNames }: { episode: Episode; accountNa
 
       <div className="space-y-1">
         <div className="text-[10px] uppercase tracking-wide text-white/35">Pattern</div>
-        <div className="text-white/70">Worst pair: {mostFrequent(trades.map((trade) => trade.pair || ""))}</div>
+        <div className="text-white/70">Worst pair: {mostFrequent(trades.map((trade) => trade.symbol || ""))}</div>
         <div className="text-white/45">Main session: {mostFrequent(trades.map((trade) => trade.session || ""))}</div>
         <div className="text-white/45">Episode P&L: <span style={{ color: totalPnl < 0 ? RED : GREEN }}>{fmt.usd(totalPnl)}</span></div>
       </div>
@@ -203,7 +198,7 @@ export function DrawdownPanel() {
   const activeEpisode = latestPoint?.ddAmount < 0 ? episodes[episodes.length - 1] : null;
   const lastRecovered = [...episodes].reverse().find((episode) => episode.recoverIndex !== null) ?? null;
   const longestUnderwaterDays = episodes.reduce((max, episode) => {
-    const end = episode.recoverDate ?? latestPoint?.trade.date ?? episode.troughDate;
+    const end = episode.recoverDate ?? (latestPoint ? dayOf(latestPoint.trade) : undefined) ?? episode.troughDate;
     return Math.max(max, daysBetween(episode.peakDate, end));
   }, 0);
 
@@ -211,7 +206,7 @@ export function DrawdownPanel() {
     ? activeEpisode.trades.length
     : lastRecovered?.trades.length ?? 0;
   const recoveryDays = activeEpisode
-    ? daysBetween(activeEpisode.peakDate, latestPoint?.trade.date ?? activeEpisode.troughDate)
+    ? daysBetween(activeEpisode.peakDate, (latestPoint ? dayOf(latestPoint.trade) : undefined) ?? activeEpisode.troughDate)
     : lastRecovered
       ? daysBetween(lastRecovered.peakDate, lastRecovered.recoverDate ?? lastRecovered.troughDate)
       : 0;
@@ -273,7 +268,7 @@ export function DrawdownPanel() {
           <div className="divide-y divide-white/10">
             {displayedEpisodes.map((episode, index) => {
               const recovered = episode.recoverIndex !== null;
-              const durationEnd = episode.recoverDate ?? latestPoint?.trade.date ?? episode.troughDate;
+              const durationEnd = episode.recoverDate ?? (latestPoint ? dayOf(latestPoint.trade) : undefined) ?? episode.troughDate;
               const durationDays = daysBetween(episode.peakDate, durationEnd);
               const isOpen = expandedId === episode.id;
               const normalizedDepth = Math.min(100, Math.abs(episode.ddPct) / Math.max(Math.abs(worstEpisode?.ddPct ?? 1), 1) * 100);

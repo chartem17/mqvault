@@ -8,7 +8,7 @@ export function RiskSummary() {
 
   const risk = useMemo(() => {
     const values = visibleTrades
-      .map((trade) => Number(trade.risk_pct))
+      .map((trade) => Number(trade.risk_percent))
       .filter((value) => Number.isFinite(value) && value > 0);
 
     if (!values.length) return null;

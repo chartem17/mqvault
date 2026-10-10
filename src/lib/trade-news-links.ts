@@ -1,11 +1,11 @@
-import type { AccountTrade } from "@/hooks/use-trades";
+import type { JournalTrade } from "@/hooks/use-trades";
 import type { EconomicEvent, EconomicImpact } from "@/lib/economic-events";
 
 export type NewsRelation = "before_entry" | "near_entry" | "during_trade" | "near_exit" | "after_exit";
 export type ExposureScore = "none" | "low" | "medium" | "high";
 
 export type TradeNewsLink = {
-  tradeId: number;
+  tradeId: string;
   eventId: string;
   relation: NewsRelation;
   entryDistanceMinutes: number | null;
@@ -36,23 +36,22 @@ function minutesBetween(a: Date, b: Date) {
   return (a.getTime() - b.getTime()) / 60000;
 }
 
-function parseTradeDateTime(trade: AccountTrade) {
-  const date = `${trade.date}T${trade.time || "00:00"}:00`;
-  const parsed = new Date(date);
+function parseTradeDateTime(trade: JournalTrade) {
+  const parsed = new Date(trade.opened_at);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function parseCloseTime(trade: AccountTrade) {
-  const candidate = (trade as AccountTrade & { closedAt?: string; closedAtUtc?: string }).closedAtUtc ?? (trade as AccountTrade & { closedAt?: string }).closedAt;
-  if (!candidate) return null;
-  const parsed = new Date(candidate);
+function parseCloseTime(trade: JournalTrade) {
+  if (!trade.closed_at) return null;
+  const parsed = new Date(trade.closed_at);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function eventMatchesTrade(trade: AccountTrade, event: EconomicEvent) {
-  const pair = trade.pair.toUpperCase();
+function eventMatchesTrade(trade: JournalTrade, event: EconomicEvent) {
+  const normalize = (value: string) => value.replace(/[^a-z0-9]/gi, "").toUpperCase();
+  const symbol = normalize(trade.symbol ?? "");
   const assets = CURRENCY_ASSETS[event.currency] ?? [];
-  return assets.some((asset) => asset.toUpperCase() === pair);
+  return assets.some((asset) => normalize(asset) === symbol);
 }
 
 export function getExposureScore(impact: EconomicImpact, overlapsRelease: boolean, relation: NewsRelation): ExposureScore {
@@ -62,7 +61,7 @@ export function getExposureScore(impact: EconomicImpact, overlapsRelease: boolea
   return "low";
 }
 
-export function buildTradeNewsLink(trade: AccountTrade, event: EconomicEvent): TradeNewsLink | null {
+export function buildTradeNewsLink(trade: JournalTrade, event: EconomicEvent): TradeNewsLink | null {
   const openedAt = parseTradeDateTime(trade);
   const releasedAt = new Date(event.scheduledAtUtc);
   if (!openedAt || Number.isNaN(releasedAt.getTime())) return null;
@@ -102,6 +101,6 @@ export function buildTradeNewsLink(trade: AccountTrade, event: EconomicEvent): T
   };
 }
 
-export function buildTradeNewsLinks(trades: AccountTrade[], events: EconomicEvent[]) {
+export function buildTradeNewsLinks(trades: JournalTrade[], events: EconomicEvent[]) {
   return trades.flatMap((trade) => events.map((event) => buildTradeNewsLink(trade, event)).filter((link): link is TradeNewsLink => link !== null));
 }

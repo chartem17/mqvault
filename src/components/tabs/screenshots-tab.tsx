@@ -10,7 +10,7 @@ export function ScreenshotsTab() {
   const [selected, setSelected] = useState<(typeof tradesWithScreens)[0] | null>(null);
 
   const tradesWithScreens = useMemo(
-    () => trades.filter(t => t.screenshot).sort((a, b) => b.date.localeCompare(a.date)),
+    () => trades.filter(t => t.screenshot_url).sort((a, b) => (b.opened_at ?? "").localeCompare(a.opened_at ?? "")),
     [trades]
   );
 
@@ -18,7 +18,7 @@ export function ScreenshotsTab() {
     if (!search) return tradesWithScreens;
     const q = search.toLowerCase();
     return tradesWithScreens.filter(t =>
-      `${t.pair} ${t.date} ${t.setup} ${t.notes} ${t.entry_reason}`.toLowerCase().includes(q)
+      `${t.symbol} ${(t.opened_at ?? "").slice(0, 10)} ${t.setup} ${t.notes} ${t.entry_reason}`.toLowerCase().includes(q)
     );
   }, [tradesWithScreens, search]);
 
@@ -68,12 +68,12 @@ export function ScreenshotsTab() {
               </div>
               {/* Watermark */}
               <div className="absolute top-2 right-2">
-                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${t.result_usd > 0 ? "bg-green-500/20 text-green-400" : t.result_usd < 0 ? "bg-red-500/20 text-red-400" : "bg-muted/60 text-muted-foreground"}`}>
-                  {t.result_usd > 0 ? "✓ WIN" : t.result_usd < 0 ? "✗ LOSS" : "BE"}
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${t.net_pnl > 0 ? "bg-green-500/20 text-green-400" : t.net_pnl < 0 ? "bg-red-500/20 text-red-400" : "bg-muted/60 text-muted-foreground"}`}>
+                  {t.net_pnl > 0 ? "✓ WIN" : t.net_pnl < 0 ? "✗ LOSS" : "BE"}
                 </span>
               </div>
               <div className="absolute bottom-2 left-2">
-                <span className="text-[10px] font-mono bg-black/50 text-white px-1.5 py-0.5 rounded">{t.pair}</span>
+                <span className="text-[10px] font-mono bg-black/50 text-white px-1.5 py-0.5 rounded">{t.symbol}</span>
               </div>
             </div>
 
@@ -81,18 +81,18 @@ export function ScreenshotsTab() {
             <div className="p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono font-bold text-sm text-foreground">{t.pair}</span>
+                  <span className="font-mono font-bold text-sm text-foreground">{t.symbol}</span>
                   <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${t.direction === "Long" ? "bg-green-500/15 text-green-500" : "bg-red-500/15 text-red-500"}`}>
                     {t.direction}
                   </span>
                 </div>
-                <span className={`text-sm font-bold tabular-nums font-mono ${t.result_usd > 0 ? "text-[var(--color-green)]" : t.result_usd < 0 ? "text-[var(--color-red)]" : "text-muted-foreground"}`}>
-                  {fmt.usd(t.result_usd)}
+                <span className={`text-sm font-bold tabular-nums font-mono ${t.net_pnl > 0 ? "text-[var(--color-green)]" : t.net_pnl < 0 ? "text-[var(--color-red)]" : "text-muted-foreground"}`}>
+                  {fmt.usd(t.net_pnl)}
                 </span>
               </div>
 
               <div className="flex gap-3 text-[10px] text-muted-foreground">
-                <span>{t.date}</span>
+                <span>{(t.opened_at ?? "").slice(0, 10)}</span>
                 <span>{t.session}</span>
                 {t.setup && <span className="text-primary">{t.setup}</span>}
               </div>
@@ -103,7 +103,7 @@ export function ScreenshotsTab() {
 
               <div className="flex items-center justify-between pt-1">
                 <span className="text-[10px] text-muted-foreground">{fmt.r(t.result_r)}</span>
-                <a href={t.screenshot} target="_blank" rel="noopener noreferrer"
+                <a href={t.screenshot_url ?? undefined} target="_blank" rel="noopener noreferrer"
                   onClick={e => e.stopPropagation()}
                   className="flex items-center gap-1 text-[10px] text-primary hover:underline">
                   TradingView <ExternalLink className="w-2.5 h-2.5" />
@@ -120,22 +120,22 @@ export function ScreenshotsTab() {
           <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-border">
               <div className="flex items-center gap-3">
-                <span className="font-mono font-bold text-base">{selected.pair}</span>
+                <span className="font-mono font-bold text-base">{selected.symbol}</span>
                 <span className={`text-xs px-2 py-0.5 rounded font-semibold ${selected.direction === "Long" ? "bg-green-500/15 text-green-500" : "bg-red-500/15 text-red-500"}`}>
                   {selected.direction}
                 </span>
-                <span className="text-xs text-muted-foreground">{selected.date}</span>
+                <span className="text-xs text-muted-foreground">{(selected.opened_at ?? "").slice(0, 10)}</span>
               </div>
               <button onClick={() => setSelected(null)} className="text-muted-foreground hover:text-foreground transition-colors text-sm">✕</button>
             </div>
             <div className="p-5 space-y-4">
               <div className="grid grid-cols-3 gap-3 text-xs">
                 {[
-                  ["Entry", selected.entry],
-                  ["Stop", selected.stop],
-                  ["TP", selected.tp],
+                  ["Entry", selected.entry_price],
+                  ["Stop", selected.stop_loss],
+                  ["TP", selected.take_profit],
                   ["Exit", selected.exit_price],
-                  ["P&L", fmt.usd(selected.result_usd)],
+                  ["P&L", fmt.usd(selected.net_pnl)],
                   ["R", fmt.r(selected.result_r)],
                 ].map(([l, v]) => (
                   <div key={l} className="bg-secondary/50 rounded-lg p-2.5">
@@ -162,7 +162,7 @@ export function ScreenshotsTab() {
                   <p className="text-sm text-foreground">{selected.notes}</p>
                 </div>
               )}
-              <a href={selected.screenshot} target="_blank" rel="noopener noreferrer"
+              <a href={selected.screenshot_url ?? undefined} target="_blank" rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity">
                 <ExternalLink className="w-4 h-4" />
                 Відкрити скріншот на TradingView

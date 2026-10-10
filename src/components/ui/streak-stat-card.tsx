@@ -2,13 +2,13 @@
 
 import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useTrades } from "@/hooks/use-trades";
+import { useTrades, type JournalTrade } from "@/hooks/use-trades";
 import { fmt } from "@/lib/utils-trade";
 
 const GREEN = "var(--color-green)";
 const RED = "var(--color-red)";
 
-type StreakTrade = { date: string; time?: string; result_usd?: number };
+type StreakTrade = Pick<JournalTrade, "opened_at" | "net_pnl">;
 
 type StreakInfo = {
   count: number;
@@ -25,9 +25,7 @@ type StreakSummary = {
 
 function computeStreaks(trades: StreakTrade[]): StreakSummary {
   const sorted = [...trades].sort((a, b) => {
-    const aKey = `${a.date}T${a.time || "00:00"}`;
-    const bKey = `${b.date}T${b.time || "00:00"}`;
-    return aKey.localeCompare(bKey);
+    return (a.opened_at ?? "").localeCompare(b.opened_at ?? "");
   });
 
   let currentType: "win" | "loss" | "none" = "none";
@@ -39,7 +37,7 @@ function computeStreaks(trades: StreakTrade[]): StreakSummary {
   let longestLoss: StreakInfo | null = null;
 
   for (const trade of sorted) {
-    const pnl = trade.result_usd ?? 0;
+    const pnl = trade.net_pnl ?? 0;
     const type: "win" | "loss" | "none" = pnl > 0 ? "win" : pnl < 0 ? "loss" : "none";
 
     if (type === "none") {
@@ -56,10 +54,10 @@ function computeStreaks(trades: StreakTrade[]): StreakSummary {
       currentType = type;
       currentCount = 1;
       currentPnl = pnl;
-      currentStart = trade.date;
+      currentStart = (trade.opened_at ?? "").slice(0, 10);
     }
 
-    const info: StreakInfo = { count: currentCount, pnl: currentPnl, startDate: currentStart, endDate: trade.date };
+    const info: StreakInfo = { count: currentCount, pnl: currentPnl, startDate: currentStart, endDate: (trade.opened_at ?? "").slice(0, 10) };
     if (type === "win" && (!longestWin || currentCount > longestWin.count)) longestWin = info;
     if (type === "loss" && (!longestLoss || currentCount > longestLoss.count)) longestLoss = info;
   }
