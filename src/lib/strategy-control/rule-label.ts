@@ -14,6 +14,6 @@ export function formatRuleParams(rule: RuleInstance): string {
     case "risk_escalation_after_loss": return `(×${params.escalation_factor ?? 1.2})`;
     case "model_confirmation": return "(обов'язково)";
     case "emotion_filter": return `(${((params.states as string[]) ?? []).join(", ")})`;
-    default: return ruleLibrary[rule.ruleType].title;
+    default: return ruleLibrary[(rule as RuleInstance).ruleType as keyof typeof ruleLibrary]?.title ?? "";
   }
 }

@@ -68,8 +68,8 @@ export function ScreenshotsTab() {
               </div>
               {/* Watermark */}
               <div className="absolute top-2 right-2">
-                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${t.net_pnl > 0 ? "bg-green-500/20 text-green-400" : t.net_pnl < 0 ? "bg-red-500/20 text-red-400" : "bg-muted/60 text-muted-foreground"}`}>
-                  {t.net_pnl > 0 ? "✓ WIN" : t.net_pnl < 0 ? "✗ LOSS" : "BE"}
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${(t.net_pnl ?? 0) > 0 ? "bg-green-500/20 text-green-400" : (t.net_pnl ?? 0) < 0 ? "bg-red-500/20 text-red-400" : "bg-muted/60 text-muted-foreground"}`}>
+                  {(t.net_pnl ?? 0) > 0 ? "✓ WIN" : (t.net_pnl ?? 0) < 0 ? "✗ LOSS" : "BE"}
                 </span>
               </div>
               <div className="absolute bottom-2 left-2">
@@ -86,8 +86,8 @@ export function ScreenshotsTab() {
                     {t.direction}
                   </span>
                 </div>
-                <span className={`text-sm font-bold tabular-nums font-mono ${t.net_pnl > 0 ? "text-[var(--color-green)]" : t.net_pnl < 0 ? "text-[var(--color-red)]" : "text-muted-foreground"}`}>
-                  {fmt.usd(t.net_pnl)}
+                <span className={`text-sm font-bold tabular-nums font-mono ${(t.net_pnl ?? 0) > 0 ? "text-[var(--color-green)]" : (t.net_pnl ?? 0) < 0 ? "text-[var(--color-red)]" : "text-muted-foreground"}`}>
+                  {fmt.usd((t.net_pnl ?? 0))}
                 </span>
               </div>
 
@@ -102,7 +102,7 @@ export function ScreenshotsTab() {
               )}
 
               <div className="flex items-center justify-between pt-1">
-                <span className="text-[10px] text-muted-foreground">{fmt.r(t.result_r)}</span>
+                <span className="text-[10px] text-muted-foreground">{fmt.r(t.result_r ?? 0)}</span>
                 <a href={t.screenshot_url ?? undefined} target="_blank" rel="noopener noreferrer"
                   onClick={e => e.stopPropagation()}
                   className="flex items-center gap-1 text-[10px] text-primary hover:underline">
@@ -135,8 +135,8 @@ export function ScreenshotsTab() {
                   ["Stop", selected.stop_loss],
                   ["TP", selected.take_profit],
                   ["Exit", selected.exit_price],
-                  ["P&L", fmt.usd(selected.net_pnl)],
-                  ["R", fmt.r(selected.result_r)],
+                  ["P&L", fmt.usd((selected.net_pnl ?? 0))],
+                  ["R", fmt.r(selected.result_r ?? 0)],
                 ].map(([l, v]) => (
                   <div key={l} className="bg-secondary/50 rounded-lg p-2.5">
                     <p className="text-muted-foreground uppercase tracking-wider text-[10px]">{l}</p>

@@ -833,8 +833,7 @@ export function OverviewTab() {
     <div className="space-y-6 p-6">
       <SectionHeader
         title="Огляд рахунку"
-        subtitle={overviewSubtitle}
-        icon={CalendarIcon}
+        sub={overviewSubtitle}
       />
 
       <AccountProgressCard
@@ -845,40 +844,36 @@ export function OverviewTab() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          title="Net P&L"
+          label="Net P&L"
           value={fmt.usd(stats.totalPnl)}
-          icon={Wallet}
-          valueClassName={
+          colorClass={
             stats.totalPnl >= 0
               ? "text-[var(--color-green)]"
               : "text-[var(--color-red)]"
           }
         />
         <StatCard
-          title="Win rate"
+          label="Win rate"
           value={fmt.pct(stats.winRate)}
-          icon={Target}
-          valueClassName={
+          colorClass={
             stats.winRate >= 50
               ? "text-[var(--color-green)]"
               : "text-[var(--color-red)]"
           }
         />
         <StatCard
-          title="Avg R"
+          label="Avg R"
           value={fmt.r(stats.avgR)}
-          icon={Flag}
-          valueClassName={
+          colorClass={
             stats.avgR >= 0
               ? "text-[var(--color-green)]"
               : "text-[var(--color-red)]"
           }
         />
         <StatCard
-          title="Profit factor"
+          label="Profit factor"
           value={fmt.num(stats.profitFactor, 2)}
-          icon={ShieldAlert}
-          valueClassName={
+          colorClass={
             stats.profitFactor >= 1
               ? "text-[var(--color-green)]"
               : "text-[var(--color-red)]"
@@ -892,36 +887,50 @@ export function OverviewTab() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <DrawdownPanel
-          equity={equity.map((point) => point.pnl)}
-          title="Drawdown"
-          subtitle="Поточна та максимальна просадка"
-        />
+        <DrawdownPanel />
         <RDistributionChart buckets={advanced.rDistribution} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StreakStatCard
-          title="Best trade"
+        <StatCard
+          label="Best trade"
           value={fmt.usd(stats.bestTrade)}
-          positive={stats.bestTrade >= 0}
+          colorClass={
+            stats.bestTrade >= 0
+              ? "text-[var(--color-green)]"
+              : "text-[var(--color-red)]"
+          }
         />
-        <StreakStatCard
-          title="Worst trade"
+        <StatCard
+          label="Worst trade"
           value={fmt.usd(stats.worstTrade)}
-          positive={stats.worstTrade >= 0}
+          colorClass={
+            stats.worstTrade >= 0
+              ? "text-[var(--color-green)]"
+              : "text-[var(--color-red)]"
+          }
         />
-        <StreakStatCard
-          title="Avg win"
+        <StatCard
+          label="Avg win"
           value={fmt.usd(stats.avgWin)}
-          positive={stats.avgWin >= 0}
+          colorClass={
+            stats.avgWin >= 0
+              ? "text-[var(--color-green)]"
+              : "text-[var(--color-red)]"
+          }
         />
-        <StreakStatCard
-          title="Avg loss"
+        <StatCard
+          label="Avg loss"
           value={fmt.usd(stats.avgLoss)}
-          positive={stats.avgLoss >= 0}
+          colorClass={
+            stats.avgLoss >= 0
+              ? "text-[var(--color-green)]"
+              : "text-[var(--color-red)]"
+          }
         />
       </div>
+
+      <StreakStatCard />
 
       <div className="grid gap-6 xl:grid-cols-3">
         <div className={`${CARD} p-5`}>
@@ -1030,7 +1039,10 @@ export function OverviewTab() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-        <RiskSummary stats={advanced} />
+        <div className={`${CARD} p-5`}>
+          <div className="mb-4 text-sm font-medium text-white">Risk</div>
+          <RiskSummary />
+        </div>
 
         <div className={`${CARD} p-5`}>
           <div className="mb-4 text-sm font-medium text-white">Emotions</div>
