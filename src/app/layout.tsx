@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { TradesProvider } from "@/hooks/use-trades";
 
 export const metadata: Metadata = {
   title: "Trade Vault",
@@ -23,7 +24,7 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          {children}
+          <TradesProvider>{children}</TradesProvider>
         </ThemeProvider>
       </body>
     </html>
