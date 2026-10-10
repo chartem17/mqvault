@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import type {
   AccountKind,
   AccountPhase,
@@ -173,7 +181,7 @@ function readStoredIncludedAccounts(): string[] {
   }
 }
 
-export function useTrades() {
+function useTradesState() {
   const [accounts, setAccounts] = useState<TradingAccount[]>([]);
   const [trades, setTrades] = useState<JournalTrade[]>([]);
   const [activeAccountId, setActiveAccountId] = useState<AccountFilter>(() =>
@@ -452,4 +460,23 @@ export function useTrades() {
     upsertAccount,
     deleteAccount,
   };
+}
+
+type TradesContextValue = ReturnType<typeof useTradesState>;
+
+const TradesContext = createContext<TradesContextValue | null>(null);
+
+export function TradesProvider({ children }: { children: ReactNode }) {
+  const value = useTradesState();
+  return (
+    <TradesContext.Provider value={value}>{children}</TradesContext.Provider>
+  );
+}
+
+export function useTrades(): TradesContextValue {
+  const context = useContext(TradesContext);
+  if (!context) {
+    throw new Error("useTrades must be used within TradesProvider");
+  }
+  return context;
 }
