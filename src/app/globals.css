@@ -58,3 +58,22 @@
 html { background: #090b10; color-scheme: dark; -webkit-font-smoothing: antialiased; }
 html.light { background: #f7f7f5; color-scheme: light; }
 body { margin: 0; min-height: 100dvh; background: var(--color-background); color: var(--color-foreground); font-family: var(--font-sans); font-feature-settings: "tnum" 1, "cv02" 1, "cv03" 1; }
+
+
+/* Dashboard contrast tuning */
+.dark .bg-panel,
+.dark [class*="bg-panel"] {
+  background-color: color-mix(in oklab, var(--color-panel) 88%, black 12%);
+}
+.dark [class~="text-muted-foreground"] { color: rgb(255 255 255 / 0.62); }
+.dark [class~="text-white/35"] { color: rgb(255 255 255 / 0.5); }
+.dark [class~="text-white/40"] { color: rgb(255 255 255 / 0.56); }
+.dark [class~="text-white/45"] { color: rgb(255 255 255 / 0.6); }
+.dark [class~="text-white/50"] { color: rgb(255 255 255 / 0.64); }
+.dark [class~="text-white/55"] { color: rgb(255 255 255 / 0.68); }
+.dark [class~="text-white/60"] { color: rgb(255 255 255 / 0.72); }
+.dark [class~="text-white/65"] { color: rgb(255 255 255 / 0.76); }
+.dark [class~="text-white/70"] { color: rgb(255 255 255 / 0.82); }
+.dark [class~="text-white"] { color: rgb(255 255 255 / 0.94); }
+.dark [class~="border-white/6"] { border-color: rgb(255 255 255 / 0.1); }
+.dark [class~="border-white/10"] { border-color: rgb(255 255 255 / 0.12); }
