@@ -13,7 +13,7 @@ export function StatCard({
   className?: string;
 }) {
   return (
-    <div className={cn("bg-card rounded-xl border border-border p-4 flex flex-col gap-1.5", className)}>
+    <div className={cn("rounded-2xl border border-white/10 bg-panel p-4 flex flex-col gap-1.5", className)}>
       <p className="text-xs text-white/55 font-medium uppercase tracking-wider">{label}</p>
       <p className={cn("text-2xl font-bold tabular-nums", colorClass)}>{value}</p>
       {sub && <p className="text-xs text-white/50">{sub}</p>}
