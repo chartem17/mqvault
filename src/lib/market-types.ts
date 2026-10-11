@@ -1,4 +1,4 @@
-export type AssetClass = "crypto" | "forex" | "metal" | "energy" | "index" | "stock";
+export type AssetClass = "crypto" | "forex" | "metal" | "agriculture" | "energy" | "index" | "stock";
 export type Provider = "binance" | "twelve-data";
 export type MarketState = "open" | "closed" | "unknown";
 
