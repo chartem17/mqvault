@@ -18,7 +18,12 @@ export const MARKET_WATCHLIST: WatchlistInstrument[] = [
   { symbol: "GBPUSD", displaySymbol: "GBP/USD", market: "Forex", assetClass: "forex", provider: "twelve-data", providerSymbol: "GBP/USD" },
   { symbol: "USDJPY", displaySymbol: "USD/JPY", market: "Forex", assetClass: "forex", provider: "twelve-data", providerSymbol: "USD/JPY" },
   { symbol: "XAUUSD", displaySymbol: "XAU/USD", market: "Metals", assetClass: "metal", provider: "twelve-data", providerSymbol: "XAU/USD" },
+  { symbol: "WTIUSD", displaySymbol: "WTI Crude", market: "Energy", assetClass: "energy", provider: "twelve-data", providerSymbol: "WTI/USD" },
+  { symbol: "NGUSD", displaySymbol: "Natural Gas", market: "Energy", assetClass: "energy", provider: "twelve-data", providerSymbol: "NG/USD" },
   { symbol: "US30", displaySymbol: "Dow Jones", market: "Index", assetClass: "index", provider: "twelve-data", providerSymbol: "DIA" },
+  { symbol: "AAPL", displaySymbol: "Apple", market: "Stocks", assetClass: "stock", provider: "twelve-data", providerSymbol: "AAPL" },
+  { symbol: "NVDA", displaySymbol: "NVIDIA", market: "Stocks", assetClass: "stock", provider: "twelve-data", providerSymbol: "NVDA" },
+  { symbol: "TSLA", displaySymbol: "Tesla", market: "Stocks", assetClass: "stock", provider: "twelve-data", providerSymbol: "TSLA" },
 ];
 
 export const getInstrument = (symbol: string) => MARKET_WATCHLIST.find((item) => item.symbol === symbol);
