@@ -8,6 +8,7 @@
   --color-foreground: oklch(0.90 0.006 220);
   --color-card: oklch(0.14 0.008 220);
   --color-card-foreground: oklch(0.90 0.006 220);
+  --color-panel: oklch(0.18 0.010 220);
   --color-popover: oklch(0.14 0.008 220);
   --color-popover-foreground: oklch(0.90 0.006 220);
   --color-primary: oklch(0.70 0.13 185);
@@ -29,42 +30,51 @@
   --radius: 0.625rem;
 }
 
+:root {
+  --ink: 255 255 255;
+  --page-bg: #090b10;
+}
+
 .light {
-  --color-background: oklch(0.98 0.004 85);
-  --color-foreground: oklch(0.20 0.010 85);
+  --ink: 17 24 22;
+  --page-bg: #eceeed;
+  --color-background: oklch(0.96 0.003 170);
+  --color-foreground: oklch(0.20 0.010 170);
   --color-card: oklch(1 0 0);
-  --color-card-foreground: oklch(0.20 0.010 85);
+  --color-card-foreground: oklch(0.20 0.010 170);
+  --color-panel: oklch(1 0 0);
   --color-popover: oklch(1 0 0);
-  --color-popover-foreground: oklch(0.20 0.010 85);
+  --color-popover-foreground: oklch(0.20 0.010 170);
   --color-primary: oklch(0.52 0.13 185);
   --color-primary-foreground: oklch(0.98 0.004 85);
-  --color-secondary: oklch(0.94 0.005 85);
-  --color-secondary-foreground: oklch(0.28 0.010 85);
-  --color-muted: oklch(0.95 0.005 85);
-  --color-muted-foreground: oklch(0.50 0.010 85);
+  --color-secondary: oklch(0.94 0.005 170);
+  --color-secondary-foreground: oklch(0.28 0.010 170);
+  --color-muted: oklch(0.95 0.005 170);
+  --color-muted-foreground: oklch(0.45 0.010 170);
   --color-accent: oklch(0.94 0.008 185);
-  --color-accent-foreground: oklch(0.28 0.010 85);
-  --color-destructive: oklch(0.60 0.20 15);
-  --color-border: oklch(0.90 0.005 85);
-  --color-input: oklch(0.90 0.005 85);
+  --color-accent-foreground: oklch(0.28 0.010 170);
+  --color-destructive: oklch(0.55 0.20 15);
+  --color-border: oklch(0.88 0.005 170);
+  --color-input: oklch(0.88 0.005 170);
   --color-ring: oklch(0.52 0.13 185);
-  --color-green: oklch(0.56 0.14 142);
-  --color-red: oklch(0.60 0.18 15);
-  --color-gold: oklch(0.74 0.14 75);
+  --color-green: oklch(0.52 0.14 142);
+  --color-red: oklch(0.55 0.19 15);
+  --color-gold: oklch(0.68 0.14 75);
   --color-teal: oklch(0.52 0.13 185);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-html { background: #090b10; color-scheme: dark; -webkit-font-smoothing: antialiased; }
-html.light { background: #f7f7f5; color-scheme: light; }
-body { margin: 0; min-height: 100dvh; background: var(--color-background); color: var(--color-foreground); font-family: var(--font-sans); font-feature-settings: "tnum" 1, "cv02" 1, "cv03" 1; }
+html { background: var(--page-bg); color-scheme: dark; -webkit-font-smoothing: antialiased; }
+html.light { background: var(--page-bg); color-scheme: light; }
+body { margin: 0; min-height: 100dvh; background: var(--page-bg); color: var(--color-foreground); font-family: var(--font-sans); font-feature-settings: "tnum" 1, "cv02" 1, "cv03" 1; }
 
-
-/* Dashboard contrast tuning */
-.dark .bg-panel,
-.dark [class*="bg-panel"] {
-  background-color: color-mix(in oklab, var(--color-panel) 88%, black 12%);
+/* Solid cards: replace semi-transparent card backgrounds in every theme */
+:is([class~="bg-card/50"], [class~="bg-card/60"], [class~="bg-card/70"], [class~="bg-card/75"], [class~="bg-card/80"]) {
+  background-color: var(--color-panel);
 }
+.bg-panel { background-color: var(--color-panel); }
+
+/* Dark: dashboard contrast tuning */
 .dark [class~="text-muted-foreground"] { color: rgb(255 255 255 / 0.62); }
 .dark [class~="text-white/35"] { color: rgb(255 255 255 / 0.5); }
 .dark [class~="text-white/40"] { color: rgb(255 255 255 / 0.56); }
@@ -77,3 +87,46 @@ body { margin: 0; min-height: 100dvh; background: var(--color-background); color
 .dark [class~="text-white"] { color: rgb(255 255 255 / 0.94); }
 .dark [class~="border-white/6"] { border-color: rgb(255 255 255 / 0.1); }
 .dark [class~="border-white/10"] { border-color: rgb(255 255 255 / 0.12); }
+
+/* Light theme: remap white-on-dark utilities to ink-on-light */
+.light [class~="text-white"] { color: rgb(var(--ink) / 0.92); }
+.light :is([class~="text-white/95"], [class~="text-white/90"], [class~="text-white/85"]) { color: rgb(var(--ink) / 0.88); }
+.light :is([class~="text-white/80"], [class~="text-white/75"], [class~="text-white/70"], [class~="text-white/65"]) { color: rgb(var(--ink) / 0.74); }
+.light :is([class~="text-white/60"], [class~="text-white/55"], [class~="text-white/50"]) { color: rgb(var(--ink) / 0.62); }
+.light :is([class~="text-white/45"], [class~="text-white/40"], [class~="text-white/35"], [class~="text-white/30"]) { color: rgb(var(--ink) / 0.5); }
+.light :is([class~="text-white/25"], [class~="text-white/20"]) { color: rgb(var(--ink) / 0.38); }
+.light :is([class~="hover:text-white"], [class~="hover:text-white/70"], [class~="hover:text-white/80"]):hover { color: rgb(var(--ink) / 0.95); }
+
+.light :is([class~="border-white/5"], [class~="border-white/6"], [class~="border-white/8"], [class~="border-white/10"], [class~="border-white/12"], [class~="border-white/15"], [class~="border-white/20"]) {
+  border-color: rgb(var(--ink) / 0.12);
+}
+.light :is([class~="bg-white/[0.02]"], [class~="bg-white/[0.03]"], [class~="bg-white/[0.04]"], [class~="bg-white/5"], [class~="bg-white/6"], [class~="bg-white/8"], [class~="bg-white/10"]) {
+  background-color: rgb(var(--ink) / 0.05);
+}
+.light :is([class~="bg-white/15"], [class~="bg-white/20"], [class~="bg-white/30"]) { background-color: rgb(var(--ink) / 0.18); }
+.light :is([class~="hover:bg-white/5"], [class~="hover:bg-white/10"], [class~="hover:bg-white/[0.04]"]):hover {
+  background-color: rgb(var(--ink) / 0.07);
+}
+
+/* Light theme: cards get a soft shadow instead of a glow */
+.light .bg-panel,
+.light [class*="bg-card"] {
+  box-shadow: 0 1px 2px rgb(var(--ink) / 0.06), 0 4px 16px rgb(var(--ink) / 0.04);
+}
+
+/* Light theme: hard-coded dark backgrounds (modals, dropdowns, sidebar) become white */
+.light [class*="bg-[#0"]:not([data-dark]),
+.light [class*="bg-[#1"]:not([data-dark]),
+.light [class*="bg-[rgba(9"]:not([data-dark]),
+.light [class*="bg-[rgba(1"]:not([data-dark]) {
+  background-color: oklch(1 0 0);
+}
+
+/* Light theme: hide decorative dark light-rays */
+.light .fixed canvas,
+.light .absolute canvas { opacity: 0 !important; }
+
+/* Intentionally dark surfaces (chart tooltip) keep light text in the light theme */
+.light [data-dark] { color: #fff; }
+.light [data-dark] [class*="text-white"] { color: rgb(255 255 255 / 0.9); }
+.light [data-dark] :is([class~="text-white/55"], [class~="text-white/60"]) { color: rgb(255 255 255 / 0.6); }
