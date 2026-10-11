@@ -14,9 +14,9 @@ export function StatCard({
 }) {
   return (
     <div className={cn("bg-card rounded-xl border border-border p-4 flex flex-col gap-1.5", className)}>
-      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{label}</p>
+      <p className="text-xs text-white/55 font-medium uppercase tracking-wider">{label}</p>
       <p className={cn("text-2xl font-bold tabular-nums", colorClass)}>{value}</p>
-      {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+      {sub && <p className="text-xs text-white/50">{sub}</p>}
     </div>
   );
 }

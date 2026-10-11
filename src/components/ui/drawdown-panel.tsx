@@ -7,7 +7,7 @@ import { fmt } from "@/lib/utils-trade";
 
 const RED = "var(--color-red)";
 const GREEN = "var(--color-green)";
-const CARD = "rounded-2xl border border-white/10 bg-background";
+const CARD = "rounded-2xl border border-white/10 bg-panel";
 
 type DDTrade = JournalTrade;
 

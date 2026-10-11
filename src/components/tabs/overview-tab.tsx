@@ -49,7 +49,7 @@ type CalendarTrade = {
 
 const GREEN = "var(--color-green)";
 const RED = "var(--color-red)";
-const CARD = "rounded-2xl border border-white/10 bg-background";
+const CARD = "rounded-2xl border border-white/10 bg-panel";
 
 function clampPercent(value: number) {
   return Math.max(0, Math.min(100, value));
@@ -343,7 +343,7 @@ function EquityChart({
               x2={W - PAD_R}
               y1={l.y}
               y2={l.y}
-              stroke="rgba(255,255,255,0.07)"
+              stroke="rgb(var(--ink) / 0.07)"
               strokeDasharray={l.val === 0 ? "0" : "4 6"}
             />
           ))}
@@ -388,7 +388,7 @@ function EquityChart({
                 x2={hover.px}
                 y1={PAD_T}
                 y2={H - PAD_B}
-                stroke="rgba(255,255,255,0.22)"
+                stroke="rgb(var(--ink) / 0.22)"
                 strokeDasharray="4 5"
               />
               <circle
@@ -408,7 +408,7 @@ function EquityChart({
               x={W - PAD_R + 8}
               y={l.y + 4}
               fontSize="11"
-              fill="rgba(255,255,255,0.45)"
+              fill="rgb(var(--ink) / 0.45)"
             >
               {l.val === 0
                 ? "0"
@@ -425,7 +425,7 @@ function EquityChart({
               y={H - 4}
               textAnchor="middle"
               fontSize="11"
-              fill="rgba(255,255,255,0.38)"
+              fill="rgb(var(--ink) / 0.38)"
             >
               {l.label}
             </text>
@@ -434,14 +434,14 @@ function EquityChart({
 
         {hover && hoverPoint ? (
           <div
-            className="pointer-events-none absolute rounded-xl px-3 py-2 text-xs text-white"
+            data-dark className="pointer-events-none absolute rounded-xl px-3 py-2 text-xs text-white"
             style={{
               left:
                 hover.px / W > 0.68 ? "auto" : `${(hover.px / W) * 100 + 1.5}%`,
               right: hover.px / W > 0.68 ? "36px" : "auto",
               top: "8px",
               background: "rgba(9,10,15,0.96)",
-              border: "1px solid rgba(255,255,255,0.10)",
+              border: "1px solid rgb(var(--ink) / 0.10)",
               backdropFilter: "blur(14px)",
               minWidth: 148,
             }}

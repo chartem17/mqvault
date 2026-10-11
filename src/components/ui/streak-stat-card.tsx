@@ -117,7 +117,7 @@ export function StreakStatCard() {
   return (
     <div
       ref={cardRef}
-      className="relative rounded-2xl border border-white/10 bg-background p-4 cursor-pointer select-none"
+      className="relative rounded-2xl border border-white/10 bg-panel p-4 cursor-pointer select-none"
       onMouseEnter={showPopover}
       onMouseLeave={scheduleClose}
       onClick={() => (open ? setOpen(false) : showPopover())}
@@ -146,7 +146,7 @@ export function StreakStatCard() {
       {open && coords && typeof document !== "undefined" &&
         createPortal(
           <div
-            className="fixed z-[100] w-72 rounded-xl border border-white/10 bg-background p-3 text-xs shadow-2xl"
+            className="fixed z-[100] w-72 rounded-xl border border-white/10 bg-panel p-3 text-xs shadow-2xl"
             style={{ top: coords.top, left: coords.left }}
             onMouseEnter={cancelClose}
             onMouseLeave={scheduleClose}
