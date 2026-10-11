@@ -68,11 +68,19 @@ html { background: var(--page-bg); color-scheme: dark; -webkit-font-smoothing: a
 html.light { background: var(--page-bg); color-scheme: light; }
 body { margin: 0; min-height: 100dvh; background: var(--page-bg); color: var(--color-foreground); font-family: var(--font-sans); font-feature-settings: "tnum" 1, "cv02" 1, "cv03" 1; }
 
-/* Solid cards: replace semi-transparent card backgrounds in every theme */
-:is([class~="bg-card/50"], [class~="bg-card/60"], [class~="bg-card/70"], [class~="bg-card/75"], [class~="bg-card/80"]) {
+/* Solid cards in every theme */
+:is([class~="bg-card/50"], [class~="bg-card/60"], [class~="bg-card/70"], [class~="bg-card/75"], [class~="bg-card/80"], [class~="bg-card/90"]) {
   background-color: var(--color-panel);
 }
-.bg-panel { background-color: var(--color-panel); }
+
+/* Light rays: when nested inside a card, stay inside it instead of covering the viewport */
+[class~="absolute"] > [data-light-rays] {
+  position: absolute;
+  background-color: transparent !important;
+}
+/* Light theme: no dark backdrop and no rays */
+.light [data-light-rays] { background-color: transparent !important; }
+.light [data-light-rays] canvas { display: none !important; }
 
 /* Dark: dashboard contrast tuning */
 .dark [class~="text-muted-foreground"] { color: rgb(255 255 255 / 0.62); }
@@ -95,36 +103,38 @@ body { margin: 0; min-height: 100dvh; background: var(--page-bg); color: var(--c
 .light :is([class~="text-white/60"], [class~="text-white/55"], [class~="text-white/50"]) { color: rgb(var(--ink) / 0.62); }
 .light :is([class~="text-white/45"], [class~="text-white/40"], [class~="text-white/35"], [class~="text-white/30"]) { color: rgb(var(--ink) / 0.5); }
 .light :is([class~="text-white/25"], [class~="text-white/20"]) { color: rgb(var(--ink) / 0.38); }
-.light :is([class~="hover:text-white"], [class~="hover:text-white/70"], [class~="hover:text-white/80"]):hover { color: rgb(var(--ink) / 0.95); }
+.light :is([class~="hover:text-white"], [class~="hover:text-white/70"], [class~="hover:text-white/80"], [class~="group-hover:text-white/70"]):hover { color: rgb(var(--ink) / 0.95); }
 
 .light :is([class~="border-white/5"], [class~="border-white/6"], [class~="border-white/8"], [class~="border-white/10"], [class~="border-white/12"], [class~="border-white/15"], [class~="border-white/20"]) {
   border-color: rgb(var(--ink) / 0.12);
 }
-.light :is([class~="bg-white/[0.02]"], [class~="bg-white/[0.03]"], [class~="bg-white/[0.04]"], [class~="bg-white/5"], [class~="bg-white/6"], [class~="bg-white/8"], [class~="bg-white/10"]) {
-  background-color: rgb(var(--ink) / 0.05);
+.light [class~="divide-white/10"] > :not(:first-child),
+.light [class~="divide-white/5"] > :not(:first-child),
+.light [class~="divide-white/6"] > :not(:first-child) {
+  border-color: rgb(var(--ink) / 0.1);
+}
+.light :is([class~="bg-white/[0.02]"], [class~="bg-white/[0.025]"], [class~="bg-white/[0.03]"], [class~="bg-white/[0.04]"], [class~="bg-white/[0.05]"], [class~="bg-white/5"], [class~="bg-white/6"], [class~="bg-white/8"], [class~="bg-white/10"]) {
+  background-color: rgb(var(--ink) / 0.06);
 }
 .light :is([class~="bg-white/15"], [class~="bg-white/20"], [class~="bg-white/30"]) { background-color: rgb(var(--ink) / 0.18); }
-.light :is([class~="hover:bg-white/5"], [class~="hover:bg-white/10"], [class~="hover:bg-white/[0.04]"]):hover {
+.light :is([class~="hover:bg-white/5"], [class~="hover:bg-white/10"], [class~="hover:bg-white/[0.025]"], [class~="hover:bg-white/[0.04]"], [class~="hover:bg-white/[0.06]"]):hover {
   background-color: rgb(var(--ink) / 0.07);
 }
 
-/* Light theme: cards get a soft shadow instead of a glow */
-.light .bg-panel,
+/* Light theme: soft shadow on cards */
+.light [class*="bg-panel"],
 .light [class*="bg-card"] {
   box-shadow: 0 1px 2px rgb(var(--ink) / 0.06), 0 4px 16px rgb(var(--ink) / 0.04);
 }
+.light .app-sidebar { box-shadow: none; }
 
-/* Light theme: hard-coded dark backgrounds (modals, dropdowns, sidebar) become white */
+/* Light theme: hard-coded dark backgrounds (modals, dropdowns) become white */
 .light [class*="bg-[#0"]:not([data-dark]),
 .light [class*="bg-[#1"]:not([data-dark]),
 .light [class*="bg-[rgba(9"]:not([data-dark]),
 .light [class*="bg-[rgba(1"]:not([data-dark]) {
   background-color: oklch(1 0 0);
 }
-
-/* Light theme: hide decorative dark light-rays */
-.light .fixed canvas,
-.light .absolute canvas { opacity: 0 !important; }
 
 /* Intentionally dark surfaces (chart tooltip) keep light text in the light theme */
 .light [data-dark] { color: #fff; }

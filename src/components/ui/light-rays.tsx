@@ -120,8 +120,10 @@ export default function LightRays() {
   return (
     <div
       ref={host}
+      data-light-rays=""
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#090b10]"
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+      style={{ backgroundColor: "var(--page-bg)" }}
     />
   );
 }
