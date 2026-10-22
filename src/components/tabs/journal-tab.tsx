@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Pencil, Plus, Search, Trash2, X } from "lucide-react";
-
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ManualTradeModal } from "@/components/journal/manual-trade-modal";
 import {
   useTrades,
@@ -11,8 +11,9 @@ import {
   type UpdateTradeInput,
 } from "@/hooks/use-trades";
 import { fmt } from "@/lib/utils-trade";
+import { useInstruments } from "@/hooks/use-instruments";
+import { marketsFrom } from "@/lib/markets";
 
-const MARKETS = ["Forex", "Crypto", "Commodities", "Index"] as const;
 const SESSIONS = ["Asia", "London", "NY", "Overlap"] as const;
 
 const POS = "var(--color-green)";
@@ -86,6 +87,15 @@ export function JournalTab() {
   const [search, setSearch] = useState("");
   const [filterMarket, setFilterMarket] = useState<string>("All");
   const [filterSession, setFilterSession] = useState<string>("All");
+  const { instruments } = useInstruments();
+  const marketOptions = useMemo(
+    () =>
+      marketsFrom([
+        ...instruments.map((i) => i.market),
+        ...visibleTrades.map((t) => t.market),
+      ]),
+    [instruments, visibleTrades],
+  );
   const [showManualModal, setShowManualModal] = useState(false);
   const [editingTrade, setEditingTrade] = useState<JournalTrade | null>(null);
 
@@ -154,7 +164,7 @@ export function JournalTab() {
             ) : null}
           </div>
 
-          {["All", ...MARKETS].map((value) => (
+          {["All", ...marketOptions].map((value) => (
             <button
               key={value}
               type="button"

@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import { ruleLibrary } from "@/lib/strategy-control/rule-library";
-import type { ParamDefinition, RuleInstance, RuleType, StrategyProfile } from "@/lib/strategy-control/types";
+import type {
+  ParamDefinition,
+  RuleInstance,
+  RuleType,
+  StrategyProfile,
+} from "@/lib/strategy-control/types";
 
 type Props = {
   onSave: (strategy: StrategyProfile) => void;
@@ -12,7 +17,11 @@ type Props = {
 function buildDefaultRules(): RuleInstance[] {
   return (Object.keys(ruleLibrary) as RuleType[]).map((ruleType) => {
     const definition = ruleLibrary[ruleType];
-    return { ruleType, enabled: false, params: { ...definition.defaultParams } };
+    return {
+      ruleType,
+      enabled: false,
+      params: { ...definition.defaultParams },
+    };
   });
 }
 
@@ -27,16 +36,15 @@ function ParamField({
 }) {
   if (definition.type === "number") {
     return (
-      <label className="flex items-center justify-between gap-3 text-xs text-white/55">
-        {definition.label}
+      <label className="space-y-2">
+        <div className="text-sm font-medium text-foreground">
+          {definition.label}
+        </div>
         <input
           type="number"
-          min={definition.min}
-          max={definition.max}
-          step={definition.step ?? 1}
-          value={Number(value ?? 0)}
-          onChange={(e) => onChange(Number(e.target.value))}
-          className="w-20 rounded-lg border border-white/10 bg-white/[0.05] px-2 py-1 text-right text-xs text-white outline-none"
+          value={typeof value === "number" ? value : ""}
+          onChange={(event) => onChange(Number(event.target.value))}
+          className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none"
         />
       </label>
     );
@@ -45,28 +53,50 @@ function ParamField({
   if (definition.type === "session_list" || definition.type === "pair_list") {
     const selected = (value as string[]) ?? [];
     return (
-      <div className="text-xs text-white/55">
-        <p className="mb-2">{definition.label}</p>
-        <div className="flex flex-wrap gap-2">
-          {(definition.options ?? []).map((option) => {
-            const active = selected.includes(option);
-            return (
-              <button
-                key={option}
-                type="button"
-                onClick={() => onChange(active ? selected.filter((v) => v !== option) : [...selected, option])}
-                className={`rounded-full border px-3 py-1 text-xs transition ${
-                  active
-                    ? "border-blue-300/40 bg-blue-300/[0.14] text-blue-200"
-                    : "border-white/10 bg-white/[0.03] text-white/45 hover:bg-white/[0.06]"
-                }`}
-              >
-                {option}
-              </button>
-            );
-          })}
+      <label className="space-y-2">
+        <div className="text-sm font-medium text-foreground">
+          {definition.label}
         </div>
-      </div>
+        <input
+          type="text"
+          value={selected.join(", ")}
+          onChange={(event) =>
+            onChange(
+              event.target.value
+                .split(",")
+                .map((item) => item.trim())
+                .filter(Boolean),
+            )
+          }
+          placeholder="Через кому"
+          className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none"
+        />
+      </label>
+    );
+  }
+
+  if (definition.type === "emotion_list") {
+    const selected = (value as string[]) ?? [];
+    return (
+      <label className="space-y-2">
+        <div className="text-sm font-medium text-foreground">
+          {definition.label}
+        </div>
+        <input
+          type="text"
+          value={selected.join(", ")}
+          onChange={(event) =>
+            onChange(
+              event.target.value
+                .split(",")
+                .map((item) => item.trim())
+                .filter(Boolean),
+            )
+          }
+          placeholder="fear, revenge, tilt"
+          className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none"
+        />
+      </label>
     );
   }
 
@@ -78,112 +108,166 @@ export function StrategyBuilder({ onSave, onCancel }: Props) {
   const [description, setDescription] = useState("");
   const [rules, setRules] = useState<RuleInstance[]>(buildDefaultRules());
 
-  const updateRule = (ruleType: RuleType, patch: Partial<RuleInstance>) => {
-    setRules((prev) => prev.map((r) => (r.ruleType === ruleType ? { ...r, ...patch } : r)));
-  };
-
-  const updateParam = (ruleType: RuleType, key: string, value: unknown) => {
-    setRules((prev) => prev.map((r) => (r.ruleType === ruleType ? { ...r, params: { ...r.params, [key]: value } } : r)));
-  };
-
-  const handleSave = () => {
-    if (!name.trim()) return;
-    const strategy: StrategyProfile = {
-      id: `strategy-${Date.now()}`,
-      name: name.trim(),
-      description: description.trim() || undefined,
-      createdAt: new Date().toISOString().slice(0, 10),
-      rules,
-    };
-    onSave(strategy);
-  };
-
-  const enabledCount = rules.filter((r) => r.enabled).length;
   const categories: Record<string, string> = {
     discipline: "Дисципліна",
-    risk: "Ризик-менеджмент",
-    session: "Сесії та інструменти",
-    setup: "Якість сетапу",
+    session: "Сесії",
+    instrument: "Інструменти",
+    risk: "Ризик",
     psychology: "Психологія",
   };
 
+  function updateRule(
+    ruleType: RuleType,
+    updater: (rule: RuleInstance) => RuleInstance,
+  ) {
+    setRules((current) =>
+      current.map((rule) =>
+        rule.ruleType === ruleType ? updater(rule) : rule,
+      ),
+    );
+  }
+
+  function handleSave() {
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+
+    const strategy: StrategyProfile = {
+      id: `strategy-${Date.now()}`,
+      name: trimmedName,
+      description: description.trim(),
+      createdAt: new Date().toISOString().slice(0, 10),
+      rules,
+    };
+
+    onSave(strategy);
+  }
+
   return (
-    <div className="rounded-2xl border border-white/[0.08] bg-black/30 p-5">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium text-white">Створити нову стратегію</h2>
-        <span className="text-xs text-white/35">{enabledCount} правил увімкнено</span>
-      </div>
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <label className="text-xs text-white/45">
-          Назва стратегії
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Наприклад, TS Intraday Strict"
-            className="mt-1 w-full rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white outline-none"
-          />
-        </label>
-        <label className="text-xs text-white/45">
-          Опис (опційно)
-          <input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Короткий опис стратегії"
-            className="mt-1 w-full rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white outline-none"
-          />
-        </label>
-      </div>
-
-      <div className="mt-5 space-y-3">
-        {rules.map((rule) => {
-          const definition = ruleLibrary[rule.ruleType];
-          return (
-            <div key={rule.ruleType} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.1em] text-white/30">{categories[definition.category]}</p>
-                  <p className="mt-1 text-sm text-white">{definition.title}</p>
-                  <p className="mt-1 text-xs text-white/40">{definition.description}</p>
-                </div>
-                <label className="flex shrink-0 items-center gap-2 text-xs text-white/50">
-                  <input
-                    type="checkbox"
-                    checked={rule.enabled}
-                    onChange={(e) => updateRule(rule.ruleType, { enabled: e.target.checked })}
-                    className="h-4 w-4 rounded border-white/20 bg-white/5"
-                  />
-                  увімкнено
-                </label>
-              </div>
-              {rule.enabled && definition.paramsSchema.length > 0 ? (
-                <div className="mt-3 space-y-2 border-t border-white/[0.05] pt-3">
-                  {definition.paramsSchema.map((paramDef) => (
-                    <ParamField
-                      key={paramDef.key}
-                      definition={paramDef}
-                      value={rule.params[paramDef.key]}
-                      onChange={(value) => updateParam(rule.ruleType, paramDef.key, value)}
-                    />
-                  ))}
-                </div>
-              ) : null}
+    <div className="w-full rounded-3xl border border-border bg-card p-6 shadow-sm">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)]">
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-border bg-muted/30 p-5">
+            <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              Базова інформація
             </div>
-          );
-        })}
-      </div>
 
-      <div className="mt-5 flex justify-end gap-2">
-        <button onClick={onCancel} className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-xs text-white/60 hover:bg-white/[0.06]">
-          Скасувати
-        </button>
-        <button
-          onClick={handleSave}
-          disabled={!name.trim()}
-          className="rounded-lg border border-blue-300/30 bg-blue-300/[0.12] px-4 py-2 text-xs text-blue-200 hover:bg-blue-300/[0.2] disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Створити стратегію
-        </button>
+            <div className="mt-4 space-y-4">
+              <label className="space-y-2">
+                <div className="text-sm font-medium text-foreground">
+                  Назва стратегії
+                </div>
+                <input
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="Наприклад: TS Base"
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none"
+                />
+              </label>
+
+              <label className="space-y-2">
+                <div className="text-sm font-medium text-foreground">Опис</div>
+                <textarea
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  rows={5}
+                  placeholder="Коротко опиши профіль і межі цієї стратегії"
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none"
+                />
+              </label>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-muted/30 p-5">
+            <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              Дії
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={handleSave}
+                className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-300"
+              >
+                Зберегти стратегію
+              </button>
+
+              <button
+                type="button"
+                onClick={onCancel}
+                className="rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent"
+              >
+                Скасувати
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {(Object.keys(ruleLibrary) as RuleType[]).map((ruleType) => {
+            const definition = ruleLibrary[ruleType];
+            const rule = rules.find((item) => item.ruleType === ruleType);
+            if (!rule) return null;
+
+            return (
+              <div
+                key={ruleType}
+                className="rounded-2xl border border-border bg-card p-5 shadow-sm"
+              >
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                        {categories[definition.category]}
+                      </span>
+                      <span className="text-sm font-medium text-foreground">
+                        {definition.title}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                      {definition.description}
+                    </p>
+                  </div>
+
+                  <label className="flex items-center gap-2 text-sm text-foreground">
+                    <input
+                      type="checkbox"
+                      checked={rule.enabled}
+                      onChange={(event) =>
+                        updateRule(ruleType, (current) => ({
+                          ...current,
+                          enabled: event.target.checked,
+                        }))
+                      }
+                      className="h-4 w-4 rounded border-border"
+                    />
+                    Увімкнено
+                  </label>
+                </div>
+
+                {rule.enabled ? (
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    {definition.paramsSchema.map((param) => (
+                      <ParamField
+                        key={`${ruleType}-${param.key}`}
+                        definition={param}
+                        value={rule.params[param.key]}
+                        onChange={(nextValue) =>
+                          updateRule(ruleType, (current) => ({
+                            ...current,
+                            params: {
+                              ...current.params,
+                              [param.key]: nextValue,
+                            },
+                          }))
+                        }
+                      />
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

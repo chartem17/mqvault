@@ -7,16 +7,31 @@ export type Confidence = "low" | "medium" | "high";
 
 export type Trade = {
   id: string;
+  accountId?: string;
   date: string;
+  openedAt?: string;
+  closedAt?: string | null;
+
   pair: string;
+  market?: string | null;
   direction: TradeDirection;
-  session: TradeSession;
-  resultR: number;
-  resultUsd?: number;
-  riskPct: number;
-  plannedRR?: number;
-  emotion?: "Calm" | "Angry" | "Neutral" | "Tired";
-  modelConfirmed?: boolean;
+
+  session?: TradeSession | null;
+
+  resultR?: number | null;
+  resultUsd?: number | null;
+  grossPnl?: number | null;
+  netPnl?: number | null;
+
+  riskPct?: number | null;
+  plannedRR?: number | null;
+
+  emotion?: "Calm" | "Angry" | "Neutral" | "Tired" | null;
+  modelConfirmed?: boolean | null;
+
+  setup?: string | null;
+  mistake?: string | null;
+  tags?: string[];
 };
 
 export type RuleType =
@@ -95,10 +110,10 @@ export type StrategyAnalysis = {
   checkedTrades: number;
   cleanTrades: number;
   compliance: number;
-  winRate: number;
-  totalR: number;
-  averageR: number;
-  averageRisk: number;
+  winRate: number | null;
+  totalR: number | null;
+  averageR: number | null;
+  averageRisk: number | null;
   averagePlannedRR: number | null;
   medianPlannedRR: number | null;
   disciplineRisk: number;

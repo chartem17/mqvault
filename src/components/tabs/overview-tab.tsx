@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -193,13 +193,41 @@ function EquityChart({
   points: EqPoint[];
   totalPnl: number;
 }) {
-  const [hover, setHover] = useState<{
-    idx: number;
-    px: number;
-    py: number;
-  } | null>(null);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(900);
+  const [measured, setMeasured] = useState(false);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
-  const W = 900;
+  useEffect(() => {
+    const element = chartContainerRef.current;
+    if (!element) return;
+
+    const updateWidth = () => {
+      const nextWidth = element.getBoundingClientRect().width;
+
+      // Не перезаписуємо розмір, якщо вкладка тимчасово прихована.
+      if (!Number.isFinite(nextWidth) || nextWidth <= 0) return;
+
+      setContainerWidth((current) =>
+        Math.abs(current - nextWidth) < 0.5 ? current : nextWidth,
+      );
+      setMeasured(true);
+    };
+
+    updateWidth();
+
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(updateWidth);
+      observer.observe(element);
+
+      return () => observer.disconnect();
+    }
+
+    window.addEventListener("resize", updateWidth);
+    return () => window.removeEventListener("resize", updateWidth);
+  }, []);
+
+  const W = containerWidth;
   const H = 300;
   const PAD_L = 12;
   const PAD_R = 48;
@@ -207,7 +235,7 @@ function EquityChart({
   const PAD_B = 22;
 
   const eq = points.slice(-120);
-  const chartW = W - PAD_L - PAD_R;
+  const chartW = Math.max(1, W - PAD_L - PAD_R);
   const chartH = H - PAD_T - PAD_B;
 
   const pnlValues = eq.length > 0 ? eq.map((p) => p.pnl) : [0];
@@ -284,22 +312,32 @@ function EquityChart({
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<SVGSVGElement>) => {
       const rect = e.currentTarget.getBoundingClientRect();
-      if (!rect || eq.length < 2) return;
+
+      if (rect.width <= 0 || eq.length === 0) {
+        setHoverIndex(null);
+        return;
+      }
 
       const mx = ((e.clientX - rect.left) / rect.width) * W;
-      const idx = Math.round(((mx - PAD_L) / chartW) * (eq.length - 1));
-      const clamped = Math.max(0, Math.min(eq.length - 1, idx));
+      const relativeX = Math.max(0, Math.min(1, (mx - PAD_L) / chartW));
 
-      setHover({
-        idx: clamped,
-        px: toX(clamped),
-        py: toY(eq[clamped].pnl),
-      });
+      const idx = Math.round(relativeX * Math.max(0, eq.length - 1));
+
+      setHoverIndex(idx);
     },
-    [eq, chartW],
+    [W, chartW, eq.length],
   );
 
-  const hoverPoint = hover !== null ? eq[hover.idx] : null;
+  const hoverPoint = hoverIndex !== null ? (eq[hoverIndex] ?? null) : null;
+
+  const hover =
+    hoverIndex !== null && hoverPoint && coords[hoverIndex]
+      ? {
+          idx: hoverIndex,
+          px: coords[hoverIndex].x,
+          py: coords[hoverIndex].y,
+        }
+      : null;
 
   return (
     <div className={`${CARD} relative overflow-hidden p-5`}>
@@ -329,12 +367,21 @@ function EquityChart({
         </div>
       </div>
 
-      <div className="relative">
+      <div
+        ref={chartContainerRef}
+        className="relative min-w-0 w-full"
+        style={{ height: H }}
+      >
         <svg
           viewBox={`0 0 ${W} ${H}`}
-          className="h-[300px] w-full"
+          width={W}
+          height={H}
+          className="block h-full w-full"
+          style={{
+            visibility: measured ? "visible" : "hidden",
+          }}
           onMouseMove={handleMouseMove}
-          onMouseLeave={() => setHover(null)}
+          onMouseLeave={() => setHoverIndex(null)}
         >
           {yLabels.map((l, i) => (
             <line
@@ -423,7 +470,13 @@ function EquityChart({
               key={`xlabel-${i}`}
               x={l.x}
               y={H - 4}
-              textAnchor="middle"
+              textAnchor={
+                xLabels.length === 1 || i === 0
+                  ? "start"
+                  : i === xLabels.length - 1
+                    ? "end"
+                    : "middle"
+              }
               fontSize="11"
               fill="rgb(var(--ink) / 0.38)"
             >
@@ -434,7 +487,8 @@ function EquityChart({
 
         {hover && hoverPoint ? (
           <div
-            data-dark className="pointer-events-none absolute rounded-xl px-3 py-2 text-xs text-white"
+            data-dark
+            className="pointer-events-none absolute rounded-xl px-3 py-2 text-xs text-white"
             style={{
               left:
                 hover.px / W > 0.68 ? "auto" : `${(hover.px / W) * 100 + 1.5}%`,
@@ -831,10 +885,7 @@ export function OverviewTab() {
 
   return (
     <div className="space-y-6 p-6">
-      <SectionHeader
-        title="Огляд рахунку"
-        sub={overviewSubtitle}
-      />
+      <SectionHeader title="Огляд рахунку" sub={overviewSubtitle} />
 
       <AccountProgressCard
         activeAccount={activeAccount}

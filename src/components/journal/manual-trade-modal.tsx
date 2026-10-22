@@ -5,17 +5,12 @@ import { ChevronDown, X } from "lucide-react";
 import { type JournalTrade, type TradeInput } from "@/hooks/use-trades";
 import type { TradingAccount } from "@/lib/account-data";
 import GlideSelect from "@/components/ui/glide-select";
-
-const ASSETS = [
-  { symbol: "BTCUSDT", market: "Crypto" },
-  { symbol: "ETHUSDT", market: "Crypto" },
-  { symbol: "EURUSD", market: "Forex" },
-  { symbol: "GBPUSD", market: "Forex" },
-  { symbol: "XAUUSD", market: "Commodities" },
-  { symbol: "XAGUSD", market: "Commodities" },
-  { symbol: "US30", market: "Index" },
-  { symbol: "GER40", market: "Index" },
-] as const;
+import { useInstruments } from "@/hooks/use-instruments";
+import {
+  marketForSymbol as findMarket,
+  type Instrument,
+} from "@/lib/instruments";
+import { marketsFrom, sortBySymbol } from "@/lib/markets";
 
 const SESSIONS = ["Asia", "London", "NY", "Overlap"] as const;
 
@@ -84,8 +79,8 @@ const shakeStyle: CSSProperties = {
   animation: "trade-ticket-shake 380ms ease-in-out",
 };
 
-function marketForSymbol(symbol: string) {
-  return ASSETS.find((asset) => asset.symbol === symbol)?.market ?? "";
+function marketForSymbol(list: Instrument[], symbol: string) {
+  return findMarket(list, symbol);
 }
 
 function sessionForTime(time: string) {
@@ -247,6 +242,12 @@ export function ManualTradeModal({
   const [shakeSubmit, setShakeSubmit] = useState(false);
   const [symbolQuery, setSymbolQuery] = useState("");
   const [symbolOpen, setSymbolOpen] = useState(false);
+  const [marketFilter, setMarketFilter] = useState<string>("All");
+  const { instruments } = useInstruments();
+  const marketOptions = useMemo(
+    () => marketsFrom(instruments.map((i) => i.market)),
+    [instruments],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -260,6 +261,7 @@ export function ManualTradeModal({
     }
 
     setSymbolOpen(false);
+    setMarketFilter("All");
     setErrors({});
     setWarningFields(new Set());
     setSubmitError(null);
@@ -267,14 +269,21 @@ export function ManualTradeModal({
   }, [open, initialTrade, accounts, defaultAccountId]);
 
   const matchingAssets = useMemo(() => {
-    const q = symbolQuery.toLowerCase();
-    return ASSETS.filter(
-      (asset) =>
-        !q ||
-        asset.symbol.toLowerCase().includes(q) ||
-        asset.market.toLowerCase().includes(q),
-    );
-  }, [symbolQuery]);
+    const q = symbolQuery.trim().toLowerCase();
+    const byMarket =
+      marketFilter === "All"
+        ? instruments
+        : instruments.filter((item) => item.market === marketFilter);
+    const bySearch = q
+      ? byMarket.filter(
+          (item) =>
+            item.symbol.toLowerCase().includes(q) ||
+            item.displaySymbol.toLowerCase().includes(q) ||
+            item.market.toLowerCase().includes(q),
+        )
+      : byMarket;
+    return sortBySymbol(bySearch);
+  }, [symbolQuery, instruments, marketFilter]);
 
   const netPreview = useMemo(() => String(computeNetPnl(form)), [form]);
   const rPreview = useMemo(() => {
@@ -288,7 +297,7 @@ export function ManualTradeModal({
     setForm((previous) => ({
       ...previous,
       symbol,
-      market: marketForSymbol(symbol) || previous.market,
+      market: marketForSymbol(instruments, symbol) || previous.market,
     }));
     setSymbolQuery(symbol);
 
@@ -385,7 +394,7 @@ export function ManualTradeModal({
       opened_at: toIsoString(form.opened_at),
       closed_at: form.closed_at ? toIsoString(form.closed_at) : null,
       symbol: form.symbol,
-      market: form.market || marketForSymbol(form.symbol) || null,
+      market: form.market || marketForSymbol(instruments, form.symbol) || null,
       direction: form.direction as "Long" | "Short",
       entry_price: form.entry_price || null,
       stop_loss: form.stop_loss || null,
@@ -619,20 +628,45 @@ export function ManualTradeModal({
                   </button>
 
                   {symbolOpen ? (
-                    <div className="absolute top-full z-20 mt-1 w-full rounded-xl border border-border bg-card shadow-2xl p-1 max-h-48 overflow-auto">
-                      {matchingAssets.map((asset) => (
-                        <button
-                          key={asset.symbol}
-                          type="button"
-                          onClick={() => chooseSymbol(asset.symbol)}
-                          className="w-full flex justify-between rounded-lg px-3 py-2 text-left hover:bg-secondary"
-                        >
-                          <span>{asset.symbol}</span>
-                          <span className="text-[10px] text-muted-foreground">
-                            {asset.market}
-                          </span>
-                        </button>
-                      ))}
+                    <div className="absolute top-full z-20 mt-1 w-full overflow-hidden rounded-xl border border-border bg-popover shadow-2xl">
+                      <div className="flex flex-wrap gap-1.5 border-b border-border p-2">
+                        {["All", ...marketOptions].map((value) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => setMarketFilter(value)}
+                            className={`rounded-lg border px-2.5 py-1 text-xs transition ${
+                              marketFilter === value
+                                ? "border-primary/20 bg-primary/10 text-primary"
+                                : "border-border bg-secondary/60 text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            {value}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="max-h-56 overflow-auto p-1">
+                        {matchingAssets.length === 0 ? (
+                          <p className="px-3 py-4 text-center text-xs text-muted-foreground">
+                            No symbols found
+                          </p>
+                        ) : (
+                          matchingAssets.map((asset) => (
+                            <button
+                              key={asset.symbol}
+                              type="button"
+                              onClick={() => chooseSymbol(asset.symbol)}
+                              className="flex w-full justify-between rounded-lg px-3 py-2 text-left hover:bg-secondary"
+                            >
+                              <span>{asset.symbol}</span>
+                              <span className="text-[10px] text-muted-foreground">
+                                {asset.market}
+                              </span>
+                            </button>
+                          ))
+                        )}
+                      </div>
                     </div>
                   ) : null}
                 </div>
