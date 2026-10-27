@@ -1,9 +1,8 @@
 "use client";
-import { type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export function StatCard({
-  label, value, sub, trend, colorClass, className,
+  label, value, sub, colorClass, className,
 }: {
   label: string;
   value: string;
