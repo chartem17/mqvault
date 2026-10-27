@@ -22,7 +22,6 @@ import {
 } from "@/lib/utils-trade";
 import { computeAdvancedStats, type RBucket } from "@/lib/advanced-stats";
 import { StatCard } from "@/components/ui/stat-card";
-import LightRays from "@/components/ui/light-rays";
 import { DrawdownPanel } from "@/components/ui/drawdown-panel";
 import { StreakStatCard } from "@/components/ui/streak-stat-card";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -67,10 +66,6 @@ function AccountProgressCard({
   if (activeAccountId === "all" || !activeAccount) {
     return (
       <div className={`${CARD} relative overflow-hidden p-5`}>
-        <div className="pointer-events-none absolute inset-0 opacity-60">
-          <LightRays />
-        </div>
-
         <div className="relative z-10">
           <div className="text-sm font-medium text-white">
             All accounts view

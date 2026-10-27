@@ -14,6 +14,8 @@ import {
   Moon,
   ShieldCheck,
 } from "lucide-react";
+import DotField from "@/components/backgrounds/dot-field";
+import { HeaderInk } from "@/components/header-ink";
 import type { TabId } from "@/app/page";
 import AccountSwitcher from "@/components/account-switcher";
 

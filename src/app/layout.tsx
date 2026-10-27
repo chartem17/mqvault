@@ -16,7 +16,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        style={{ margin: 0, minHeight: "100dvh", backgroundColor: "var(--page-bg)" }}
+        style={{
+          margin: 0,
+          minHeight: "100dvh",
+          backgroundColor: "var(--page-bg)",
+        }}
       >
         <ThemeProvider
           attribute="class"
