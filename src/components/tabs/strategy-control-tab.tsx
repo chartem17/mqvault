@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { defaultKyivPeriod, isInKyivPeriod } from "@/lib/trading-calendar";
 import { ShieldCheck, AlertTriangle, TrendingUp, Target, Scale, X } from "lucide-react";
 import { useTrades } from "@/hooks/use-trades";
 import { useStrategies } from "@/hooks/use-strategies";
@@ -25,9 +26,8 @@ const impactTone: Record<string, string> = {
 };
 function formatPct(value: number | null | undefined) { return typeof value === "number" && Number.isFinite(value) ? `${value}%` : "—"; }
 function formatR(value: number | null | undefined) { return typeof value === "number" && Number.isFinite(value) ? `${value >= 0 ? "+" : ""}${value.toFixed(2)}R` : "—"; }
-function dateInput(value: Date) { return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`; }
 function dateLabel(value: string) { const [year, month, day] = value.split("-"); return `${day}.${month}.${year}`; }
-function getDefaultRange() { const end = new Date(); const start = new Date(end); start.setMonth(start.getMonth() - 3); return { start: dateInput(start), end: dateInput(end) }; }
+function getDefaultRange() { return defaultKyivPeriod(); }
 function metricTone(value: number | null | undefined) { return typeof value !== "number" || value === 0 ? "text-foreground" : value > 0 ? "text-emerald-700 dark:text-emerald-300" : "text-rose-700 dark:text-rose-300"; }
 function formatRuleParams(rule: RuleInstance) {
   switch (rule.ruleType) {
@@ -91,7 +91,7 @@ export function StrategyControlTab() {
   const [period, setPeriod] = useState(getDefaultRange);
   const accountRef = useRef(activeAccountId);
   useEffect(() => { accountRef.current = activeAccountId; setSelectedFinding(null); setStrategyDetailsOpen(false); setBuilderOpen(false); }, [activeAccountId]);
-  const filteredTrades = useMemo(() => visibleTrades.filter(trade => { const day = trade.opened_at.slice(0, 10); return day >= period.start && day <= period.end; }), [visibleTrades, period]);
+  const filteredTrades = useMemo(() => visibleTrades.filter(trade => isInKyivPeriod(trade.opened_at, period)), [visibleTrades, period]);
   const strategyTrades = useMemo(() => filteredTrades.map(toStrategyControlTrade), [filteredTrades]);
   const analysis = useMemo(() => activeStrategy ? analyzeTrades(strategyTrades, activeStrategy, period) : null, [activeStrategy, strategyTrades, period]);
   const sortedFindings = useMemo(() => { if (!analysis) return []; const rank = { critical: 0, warning: 1, insufficient: 2, ok: 3 }; return [...analysis.findings].sort((a, b) => rank[a.status] - rank[b.status]); }, [analysis]);

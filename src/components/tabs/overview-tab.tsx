@@ -11,7 +11,8 @@ import { DrawdownPanel } from "@/components/ui/drawdown-panel";
 import { StreakStatCard } from "@/components/ui/streak-stat-card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { RiskSummary } from "@/components/ui/risk-summary";
-import { SESSION_DEFINITIONS, SESSION_GROUPS, getSessionKey, getSessionLabel } from "@/lib/sessions";
+import { SESSION_DEFINITIONS, SESSION_GROUPS, getSessionKey, getSessionLabel, getKyivDate } from "@/lib/sessions";
+import { calendarCellKey, kyivDayOrNull, kyivMonthCursor } from "@/lib/trading-calendar";
 
 type EqPoint = { date: string; time?: string; symbol?: string; session?: string; emotion?: string; tradePnl?: number; resultR?: number; pnl: number };
 type CalendarTrade = { date: string; symbol?: string; direction?: "Long" | "Short" | string; net_pnl?: number; result_r?: number };
@@ -97,16 +98,16 @@ function EquityChart({ points, totalPnl }: { points: EqPoint[]; totalPnl: number
   </div>;
 }
 function TradesCalendar({ trades }: { trades: CalendarTrade[] }) {
-  const [cursor, setCursor] = useState(() => new Date());
+  const [cursor, setCursor] = useState(() => kyivMonthCursor());
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const monthLabel = cursor.toLocaleString("uk-UA", { month: "long", year: "numeric" });
   const weekDays = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
   const year = cursor.getFullYear(), month = cursor.getMonth();
   const dayMap = useMemo(() => { const map: Record<string, { pnl: number; trades: CalendarTrade[] }> = {}; for (const trade of Array.isArray(trades) ? trades : []) { const key = trade.date; if (!key) continue; if (!map[key]) map[key] = { pnl: 0, trades: [] }; map[key].pnl += trade.net_pnl ?? 0; map[key].trades.push(trade); } return map; }, [trades]);
   const firstOfMonth = new Date(year, month, 1), startDate = new Date(firstOfMonth); startDate.setDate(firstOfMonth.getDate() - firstOfMonth.getDay());
-  const days = Array.from({ length: 42 }, (_, index) => { const date = new Date(startDate); date.setDate(startDate.getDate() + index); return { date, inMonth: date.getMonth() === month, key: date.toISOString().slice(0, 10) }; });
-  const today = new Date();
-  const isToday = (date: Date) => date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() && date.getDate() === today.getDate();
+  const days = Array.from({ length: 42 }, (_, index) => { const date = new Date(startDate); date.setDate(startDate.getDate() + index); return { date, inMonth: date.getMonth() === month, key: calendarCellKey(date) }; });
+  const todayKey = getKyivDate(new Date());
+  const isToday = (date: Date) => calendarCellKey(date) === todayKey;
   const selectedDay = selectedKey ? dayMap[selectedKey] : null;
   return <div className={`${CARD} p-5`}>
     <div className="mb-4 flex items-center justify-between gap-3"><div><div className="text-sm font-medium text-white">Trades Calendar</div><div className="mt-1 text-xs text-white/55">Натисни на день з угодами</div></div><div className="flex items-center gap-2"><button type="button" onClick={() => { setCursor(new Date(year, month - 1, 1)); setSelectedKey(null); }} className="rounded-md p-1 text-white/50 transition-colors hover:bg-white/5" aria-label="Previous month"><ChevronLeft className="h-4 w-4" /></button><div className="min-w-[140px] text-center text-sm text-white/80">{monthLabel}</div><button type="button" onClick={() => { setCursor(new Date(year, month + 1, 1)); setSelectedKey(null); }} className="rounded-md p-1 text-white/50 transition-colors hover:bg-white/5" aria-label="Next month"><ChevronRight className="h-4 w-4" /></button></div></div>
@@ -157,7 +158,7 @@ export function OverviewTab() {
     return [...groups.entries()].map(([key, value]) => ({ key, ...value })).sort((a, b) => b.pnl - a.pnl);
   }, [visibleTrades]);
   const byEmotion = useMemo(() => groupByKey(visibleTrades, "emotion").sort((a, b) => b.trades - a.trades), [visibleTrades]);
-  const calendarTrades = useMemo<CalendarTrade[]>(() => visibleTrades.map(trade => ({ date: String(trade.opened_at ?? "").slice(0, 10), symbol: trade.symbol, direction: trade.direction, net_pnl: trade.net_pnl ?? 0, result_r: trade.result_r ?? undefined })), [visibleTrades]);
+  const calendarTrades = useMemo<CalendarTrade[]>(() => visibleTrades.flatMap(trade => { const date = kyivDayOrNull(trade.opened_at); return date ? [{ date, symbol: trade.symbol, direction: trade.direction, net_pnl: trade.net_pnl ?? 0, result_r: trade.result_r ?? undefined }] : []; }), [visibleTrades]);
   let overviewSubtitle = `${visibleTrades.length} угод · Combined view`;
   if (activeAccountId !== "all") overviewSubtitle = `${visibleTrades.length} угод · ${activeAccount ? activeAccount.name : "Account"} · ${activeAccount ? phaseLabel[activeAccount.phase] : "Manual"}`;
   const monthlyAbsMax = Math.max(...monthly.map(item => Math.abs(item.pnl)), 1);
