@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Flag, ShieldAlert, Target, Wallet } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTrades, type JournalTrade } from "@/hooks/use-trades";
 import { phaseLabel, type TradingAccount } from "@/lib/account-data";
 import { computeEquity, computeMonthly, computeStats, fmt, groupByKey } from "@/lib/utils-trade";
@@ -21,7 +21,6 @@ const CARD = "rounded-2xl border border-white/10 bg-panel";
 function clampPercent(value: number) { return Math.max(0, Math.min(100, value)); }
 function sessionKeyOf(trade: JournalTrade) { try { return getSessionKey(trade.opened_at); } catch { return null; } }
 function sessionGroupOf(trade: JournalTrade) { const key = sessionKeyOf(trade); return key ? SESSION_DEFINITIONS.find(session => session.key === key)?.group ?? "off" : "off"; }
-function sessionLabelOf(trade: JournalTrade) { const key = sessionKeyOf(trade); return key ? getSessionLabel(trade.opened_at) : trade.session || "—"; }
 function AccountProgressCard({ activeAccount, activeAccountId, visibleTrades }: { activeAccount: TradingAccount | null; activeAccountId: "all" | string; visibleTrades: JournalTrade[] }) {
   if (activeAccountId === "all" || !activeAccount) return <div className={`${CARD} relative overflow-hidden p-5`}><div className="relative z-10"><div className="text-sm font-medium text-white">All accounts view</div><div className="mt-1 text-sm text-white/60">Combined statistics across all included accounts</div></div></div>;
   const totalPnl = visibleTrades.reduce((sum, trade) => sum + (trade.net_pnl ?? 0), 0);
