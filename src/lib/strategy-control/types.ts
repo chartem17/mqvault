@@ -11,76 +11,28 @@ export type Trade = {
   date: string;
   openedAt?: string;
   closedAt?: string | null;
-
   pair: string;
   market?: string | null;
   direction: TradeDirection;
-
   session?: TradeSession | null;
-
   resultR?: number | null;
   resultUsd?: number | null;
   grossPnl?: number | null;
   netPnl?: number | null;
-
   riskPct?: number | null;
   plannedRR?: number | null;
-
   emotion?: "Calm" | "Angry" | "Neutral" | "Tired" | null;
   modelConfirmed?: boolean | null;
-
   setup?: string | null;
   mistake?: string | null;
   tags?: string[];
 };
-
-export type RuleType =
-  | "max_trades_per_day"
-  | "max_losses_per_day"
-  | "allowed_sessions"
-  | "core_instruments"
-  | "model_confirmation"
-  | "emotion_filter"
-  | "risk_range"
-  | "min_planned_rr"
-  | "high_risk_requires_rr"
-  | "risk_escalation_after_loss";
-
-export type ParamType = "number" | "session_list" | "pair_list" | "boolean";
-
-export type ParamDefinition = {
-  key: string;
-  label: string;
-  type: ParamType;
-  min?: number;
-  max?: number;
-  step?: number;
-  options?: string[];
-};
-
-export type RuleDefinition = {
-  ruleType: RuleType;
-  title: string;
-  category: "discipline" | "risk" | "session" | "setup" | "psychology";
-  description: string;
-  paramsSchema: ParamDefinition[];
-  defaultParams: Record<string, unknown>;
-};
-
-export type RuleInstance = {
-  ruleType: RuleType;
-  enabled: boolean;
-  params: Record<string, unknown>;
-};
-
-export type StrategyProfile = {
-  id: string;
-  name: string;
-  description?: string;
-  createdAt: string;
-  rules: RuleInstance[];
-};
-
+export type RuleType = "max_trades_per_day" | "max_losses_per_day" | "allowed_sessions" | "core_instruments" | "model_confirmation" | "emotion_filter" | "risk_range" | "min_planned_rr" | "high_risk_requires_rr" | "risk_escalation_after_loss";
+export type ParamType = "number" | "session_list" | "pair_list" | "emotion_list" | "boolean";
+export type ParamDefinition = { key: string; label: string; type: ParamType; min?: number; max?: number; step?: number; options?: string[] };
+export type RuleDefinition = { ruleType: RuleType; title: string; category: "discipline" | "risk" | "session" | "setup" | "psychology"; description: string; paramsSchema: ParamDefinition[]; defaultParams: Record<string, unknown> };
+export type RuleInstance = { ruleType: RuleType; enabled: boolean; params: Record<string, unknown> };
+export type StrategyProfile = { id: string; name: string; description?: string; createdAt: string; rules: RuleInstance[] };
 export type RuleFinding = {
   ruleType: RuleType;
   title: string;
@@ -101,7 +53,6 @@ export type RuleFinding = {
   message: string;
   recommendation: string | null;
 };
-
 export type StrategyAnalysis = {
   strategyId: string;
   strategyName: string;
