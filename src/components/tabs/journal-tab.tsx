@@ -15,6 +15,11 @@ const POS_BG = "color-mix(in srgb, var(--color-green) 14%, transparent)";
 const NEG_BG = "color-mix(in srgb, var(--color-red) 14%, transparent)";
 
 type SessionFilter = "All" | "asia" | "london" | "new_york" | "off" | (typeof SESSION_DEFINITIONS)[number]["key"];
+const SESSION_FILTER_OPTIONS = [
+  { key: "All", label: "All", reactKey: "all" },
+  ...SESSION_GROUPS.map(option => ({ ...option, reactKey: `group:${option.key}` })),
+  ...SESSION_DEFINITIONS.map(option => ({ ...option, reactKey: `session:${option.key}` })),
+] satisfies { key: SessionFilter; label: string; reactKey: string }[];
 
 function formatDateTime(value?: string | null) {
   if (!value) return "—";
@@ -80,7 +85,7 @@ export function JournalTab() {
           {search ? <button type="button" onClick={() => setSearch("")} className="text-muted-foreground hover:text-foreground" aria-label="Clear search"><X className="h-3.5 w-3.5" /></button> : null}
         </div>
         {["All", ...marketOptions].map(value => <button key={value} type="button" onClick={() => setFilterMarket(value)} className={`rounded-lg border px-3 py-1.5 text-xs ${filterMarket === value ? "border-primary/20 bg-primary/10 text-primary" : "border-border bg-secondary/60 text-muted-foreground"}`}>{value}</button>)}
-        {(["All", ...SESSION_GROUPS, ...SESSION_DEFINITIONS] as const).map(option => <button key={option.key} type="button" onClick={() => setFilterSession(option.key as SessionFilter)} className={`rounded-lg border px-3 py-1.5 text-xs ${filterSession === option.key ? "border-primary/20 bg-primary/10 text-primary" : "border-border bg-secondary/60 text-muted-foreground"}`}>{option.label}</button>)}
+        {SESSION_FILTER_OPTIONS.map(option => <button key={option.reactKey} type="button" onClick={() => setFilterSession(option.key)} className={`rounded-lg border px-3 py-1.5 text-xs ${filterSession === option.key ? "border-primary/20 bg-primary/10 text-primary" : "border-border bg-secondary/60 text-muted-foreground"}`}>{option.label}</button>)}
       </div>
       <button type="button" onClick={() => { setEditingTrade(null); setShowManualModal(true); }} className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"><Plus className="h-4 w-4" />Add trade</button>
     </div>
