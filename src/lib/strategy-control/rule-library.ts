@@ -1,4 +1,5 @@
 import { MARKET_INSTRUMENTS } from "@/lib/instruments";
+import { matchesSessionSelection, SESSION_RULE_OPTIONS } from "../session-selection";
 import type { RuleDefinition, RuleType, Trade } from "./types";
 
 type EvaluationInput = { trades: Trade[]; params: Record<string, unknown> };
@@ -8,26 +9,15 @@ const sumR = (trades: Trade[]) => round(trades.reduce((sum, trade) => sum + (typ
 const result = (violations: number, affected: Trade[], compliant: Trade[], sampleSize = affected.length): EvaluationOutput => ({ violations, affectedTrades: affected.length, impactR: sumR(affected), sampleSize, compliantImpactR: sumR(compliant), compliantCount: compliant.length, evidenceTrades: affected });
 const INSTRUMENT_OPTIONS = Array.from(new Set(MARKET_INSTRUMENTS.filter(item => item.isActive).map(item => item.displaySymbol))).sort((a, b) => a.localeCompare(b));
 const DEFAULT_CORE_INSTRUMENTS = ["EUR/USD", "XAU/USD", "BTC/USDT"];
-const SESSION_OPTIONS = ["Asia", "London", "New York", "Off hours", "Frankfurt", "London", "London lunch", "London after lunch"];
+const SESSION_OPTIONS = SESSION_RULE_OPTIONS.map(option => option.label);
 function groupByDay(trades: Trade[]) { const map = new Map<string, Trade[]>(); trades.forEach(trade => map.set(trade.date, [...(map.get(trade.date) ?? []), trade])); return map; }
 function evaluateMaxTradesPerDay({ trades, params }: EvaluationInput) { const limit = Number(params.limit ?? 3); const grouped = [...groupByDay(trades).entries()]; const dates = new Set(grouped.filter(([, list]) => list.length > limit).map(([date]) => date)); return result(dates.size, trades.filter(trade => dates.has(trade.date)), trades.filter(trade => !dates.has(trade.date)), grouped.length); }
 function evaluateMaxLossesPerDay({ trades, params }: EvaluationInput) { const limit = Number(params.limit ?? 2); const known = trades.filter(trade => typeof trade.resultR === "number"); const grouped = [...groupByDay(known).entries()]; const dates = new Set(grouped.filter(([, list]) => list.filter(trade => (trade.resultR ?? 0) < 0).length > limit).map(([date]) => date)); return result(dates.size, known.filter(trade => dates.has(trade.date)), known.filter(trade => !dates.has(trade.date)), grouped.length); }
-function sessionMatches(trade: Trade, allowed: string[]) {
-  const normalized = allowed.filter(option => option && option !== "Overlap");
-  if (trade.sessionKey && normalized.includes(trade.sessionKey)) return true;
-  if (trade.sessionGroup && normalized.includes(trade.sessionGroup)) return true;
-  const legacy = trade.session;
-  if (!legacy) return false;
-  if (legacy === "Asia") return normalized.includes("Asia") || normalized.includes("asia");
-  if (legacy === "London") return normalized.includes("London") || normalized.includes("london");
-  if (legacy === "NY") return normalized.includes("New York") || normalized.includes("new_york");
-  return normalized.includes(legacy);
-}
 function evaluateAllowedSessions({ trades, params }: EvaluationInput) {
-  const allowed = ((params.sessions as string[]) ?? ["London", "New York"]).filter(option => option !== "Overlap");
+  const allowed = (params.sessions as string[]) ?? ["London", "New York"];
   const known = trades.filter(trade => !!trade.session || !!trade.sessionKey || !!trade.sessionGroup);
-  const affected = known.filter(trade => !sessionMatches(trade, allowed));
-  const compliant = known.filter(trade => sessionMatches(trade, allowed));
+  const affected = known.filter(trade => !matchesSessionSelection(trade, allowed));
+  const compliant = known.filter(trade => matchesSessionSelection(trade, allowed));
   return result(affected.length, affected, compliant, known.length);
 }
 function evaluateCoreInstruments({ trades, params }: EvaluationInput) { const core = (params.pairs as string[]) ?? DEFAULT_CORE_INSTRUMENTS; const known = trades.filter(trade => !!trade.pair); const affected = known.filter(trade => !core.includes(trade.pair)); const compliant = known.filter(trade => core.includes(trade.pair)); return result(affected.length, affected, compliant, known.length); }
@@ -43,7 +33,7 @@ export const ruleEvaluators: Record<RuleType, (input: EvaluationInput) => Evalua
 export const ruleLibrary: Record<RuleType, RuleDefinition> = {
   max_trades_per_day: { ruleType: "max_trades_per_day", title: "Максимум угод за день", category: "discipline", description: "Перевіряє, чи не перевищено денний ліміт входів.", paramsSchema: [{ key: "limit", label: "Максимальна кількість угод", type: "number", min: 1, max: 50, step: 1 }], defaultParams: { limit: 3 } },
   max_losses_per_day: { ruleType: "max_losses_per_day", title: "Стоп після збиткових угод", category: "risk", description: "Перевіряє, чи торгівля зупинялась після заданої кількості збитків за день.", paramsSchema: [{ key: "limit", label: "Максимум збитків за день", type: "number", min: 1, max: 20, step: 1 }], defaultParams: { limit: 2 } },
-  allowed_sessions: { ruleType: "allowed_sessions", title: "Дозволені сесії", category: "session", description: "Перевіряє, чи угоди відкривались лише у дозволеній групі сесій або підсесії.", paramsSchema: [{ key: "sessions", label: "Дозволені сесії", type: "session_list", options: SESSION_OPTIONS }], defaultParams: { sessions: ["London", "New York"] } },
+  allowed_sessions: { ruleType: "allowed_sessions", title: "Дозволені сесії", category: "session", description: "London означає всю групу; London (session) — лише підсесію. Години визначаються за Києвом.", paramsSchema: [{ key: "sessions", label: "Дозволені сесії", type: "session_list", options: SESSION_OPTIONS }], defaultParams: { sessions: ["London", "New York"] } },
   core_instruments: { ruleType: "core_instruments", title: "Ядро інструментів", category: "session", description: "Перевіряє, чи торгівля велась лише обраними інструментами.", paramsSchema: [{ key: "pairs", label: "Дозволені інструменти", type: "pair_list", options: INSTRUMENT_OPTIONS }], defaultParams: { pairs: DEFAULT_CORE_INSTRUMENTS } },
   model_confirmation: { ruleType: "model_confirmation", title: "Підтверджена модель входу", category: "setup", description: "Перевіряє угоди, позначені як такі, що не відповідають чіткій моделі входу.", paramsSchema: [], defaultParams: {} },
   emotion_filter: { ruleType: "emotion_filter", title: "Емоційний стан", category: "psychology", description: "Відстежує угоди, відкриті у визначених емоційних станах.", paramsSchema: [{ key: "states", label: "Стани для контролю", type: "session_list", options: ["Angry", "Neutral", "Tired"] }], defaultParams: { states: ["Angry"] } },

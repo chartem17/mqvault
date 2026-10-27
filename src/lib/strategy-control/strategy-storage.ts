@@ -1,10 +1,10 @@
 import { ruleLibrary } from "./rule-library";
+import { normalizeSessionSelections, sessionSelectionLabel } from "../session-selection";
 import type { RuleInstance, RuleType, StrategyProfile } from "./types";
 
 export class StrategyInputError extends Error {}
 export const STRATEGY_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function isRecord(value: unknown): value is Record<string, unknown> { return value !== null && typeof value === "object" && !Array.isArray(value); }
-
 export function parseStrategyRules(value: unknown): RuleInstance[] {
   if (!Array.isArray(value) || value.length > Object.keys(ruleLibrary).length) throw new StrategyInputError("Invalid rules list");
   const seen = new Set<string>();
@@ -25,15 +25,20 @@ export function parseStrategyRules(value: unknown): RuleInstance[] {
         if (typeof parameter !== "boolean") throw new StrategyInputError(`Invalid ${ruleType}.${field.key}`);
         params[field.key] = parameter;
       } else {
-        if (!Array.isArray(parameter) || parameter.length > 200 || parameter.some(entry => typeof entry !== "string" || entry.length === 0 || entry.length > 100 || (field.type === "session_list" && field.options && !field.options.includes(entry)))) throw new StrategyInputError(`Invalid ${ruleType}.${field.key}`);
-        params[field.key] = [...new Set(parameter as string[])];
+        if (!Array.isArray(parameter) || parameter.length > 200 || parameter.some(entry => typeof entry !== "string" || entry.length === 0 || entry.length > 100)) throw new StrategyInputError(`Invalid ${ruleType}.${field.key}`);
+        if (ruleType === "allowed_sessions" && field.key === "sessions") {
+          try { params[field.key] = normalizeSessionSelections(parameter as string[]).map(sessionSelectionLabel); }
+          catch { throw new StrategyInputError(`Invalid ${ruleType}.${field.key}`); }
+        } else {
+          if (field.type === "session_list" && field.options && parameter.some(entry => !field.options!.includes(entry))) throw new StrategyInputError(`Invalid ${ruleType}.${field.key}`);
+          params[field.key] = [...new Set(parameter as string[])];
+        }
       }
     }
     if (ruleType === "risk_range" && Number(params.min_pct) > Number(params.max_pct)) throw new StrategyInputError("Minimum risk exceeds maximum risk");
     return { ruleType, enabled: item.enabled, params };
   });
 }
-
 export type StoredStrategy = { id: string; account_id: string; name: string; description: string | null; created_at: string; definition: unknown; source_strategy_id?: string | null };
 export function toStrategyProfile(row: StoredStrategy): StrategyProfile {
   if (!STRATEGY_UUID.test(row.id) || !isRecord(row.definition)) throw new StrategyInputError("Invalid stored strategy");
