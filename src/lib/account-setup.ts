@@ -37,7 +37,7 @@ export function parseAccountSetup(value: unknown): AccountSetup {
     return { accountType: "personal", platform: input.platform, initialBalance, phase: null, targetPercent: null, maxLossPercent: null, dailyLossPercent: null, minTradingDays: null };
   }
   const phase = input.phase ?? null;
-  if (phase !== null && !["phase-1", "phase-2", "phase-3", "funded"].includes(String(phase))) throw new AccountSetupError("Invalid prop phase");
+  if (phase !== null && (typeof phase !== "string" || !["phase-1", "phase-2", "phase-3", "funded"].includes(phase))) throw new AccountSetupError("Invalid prop phase");
   const minTradingDays = optionalNumber(input.minTradingDays, "minTradingDays", true);
   if (minTradingDays !== null && minTradingDays < 0) throw new AccountSetupError("Minimum trading days cannot be negative");
   return {

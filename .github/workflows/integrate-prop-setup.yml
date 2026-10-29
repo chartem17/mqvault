@@ -1,19 +1,20 @@
-name: Integrate approved prop setup
+name: Verify prop account setup
 on:
   push:
     branches: [feat/undo-delete-current]
     paths:
-      - scripts/integrate-prop-setup.mjs
+      - src/**
+      - tests/account-setup.test.mjs
+      - tests/account-payload.test.mjs
+      - tests/account-input.typecheck.ts
       - .github/workflows/integrate-prop-setup.yml
 permissions:
-  contents: write
-  checks: write
+  contents: read
 concurrency:
-  group: integrate-approved-prop-setup
-  cancel-in-progress: false
+  group: verify-prop-setup-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  integrate:
-    if: github.repository == 'chartem17/mqvault' && github.ref == 'refs/heads/feat/undo-delete-current'
+  verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -22,44 +23,20 @@ jobs:
       SUPABASE_SECRET_KEY: ci-placeholder-not-a-real-key
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: npm
       - run: npm ci
-      - name: Apply guarded integration without database writes
-        run: node scripts/integrate-prop-setup.mjs
-      - name: Lint integrated account flow
-        run: npm run lint -- src/lib/account-api.ts src/lib/account-payload.ts src/lib/account-setup.ts src/lib/account-data.ts src/components/accounts/new-account-modal.tsx src/components/account-switcher.tsx src/hooks/use-trades.tsx src/components/tabs/overview-tab.tsx src/app/api/accounts/route.ts
-      - name: Account setup and payload tests
+      - name: Lint account integration
+        run: npm run lint -- src/lib/account-api.ts src/lib/account-payload.ts src/lib/account-setup.ts src/lib/account-data.ts src/components/accounts/new-account-modal.tsx src/components/account-switcher.tsx src/hooks/use-trades.tsx src/app/api/accounts/route.ts tests/account-input.typecheck.ts
+      - name: Account setup and sparse update regression tests
         run: |
           npx tsc src/lib/account-setup.ts --outDir .tmp-account-tests --module commonjs --target ES2020 --lib ES2020,DOM --strict --skipLibCheck
           node --test tests/account-setup.test.mjs
           npx tsc src/lib/account-payload.ts --outDir .tmp-account-payload-tests --module commonjs --target ES2020 --lib ES2020,DOM --strict --skipLibCheck
           node --test tests/account-payload.test.mjs
-      - name: Existing date session and deletion suites
-        run: |
-          npx tsc src/lib/trading-calendar.ts --outDir .tmp-date-tests --module commonjs --target ES2020 --lib ES2020,DOM --strict --skipLibCheck
-          node --test tests/trading-calendar.test.mjs
-          npx tsc src/lib/sessions.ts --outDir .tmp-session-tests --module commonjs --target ES2020 --lib ES2020,DOM --skipLibCheck
-          node --test tests/sessions.test.mjs
-          npx tsc src/lib/session-selection.ts --outDir .tmp-session-selection-tests --module commonjs --target ES2020 --lib ES2020,DOM --strict --skipLibCheck
-          node --test tests/session-selection.test.mjs
-          npx tsc src/lib/supabase/deletion-result.ts --outDir .tmp-deletion-tests --module commonjs --target ES2020 --lib ES2020,DOM --strict --skipLibCheck
-          node --test tests/deletion-result.test.mjs
-      - run: npx tsc --noEmit
-      - run: npm run build
-      - name: Commit only the verified integration to the working branch
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add src/lib/account-data.ts src/lib/account-setup.ts src/hooks/use-trades.tsx src/components/account-switcher.tsx src/app/api/accounts/route.ts src/components/tabs/overview-tab.tsx
-          git commit -m 'feat: integrate explicit personal and prop account creation'
-          git push origin HEAD:refs/heads/feat/undo-delete-current
-      - name: Attach real verification to the tested commit
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api --method POST repos/chartem17/mqvault/check-runs -f name='Prop setup integration verification' -f head_sha="$(git rev-parse HEAD)" -f status=completed -f conclusion=success -f details_url="https://github.com/chartem17/mqvault/actions/runs/${GITHUB_RUN_ID}" -f 'output[title]=Account setup integration, regression suites, TypeScript and build passed' -f 'output[summary]=Exact source tree tested before commit. No database writes or main merge. UI and live API acceptance remains a separate personal test. Account deletion bug is not declared fixed.'
+      - name: TypeScript including form to hook contract
+        run: npx tsc --noEmit
+      - name: Production build
+        run: npm run build

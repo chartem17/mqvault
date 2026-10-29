@@ -1,27 +1,27 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { AccountKind, AccountPhase, AccountStatus, TradingAccount } from "@/lib/account-data";
+import type { AccountKind, AccountPhase, AccountStatus, AccountType, TradingAccount } from "@/lib/account-data";
 import { useUndo } from "@/components/ui/undo-toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export type AccountFilter = "all" | string;
-type DbAccount = { id: string; name: string; broker?: string | null; platform: string; account_type: string; currency: string; mt5_login?: string | null; mt5_server?: string | null; initial_balance?: number | null; phase?: string | null; target_percent?: number | null; max_loss_percent?: number | null; daily_loss_percent?: number | null; is_active: boolean; status: string; color?: string | null; parent_account_id?: string | null };
+type DbAccount = { id: string; name: string; broker?: string | null; platform: string; account_type: string; currency: string; mt5_login?: string | null; mt5_server?: string | null; initial_balance?: number | null; phase?: string | null; target_percent?: number | null; max_loss_percent?: number | null; daily_loss_percent?: number | null; min_trading_days?: number | null; is_active: boolean; status: string; color?: string | null; parent_account_id?: string | null };
 export type JournalTrade = {
   id: string; account_id: string; source?: "manual" | "mt5" | "exchange" | "import" | string | null; external_id?: string | null; opened_at: string; closed_at?: string | null; symbol: string; market?: string | null; direction: "Long" | "Short" | string;
   entry_price: string | null; exit_price: string | null; stop_loss?: string | null; take_profit?: string | null; volume?: number | null; risk_percent?: number | null; risk_amount?: number | null; gross_pnl?: number | null; commission?: number | null; swap?: number | null; fee?: number | null; net_pnl?: number | null; result_r?: number | null; session?: string | null; setup?: string | null; htf_bias?: string | null; entry_reason?: string | null; exit_reason?: string | null; emotion?: string | null; mistake?: string | null; screenshot_url?: string | null; notes?: string | null;
 };
 export type TradeInput = Partial<Omit<JournalTrade, "id">>;
 export type UpdateTradeInput = TradeInput & { id: string };
-export type AccountInput = { id?: string; name: string; broker?: string; platform: "manual" | "mt5"; source: "manual" | "mt5"; kind: AccountKind; currency: "USD" | "USDT"; initialBalance: number; phase?: AccountPhase; status?: AccountStatus; mt5Login?: string; mt5Server?: string; color?: string; targetPercent?: number; maxLossPercent?: number; dailyLossPercent?: number; parentAccountId?: string };
-const PROP_PHASES: AccountPhase[] = ["phase-1", "phase-2", "funded"];
+export type AccountInput = { id?: string; accountType?: AccountType; name: string; broker?: string; platform: "manual" | "mt5"; source: "manual" | "mt5"; kind: AccountKind; currency: "USD" | "USDT"; initialBalance: number; phase?: AccountPhase | null; status?: AccountStatus; mt5Login?: string; mt5Server?: string; color?: string; targetPercent?: number | null; maxLossPercent?: number | null; dailyLossPercent?: number | null; minTradingDays?: number | null; parentAccountId?: string };
+const PROP_PHASES: AccountPhase[] = ["phase-1", "phase-2", "phase-3", "funded"];
 const STATUSES: AccountStatus[] = ["active", "passed", "failed", "archived"];
 const PALETTE = ["#7c8cff", "#76d05a", "#e9ae5b", "#5bc0de", "#d96b8a"];
 const ACTIVE_KEY = "dashboard.activeAccountId";
 const INCLUDED_KEY = "dashboard.includedAccountIds";
 function toTradingAccount(a: DbAccount, index: number): TradingAccount {
   const platform = a.platform === "mt5" ? "mt5" : "manual";
-  return { id: a.id, name: a.name, broker: a.broker ?? "", platform, source: platform, kind: platform === "mt5" ? "mt5_bridge" : "manual", currency: a.currency === "USDT" ? "USDT" : "USD", initialBalance: Number(a.initial_balance ?? 0), phase: a.account_type === "prop" && PROP_PHASES.includes(a.phase as AccountPhase) ? a.phase as AccountPhase : "manual", targetPercent: a.target_percent ?? undefined, maxLossPercent: a.max_loss_percent ?? undefined, dailyLossPercent: a.daily_loss_percent ?? undefined, status: STATUSES.includes(a.status as AccountStatus) ? a.status as AccountStatus : "active", mt5Login: a.mt5_login ?? undefined, mt5Server: a.mt5_server ?? undefined, color: a.color || PALETTE[index % PALETTE.length] };
+  return { id: a.id, accountType: a.account_type === "prop" ? "prop" : "personal", minTradingDays: a.min_trading_days ?? undefined, name: a.name, broker: a.broker ?? "", platform, source: platform, kind: platform === "mt5" ? "mt5_bridge" : "manual", currency: a.currency === "USDT" ? "USDT" : "USD", initialBalance: Number(a.initial_balance ?? 0), phase: a.account_type === "prop" && PROP_PHASES.includes(a.phase as AccountPhase) ? a.phase as AccountPhase : "manual", targetPercent: a.target_percent ?? undefined, maxLossPercent: a.max_loss_percent ?? undefined, dailyLossPercent: a.daily_loss_percent ?? undefined, status: STATUSES.includes(a.status as AccountStatus) ? a.status as AccountStatus : "active", mt5Login: a.mt5_login ?? undefined, mt5Server: a.mt5_server ?? undefined, color: a.color || PALETTE[index % PALETTE.length] };
 }
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { cache: "no-store", ...init, headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) } });
@@ -72,7 +72,7 @@ function useTradesState() {
   const upsertAccount = useCallback(async (input: AccountInput) => {
     try {
       setSaving(true); setError(null);
-      const payload = { id: input.id, name: input.name, broker: input.broker ?? null, platform: input.platform, account_type: input.platform === "mt5" ? "prop" : "personal", currency: input.currency, initialBalance: input.initialBalance, phase: input.phase ?? (input.platform === "mt5" ? "phase-1" : null), status: input.status ?? "active", mt5Login: input.mt5Login, mt5Server: input.mt5Server, color: input.color, targetPercent: input.targetPercent, maxLossPercent: input.maxLossPercent, dailyLossPercent: input.dailyLossPercent, parentAccountId: input.parentAccountId };
+      const payload = { id: input.id, name: input.name, broker: input.broker, platform: input.platform, account_type: input.accountType, currency: input.currency, initialBalance: input.initialBalance, phase: input.phase, status: input.status, mt5Login: input.mt5Login, mt5Server: input.mt5Server, color: input.color, targetPercent: input.targetPercent, maxLossPercent: input.maxLossPercent, dailyLossPercent: input.dailyLossPercent, minTradingDays: input.minTradingDays, parentAccountId: input.parentAccountId };
       const res = await api<{ data: DbAccount }>("/api/accounts", { method: input.id ? "PATCH" : "POST", body: JSON.stringify(payload) });
       const mapped = toTradingAccount(res.data, accounts.length);
       setAccounts(current => current.some(account => account.id === mapped.id) ? current.map(account => account.id === mapped.id ? mapped : account) : [...current, mapped]);
