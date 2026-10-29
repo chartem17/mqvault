@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Activity, Check, CheckSquare, ChevronDown, Layers3, Plus, Radio, Square, Trash2, Wallet2 } from "lucide-react";
+import { Check, CheckSquare, ChevronDown, Layers3, Plus, Radio, Square, Trash2, Wallet2 } from "lucide-react";
 import { NewAccountModal } from "@/components/accounts/new-account-modal";
 import { useTrades } from "@/hooks/use-trades";
 import { useMt5 } from "@/hooks/use-mt5";
