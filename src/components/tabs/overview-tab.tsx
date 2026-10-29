@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTrades, type JournalTrade } from "@/hooks/use-trades";
-import { phaseLabel, type TradingAccount } from "@/lib/account-data";
+import type { TradingAccount } from "@/lib/account-data";
+import { accountOverviewLabel, buildAccountOverview } from "@/lib/account-overview";
 import { computeEquity, computeMonthly, computeStats, fmt, groupByKey } from "@/lib/utils-trade";
 import { computeAdvancedStats, type RBucket } from "@/lib/advanced-stats";
 import { StatCard } from "@/components/ui/stat-card";
@@ -19,22 +20,23 @@ type CalendarTrade = { date: string; symbol?: string; direction?: "Long" | "Shor
 const GREEN = "var(--color-green)";
 const RED = "var(--color-red)";
 const CARD = "rounded-2xl border border-white/10 bg-panel";
-function clampPercent(value: number) { return Math.max(0, Math.min(100, value)); }
 function sessionKeyOf(trade: JournalTrade) { try { return getSessionKey(trade.opened_at); } catch { return null; } }
 function sessionGroupOf(trade: JournalTrade) { const key = sessionKeyOf(trade); return key ? SESSION_DEFINITIONS.find(session => session.key === key)?.group ?? "off" : "off"; }
 function AccountProgressCard({ activeAccount, activeAccountId, visibleTrades }: { activeAccount: TradingAccount | null; activeAccountId: "all" | string; visibleTrades: JournalTrade[] }) {
-  if (activeAccountId === "all" || !activeAccount) return <div className={`${CARD} relative overflow-hidden p-5`}><div className="relative z-10"><div className="text-sm font-medium text-white">All accounts view</div><div className="mt-1 text-sm text-white/60">Combined statistics across all included accounts</div></div></div>;
-  const totalPnl = visibleTrades.reduce((sum, trade) => sum + (trade.net_pnl ?? 0), 0);
-  const pnlPercent = activeAccount.initialBalance ? totalPnl / activeAccount.initialBalance * 100 : 0;
-  const targetPercent = activeAccount.targetPercent ?? 0;
-  const maxLossPercent = activeAccount.maxLossPercent ?? 0;
-  const dailyLossPercent = activeAccount.dailyLossPercent ?? 0;
-  const targetProgress = targetPercent > 0 ? clampPercent(pnlPercent / targetPercent * 100) : 0;
-  const drawdownUsed = maxLossPercent > 0 ? clampPercent(Math.abs(Math.min(pnlPercent, 0)) / maxLossPercent * 100) : 0;
-  const currentEquity = activeAccount.initialBalance + totalPnl;
+  if (activeAccountId === "all") return <div className={`${CARD} p-5`}><div className="text-sm font-medium text-white">Усі вибрані рахунки</div><div className="mt-1 text-sm text-white/60">Зведена статистика включених рахунків. Спільний проп-ліміт не обчислюється.</div></div>;
+  if (!activeAccount) return <div className={`${CARD} p-5 text-sm text-white/60`}>Рахунок не вибрано.</div>;
+  const summary = buildAccountOverview(activeAccount, visibleTrades);
+  const money = (value: number | null) => value === null ? "—" : `${fmt.num(value, 2)} ${activeAccount.currency}`;
+  const percent = (value: number | null) => value === null ? "Не задано" : fmt.pct(value);
   return <div className={`${CARD} p-5`}>
-    <div className="flex flex-wrap items-start justify-between gap-4"><div><div className="text-base font-semibold text-white">{activeAccount.name}</div><div className="mt-1 text-xs text-white/60">{phaseLabel[activeAccount.phase]} · {activeAccount.broker || "—"} · {activeAccount.platform.toUpperCase()} · старт {fmt.usd(activeAccount.initialBalance)}</div></div><div className="text-right"><div className="text-xs uppercase tracking-[0.18em] text-white/45">Current equity</div><div className="mt-1 text-lg font-semibold" style={{ color: totalPnl >= 0 ? GREEN : RED }}>{fmt.usd(currentEquity)}</div></div></div>
-    <div className="mt-5 grid gap-4 md:grid-cols-3"><div><div className="mb-1 flex items-center justify-between text-xs text-white/55"><span>Target progress</span><span>{targetPercent ? `of ${fmt.pct(targetPercent)}` : "—"}</span></div><div className="h-2 overflow-hidden rounded-full bg-white/8"><div className="h-full rounded-full bg-[var(--color-green)]" style={{ width: `${targetProgress}%` }} /></div><div className="mt-2 text-sm text-white">{fmt.pct(pnlPercent)}</div></div><div><div className="mb-1 flex items-center justify-between text-xs text-white/55"><span>Max loss used</span><span>{maxLossPercent ? `of ${fmt.pct(maxLossPercent)}` : "—"}</span></div><div className="h-2 overflow-hidden rounded-full bg-white/8"><div className="h-full rounded-full bg-[var(--color-red)]" style={{ width: `${drawdownUsed}%` }} /></div><div className="mt-2 text-sm text-white">{fmt.pct(Math.abs(Math.min(pnlPercent, 0)))}</div></div><div><div className="mb-1 flex items-center justify-between text-xs text-white/55"><span>Daily limit</span><span>{dailyLossPercent ? fmt.pct(dailyLossPercent) : "—"}</span></div><div className="h-2 overflow-hidden rounded-full bg-white/30" style={{ width: `${dailyLossPercent ? 100 : 0}%` }} /><div className="mt-2 text-sm text-white">Trade count: {visibleTrades.length}</div></div></div>
+    <div className="flex flex-wrap items-start justify-between gap-4"><div><div className="text-base font-semibold text-white">{activeAccount.name}</div><div className="mt-1 text-xs text-white/60">{accountOverviewLabel(activeAccount)} · {activeAccount.broker || "—"} · {activeAccount.platform.toUpperCase()}</div><div className="mt-1 text-xs text-white/45">Початковий капітал: {money(summary.initialBalance)}</div></div><div className="text-right"><div className="text-xs uppercase tracking-[0.12em] text-white/45">Оцінка за журналом</div><div className="mt-1 text-lg font-semibold" style={{ color: summary.netPnl === null ? undefined : summary.netPnl >= 0 ? GREEN : RED }}>{money(summary.journalBalance)}</div><div className="mt-1 text-xs text-white/55">Net P&amp;L: {money(summary.netPnl)}</div></div></div>
+    <p className="mt-3 text-xs leading-5 text-white/45">Початковий капітал + сума net P&amp;L журналу. Це не брокерський баланс чи live equity: рух коштів і поточна оцінка відкритих позицій тут окремо не враховуються.</p>
+    {summary.netPnl === null && <p className="mt-2 text-xs text-amber-300" role="status">Недостатньо коректних даних net P&amp;L для повної суми та оцінки прогресу.</p>}
+    {summary.isProp && <div className="mt-5 space-y-4 border-t border-white/10 pt-4">
+      <div><div className="flex flex-wrap items-center justify-between gap-2 text-sm text-white/70"><span>Прогрес до цілі за журналом</span><span>Ціль: {percent(summary.targetPercent)}{summary.targetAmount !== null ? ` · ${money(summary.targetAmount)}` : ""}</span></div>{summary.progressPercent !== null ? <><div role="progressbar" aria-label="Прогрес до цілі за P&L журналу" aria-valuemin={0} aria-valuemax={100} aria-valuenow={summary.progressPercent} className="mt-3 h-2 overflow-hidden rounded-full bg-white/8"><div className="h-full rounded-full bg-[var(--color-green)]" style={{ width: `${summary.progressPercent}%` }} /></div><p className="mt-2 text-sm text-white">P&amp;L від початкового капіталу: {fmt.pct(summary.pnlPercent ?? 0)}</p></> : <p className="mt-2 text-sm text-white/45">{summary.targetPercent === null ? "Не задано" : "Прогрес недоступний: перевірте початковий капітал і дані P&L."}</p>}<p className="mt-2 text-xs text-white/40">Ціль розрахована від початкового капіталу. Це не підтвердження проходження фази.</p></div>
+      <div className="grid gap-3 md:grid-cols-3"><div className="rounded-xl border border-white/10 p-3"><div className="text-xs text-white/45">Заданий загальний ліміт збитку</div><div className="mt-2 text-sm text-white">{percent(summary.maxLossPercent)}</div></div><div className="rounded-xl border border-white/10 p-3"><div className="text-xs text-white/45">Заданий денний ліміт збитку</div><div className="mt-2 text-sm text-white">{percent(summary.dailyLossPercent)}</div></div><div className="rounded-xl border border-white/10 p-3"><div className="text-xs text-white/45">Мінімум торгових днів</div><div className="mt-2 text-sm text-white">{summary.minTradingDays === null ? "Не задано" : summary.minTradingDays}</div></div></div>
+      <p className="text-xs leading-5 text-white/45">Ліміти показані як задані умови. Їх використання, залишок, виконання мінімуму днів і порушення правил поки не обчислюються.</p>
+    </div>}
   </div>;
 }
 function EquityChart({ points, totalPnl }: { points: EqPoint[]; totalPnl: number }) {
@@ -160,7 +162,7 @@ export function OverviewTab() {
   const byEmotion = useMemo(() => groupByKey(visibleTrades, "emotion").sort((a, b) => b.trades - a.trades), [visibleTrades]);
   const calendarTrades = useMemo<CalendarTrade[]>(() => visibleTrades.flatMap(trade => { const date = kyivDayOrNull(trade.opened_at); return date ? [{ date, symbol: trade.symbol, direction: trade.direction, net_pnl: trade.net_pnl ?? 0, result_r: trade.result_r ?? undefined }] : []; }), [visibleTrades]);
   let overviewSubtitle = `${visibleTrades.length} угод · Combined view`;
-  if (activeAccountId !== "all") overviewSubtitle = `${visibleTrades.length} угод · ${activeAccount ? activeAccount.name : "Account"} · ${activeAccount ? phaseLabel[activeAccount.phase] : "Manual"}`;
+  if (activeAccountId !== "all") overviewSubtitle = `${visibleTrades.length} угод · ${activeAccount ? activeAccount.name : "Account"} · ${activeAccount ? accountOverviewLabel(activeAccount) : "Рахунок не вибрано"}`;
   const monthlyAbsMax = Math.max(...monthly.map(item => Math.abs(item.pnl)), 1);
   return <div className="space-y-6 p-6">
     <SectionHeader title="Огляд рахунку" sub={overviewSubtitle} />
