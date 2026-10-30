@@ -6,6 +6,7 @@ on:
       - src/lib/prop-rule-settings.ts
       - src/lib/account-setup.ts
       - tests/prop-rule-settings.test.mjs
+      - tests/prop-rule-settings-migration.sql
       - supabase/migrations/20261030200500_prop_rule_settings_v1.sql
       - .github/workflows/prop-rule-settings-checks.yml
 permissions:
@@ -27,3 +28,30 @@ jobs:
           npx tsc src/lib/prop-rule-settings.ts --outDir .tmp-prop-rule-tests --module commonjs --target ES2020 --lib ES2020,DOM --strict --skipLibCheck
           node --test tests/prop-rule-settings.test.mjs
       - run: npx tsc --noEmit
+  prop-rule-migration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-disposable-only
+          POSTGRES_DB: prop_rules_ci
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U postgres -d prop_rules_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: ${{ job.services.postgres.ports[5432] }}
+      PGUSER: postgres
+      PGPASSWORD: ci-disposable-only
+      PGDATABASE: prop_rules_ci
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test real migration SQL in disposable PostgreSQL 17
+        run: psql --set=ON_ERROR_STOP=1 --file=tests/prop-rule-settings-migration.sql
