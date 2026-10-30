@@ -15,9 +15,10 @@ export function getBrowserTimeZone(): string {
 }
 
 export function getTimeZoneList(): string[] {
-  const list = (Intl as any).supportedValuesOf?.("timeZone") as
-    | string[]
-    | undefined;
+  const intl = Intl as typeof Intl & {
+    supportedValuesOf?: (key: "timeZone") => string[];
+  };
+  const list = intl.supportedValuesOf?.("timeZone");
   return list?.length ? list : [DEFAULT_TIMEZONE, "UTC"];
 }
 

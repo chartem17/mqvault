@@ -1,0 +1,36 @@
+name: Local bridge retirement checks
+on:
+  push:
+    branches: [feat/undo-delete-current]
+    paths:
+      - src/hooks/use-mt5.ts
+      - src/lib/mt5-retirement.ts
+      - src/lib/account-payload.ts
+      - src/lib/account-data.ts
+      - src/app/api/mt5/**
+      - src/components/account-switcher.tsx
+      - src/components/accounts/new-account-modal.tsx
+      - tests/account-payload.test.mjs
+      - tests/local-bridge-retirement.test.mjs
+      - .github/workflows/local-bridge-retirement-checks.yml
+permissions:
+  contents: read
+jobs:
+  local-bridge-retirement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint -- src/hooks/use-mt5.ts src/lib/mt5-retirement.ts src/lib/account-payload.ts src/lib/account-data.ts src/components/account-switcher.tsx src/components/accounts/new-account-modal.tsx src/app/api/mt5/health/route.ts src/app/api/mt5/history/route.ts src/app/api/mt5/positions/route.ts
+      - name: Verify passive transport and account profile semantics
+        run: |
+          npx tsc src/hooks/use-mt5.ts src/lib/mt5-retirement.ts --outDir .tmp-local-bridge-tests --module commonjs --target ES2020 --lib ES2020,DOM --strict --skipLibCheck
+          node --test tests/local-bridge-retirement.test.mjs
+          npx tsc src/lib/account-payload.ts --outDir .tmp-account-payload-tests --module commonjs --target ES2020 --lib ES2020,DOM --strict --skipLibCheck
+          node --test tests/account-payload.test.mjs
+      - run: npx tsc --noEmit

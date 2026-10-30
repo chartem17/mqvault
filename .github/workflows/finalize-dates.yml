@@ -1,0 +1,61 @@
+name: Finalize approved Kyiv date alignment
+on:
+  push:
+    branches: [feat/undo-delete-current]
+    paths:
+      - scripts/finalize-dates.mjs
+      - .github/workflows/finalize-dates.yml
+permissions:
+  contents: write
+  checks: write
+concurrency:
+  group: finalize-approved-dates
+  cancel-in-progress: false
+jobs:
+  finalize:
+    if: github.repository == 'chartem17/mqvault' && github.ref == 'refs/heads/feat/undo-delete-current'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-not-a-real-key
+      SUPABASE_SECRET_KEY: ci-placeholder-not-a-real-key
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Apply only approved replacements with blob guards
+        run: node scripts/finalize-dates.mjs
+      - name: Lint changed components
+        run: npm run lint -- src/components/tabs/strategy-control-tab.tsx src/components/tabs/overview-tab.tsx src/lib/trading-calendar.ts
+      - name: Run date session and deletion suites
+        run: |
+          npx tsc src/lib/trading-calendar.ts --outDir .tmp-date-tests --module commonjs --target ES2020 --lib ES2020,DOM --strict --skipLibCheck
+          node --test tests/trading-calendar.test.mjs
+          npx tsc src/lib/sessions.ts --outDir .tmp-session-tests --module commonjs --target ES2020 --lib ES2020,DOM --skipLibCheck
+          node --test tests/sessions.test.mjs
+          npx tsc src/lib/session-selection.ts --outDir .tmp-session-selection-tests --module commonjs --target ES2020 --lib ES2020,DOM --strict --skipLibCheck
+          node --test tests/session-selection.test.mjs
+          npx tsc src/lib/supabase/deletion-result.ts --outDir .tmp-deletion-tests --module commonjs --target ES2020 --lib ES2020,DOM --strict --skipLibCheck
+          node --test tests/deletion-result.test.mjs
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Production build
+        run: npm run build
+      - name: Commit only tested component changes to working branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/components/tabs/strategy-control-tab.tsx src/components/tabs/overview-tab.tsx
+          git commit -m 'fix: align strategy periods and overview calendar with Kyiv dates'
+          git push origin HEAD:refs/heads/feat/undo-delete-current
+      - name: Attach actual verification result to the tested commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST repos/chartem17/mqvault/check-runs -f name='Kyiv date verification' -f head_sha="$(git rev-parse HEAD)" -f status=completed -f conclusion=success -f details_url="https://github.com/chartem17/mqvault/actions/runs/${GITHUB_RUN_ID}" -f 'output[title]=Date, session, deletion tests, TypeScript and production build passed' -f 'output[summary]=Verified the exact source tree before committing. Browser Undo acceptance remains manual. No main merge or Supabase data changes performed.'
