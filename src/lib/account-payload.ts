@@ -52,8 +52,6 @@ export function buildAccountPayload(body: AccountRecord, current?: AccountRecord
     for (const [camel, snake] of [...pairs, ["platform", "platform"], ["phase", "phase"]]) {
       if (!current || changedType || own(body, camel) || own(body, snake)) payload[snake] = values[snake];
     }
-    const login = payload.mt5_login === undefined ? current?.mt5_login : payload.mt5_login;
-    if (setup.platform === "mt5" && (typeof login !== "string" || !login.trim())) throw new AccountSetupError("MT5 login is required");
   }
   return payload;
 }

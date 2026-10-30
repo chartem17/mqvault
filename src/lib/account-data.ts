@@ -37,6 +37,6 @@ export const phaseLabel: Record<AccountPhase, string> = {
 
 export const kindLabel: Record<AccountKind, string> = {
   manual: "Manual journal",
-  mt5_bridge: "MT5 bridge",
+  mt5_bridge: "MT5 profile · manual journal",
   sync_api: "Sync via API",
 };
