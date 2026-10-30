@@ -1,0 +1,29 @@
+name: Prop rule settings checks
+on:
+  push:
+    branches: [feat/undo-delete-current]
+    paths:
+      - src/lib/prop-rule-settings.ts
+      - src/lib/account-setup.ts
+      - tests/prop-rule-settings.test.mjs
+      - supabase/migrations/20261030200500_prop_rule_settings_v1.sql
+      - .github/workflows/prop-rule-settings-checks.yml
+permissions:
+  contents: read
+jobs:
+  prop-rule-settings:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint -- src/lib/prop-rule-settings.ts
+      - name: Rule states and exact EOD reference tests
+        run: |
+          npx tsc src/lib/prop-rule-settings.ts --outDir .tmp-prop-rule-tests --module commonjs --target ES2020 --lib ES2020,DOM --strict --skipLibCheck
+          node --test tests/prop-rule-settings.test.mjs
+      - run: npx tsc --noEmit
