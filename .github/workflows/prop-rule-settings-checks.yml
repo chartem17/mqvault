@@ -4,17 +4,24 @@ on:
     branches: [feat/undo-delete-current]
     paths:
       - src/lib/prop-rule-settings.ts
+      - src/lib/prop-rule-record.ts
       - src/lib/account-setup.ts
-      - tests/prop-rule-settings.test.mjs
+      - src/components/accounts/account-rules-card.tsx
+      - src/components/tabs/overview-tab.tsx
+      - src/app/api/accounts/**
+      - tests/prop-rule-*.test.mjs
       - tests/prop-rule-settings-migration.sql
       - supabase/migrations/20261030200500_prop_rule_settings_v1.sql
       - .github/workflows/prop-rule-settings-checks.yml
 permissions:
   contents: read
+concurrency:
+  group: prop-rules-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   prop-rule-settings:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,11 +29,11 @@ jobs:
           node-version: '20'
           cache: npm
       - run: npm ci
-      - run: npm run lint -- src/lib/prop-rule-settings.ts
-      - name: Rule states and exact EOD reference tests
+      - run: npm run lint -- src/lib/prop-rule-settings.ts src/lib/prop-rule-record.ts src/components/accounts/account-rules-card.tsx src/components/tabs/overview-tab.tsx 'src/app/api/accounts/[id]/prop-rules/route.ts'
+      - name: Rule contract revision and exact EOD tests
         run: |
-          npx tsc src/lib/prop-rule-settings.ts --outDir .tmp-prop-rule-tests --module commonjs --target ES2020 --lib ES2020,DOM --strict --skipLibCheck
-          node --test tests/prop-rule-settings.test.mjs
+          npx tsc src/lib/prop-rule-settings.ts src/lib/prop-rule-record.ts --outDir .tmp-prop-rule-tests --module commonjs --target ES2020 --lib ES2020,DOM --strict --skipLibCheck
+          node --test tests/prop-rule-settings.test.mjs tests/prop-rule-record.test.mjs
       - run: npx tsc --noEmit
   prop-rule-migration:
     runs-on: ubuntu-latest
@@ -47,11 +54,12 @@ jobs:
           --health-retries 5
     env:
       PGHOST: 127.0.0.1
-      PGPORT: ${{ job.services.postgres.ports[5432] }}
       PGUSER: postgres
       PGPASSWORD: ci-disposable-only
       PGDATABASE: prop_rules_ci
     steps:
       - uses: actions/checkout@v4
       - name: Test real migration SQL in disposable PostgreSQL 17
+        env:
+          PGPORT: ${{ job.services.postgres.ports[5432] }}
         run: psql --set=ON_ERROR_STOP=1 --file=tests/prop-rule-settings-migration.sql
