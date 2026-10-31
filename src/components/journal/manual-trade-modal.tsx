@@ -1,4 +1,5 @@
 "use client";
+import { dialogSurface, DIALOG_BACKDROP } from "@/components/ui/dialog-styles";
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { ChevronDown, X } from "lucide-react";
@@ -493,7 +494,7 @@ export function ManualTradeModal({
       `}</style>
 
       <div
-        className="absolute inset-0 bg-black/65 backdrop-blur-sm"
+        className={`${DIALOG_BACKDROP} absolute inset-0`}
         onClick={onClose}
       />
 
@@ -501,7 +502,7 @@ export function ManualTradeModal({
         role="dialog"
         aria-modal="true"
         aria-label={initialTrade ? "Edit trade" : "Add trade"}
-        className="relative z-10 flex w-full max-w-4xl max-h-[calc(100dvh-1.5rem)] sm:max-h-[min(820px,calc(100dvh-3rem))] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[0_28px_90px_rgba(0,0,0,.62)]"
+        className={dialogSurface("relative z-10 flex w-full max-w-4xl max-h-[calc(100dvh-1.5rem)] sm:max-h-[min(820px,calc(100dvh-3rem))] flex-col overflow-hidden")}
       >
         <header className="border-b border-border bg-panel px-5 py-4 flex justify-between">
           <div>

@@ -1,4 +1,5 @@
 "use client";
+import { dialogSurface, DIALOG_BACKDROP } from "@/components/ui/dialog-styles";
 import { Button, Input, Select, Textarea } from "@/components/ui/primitives";
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -83,8 +84,8 @@ export function AccountRulesCard({ account, accountId, trades }: { account: Trad
       </div>}
     </section>
     {isProp && draft && <Dialog.Portal>
-      <Dialog.Overlay className="fixed inset-0 z-50 bg-black/70" />
-      <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90dvh] w-[calc(100vw-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border bg-card p-5 text-foreground shadow-2xl focus:outline-none" onEscapeKeyDown={event => { if (busy.current) event.preventDefault(); }} onPointerDownOutside={event => { if (busy.current) event.preventDefault(); }}>
+      <Dialog.Overlay className={`${DIALOG_BACKDROP} fixed inset-0 z-50`} />
+      <Dialog.Content className={dialogSurface("fixed left-1/2 top-1/2 z-50 max-h-[90dvh] w-[calc(100vw-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto p-5 focus:outline-none")} onEscapeKeyDown={event => { if (busy.current) event.preventDefault(); }} onPointerDownOutside={event => { if (busy.current) event.preventDefault(); }}>
         <div className="flex items-start justify-between gap-4"><div><Dialog.Title className="text-lg font-semibold">Умови рахунку</Dialog.Title><Dialog.Description className="mt-1 text-sm text-muted-foreground">{account.name}. Вкажіть лише вимоги своєї програми. Зміни застосовуються після збереження.</Dialog.Description></div><Dialog.Close asChild><Button variant="secondary" size="sm" type="button" disabled={saving} aria-label="Закрити без збереження" >Закрити</Button></Dialog.Close></div>
         <form noValidate onSubmit={event => { event.preventDefault(); void save(); }} className="mt-5 space-y-5">
           <fieldset disabled={saving || loading || conflict} className="space-y-5">

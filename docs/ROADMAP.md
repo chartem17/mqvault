@@ -206,3 +206,11 @@ No account API, rules schema, Supabase, production settings or Market changes. E
 - [ ] Full centralization, localization and production release remain pending. No database or financial logic changes.
 
 Field adoption recovery: normalize helper indentation before comparing unchanged trade logic. Original protection remains enabled. Initial failed attempt did not commit consumer migration. Browser acceptance and production release remain pending.
+
+## Shared modal appearance — 2026-10-31
+
+- [x] Code: confirm, trade ticket, new account, prop-rules editor and two Strategy Control modal bodies share surface/backdrop definitions. Theme-aware backdrop/shadow tokens are centralized.
+- [x] Scope: presentation only. Native/Radix/custom mechanisms and existing handlers, focus code, save guards, size and scroll constraints retained. Visual backdrop opacity/radius/shadow now follow shared defaults.
+- [ ] Verify workflow lint/TypeScript/push and Vercel.
+- [ ] Browser: open/close, Escape, outside click, saving guards, focus restoration, long content scroll, portal stacking, both themes/mobile. Existing custom modal focus-trap limitations are not claimed fixed.
+- [ ] Other agents screens, popovers, full Field/EmptyState adoption and source cleanup still need audit. Full site centralization and production release remain incomplete. No Supabase/API/auth changes.

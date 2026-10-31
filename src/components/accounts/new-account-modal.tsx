@@ -1,4 +1,5 @@
 "use client";
+import { dialogSurface } from "@/components/ui/dialog-styles";
 import { Button, Input, Select } from "@/components/ui/primitives";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -49,7 +50,7 @@ export function NewAccountModal({ onClose, onCreate, initialPlatform = "manual" 
     finally { busy.current = false; setSaving(false); }
   }
   if (typeof document === "undefined") return null;
-  return createPortal(<dialog ref={dialog} aria-labelledby="new-account-title" onCancel={event => { event.preventDefault(); if (!saving) onClose(); }} className="fixed inset-0 m-auto max-h-[90dvh] w-[min(680px,calc(100vw-2rem))] overflow-y-auto rounded-[28px] border border-border bg-card p-6 text-foreground shadow-2xl backdrop:bg-black/70">
+  return createPortal(<dialog ref={dialog} aria-labelledby="new-account-title" onCancel={event => { event.preventDefault(); if (!saving) onClose(); }} className={dialogSurface("fixed inset-0 m-auto max-h-[90dvh] w-[min(680px,calc(100vw-2rem))] overflow-y-auto p-6", true)}>
     <div className="mb-5 flex items-start justify-between gap-4"><div><p className="mb-2 text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Trading account</p><h2 id="new-account-title" className="text-xl font-semibold">Додати рахунок</h2><p className="mt-2 text-sm text-muted-foreground">Оберіть тип рахунку й платформу. Журнал ведеться вручну.</p></div><Button variant="ghost" size="icon" type="button" aria-label="Закрити" onClick={onClose} disabled={saving} ><X className="h-4 w-4" /></Button></div>
     <form noValidate onSubmit={event => { event.preventDefault(); void create(); }}><fieldset disabled={saving} className="min-w-0 space-y-5 border-0 p-0">
       <fieldset className="space-y-2"><legend className="text-sm text-foreground">Тип рахунку</legend><div className="grid grid-cols-2 gap-3">{([['personal', 'Особистий'], ['prop', 'Проп']] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={accountType === value} onClick={() => setAccountType(value)} className={`${CHOICE_LAYOUT} ${accountType === value ? CHOICE_SELECTED : CHOICE_IDLE}`}>{label}</button>)}</div></fieldset>
