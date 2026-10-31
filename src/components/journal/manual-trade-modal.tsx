@@ -1,8 +1,8 @@
 "use client";
 import { dialogSurface, DIALOG_BACKDROP } from "@/components/ui/dialog-styles";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { ChevronDown, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { Camera, ChevronDown, X } from "lucide-react";
 import { type JournalTrade, type TradeInput } from "@/hooks/use-trades";
 import type { TradingAccount } from "@/lib/account-data";
 import { Button, Input, Panel, Select, Textarea } from "@/components/ui/primitives";
@@ -247,6 +247,9 @@ export function ManualTradeModal({
   const [symbolQuery, setSymbolQuery] = useState("");
   const [symbolOpen, setSymbolOpen] = useState(false);
   const [marketFilter, setMarketFilter] = useState<string>("All");
+  const [imageFailed, setImageFailed] = useState(false);
+  const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { instruments } = useInstruments();
   const marketOptions = useMemo(
     () => marketsFrom(instruments.map((i) => i.market)),
@@ -270,6 +273,8 @@ export function ManualTradeModal({
     setWarningFields(new Set());
     setSubmitError(null);
     setShakeSubmit(false);
+    setImageFailed(false);
+    setLocalPreviewUrl(null);
   }, [open, initialTrade, accounts, defaultAccountId]);
 
   const matchingAssets = useMemo(() => {
@@ -294,6 +299,9 @@ export function ManualTradeModal({
     const r = computeR(form);
     return r === null ? "—" : String(r);
   }, [form]);
+  const previewSource =
+    localPreviewUrl ||
+    (form.screenshot_url.trim() ? form.screenshot_url : "");
 
   if (!open) return null;
 
@@ -525,6 +533,31 @@ export function ManualTradeModal({
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 bg-card">
+          <div className="space-y-2">
+            {previewSource && !imageFailed ? (
+              <img
+                src={previewSource}
+                alt="Trade chart snapshot"
+                className="w-full max-h-[420px] object-contain rounded-xl border border-border bg-secondary/40"
+                onError={() => setImageFailed(true)}
+              />
+            ) : (
+              <div className="flex items-center justify-center rounded-xl border border-dashed border-border bg-secondary/40 p-6 text-sm text-muted-foreground">
+                Add a TradingView snapshot URL to preview the chart
+              </div>
+            )}
+            {imageFailed && form.screenshot_url ? (
+              <a
+                href={form.screenshot_url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-primary underline"
+              >
+                Open chart
+              </a>
+            ) : null}
+          </div>
+
           <Panel className="p-4 space-y-4">
             <div>
               <h3 className="text-sm font-semibold">Execution</h3>
@@ -703,8 +736,49 @@ export function ManualTradeModal({
                 {input("exit_reason", "Exit reason")}
               </div>
               <div className="col-span-2">{input("mistake", "Mistake")}</div>
+
               <div className="col-span-2">
-                {input("screenshot_url", "Screenshot URL")}
+                <label className="flex flex-col gap-1">
+                  <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    TradingView snapshot URL
+                  </span>
+                  <div className="flex gap-2">
+                    <Input
+                      data-trade-field="screenshot_url"
+                      value={form.screenshot_url}
+                      onChange={(event) => {
+                        setImageFailed(false);
+                        setField("screenshot_url", event.target.value);
+                      }}
+                      placeholder="Paste TradingView snapshot URL"
+                      className="ui-field-control"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="ui-field-control flex items-center justify-center px-3"
+                      aria-label="Add screenshot image"
+                    >
+                      <Camera className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) {
+                        setImageFailed(false);
+                        setLocalPreviewUrl(URL.createObjectURL(file));
+                      }
+                    }}
+                  />
+                  <span className="text-[11px] text-muted-foreground">
+                    Paste a TradingView snapshot URL for an automatic chart preview.
+                  </span>
+                </label>
               </div>
 
               <label className="col-span-2 flex flex-col gap-1">
