@@ -1,0 +1,49 @@
+name: Recover trade ticket migration
+on:
+  push:
+    branches: [feat/journal-layout-filters]
+    paths: [.github/workflows/recover-trade-ticket.yml]
+permissions:
+  contents: write
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/journal-layout-filters
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Correct migration generator and rerun guarded transformation
+        shell: python
+        run: |
+          from pathlib import Path
+          import textwrap
+          p = Path('.github/workflows/centralize-trade-ticket.yml')
+          source = p.read_text()
+          lines = source.splitlines()
+          targets = [i for i, line in enumerate(lines) if 'return m.group(1)' in line and 'aria-invalid' in line]
+          assert len(targets) == 1, 'Expected exactly one generator line'
+          i = targets[0]
+          indent = lines[i][:len(lines[i]) - len(lines[i].lstrip())]
+          lines[i] = indent + '''return m.group(1) + ' className="trade-ticket-control" data-ui-state={' + state + '} aria-invalid={' + ['Boolean(error)', 'false', 'Boolean(errors.opened_at)', 'Boolean(errors.symbol)'][i[0] - 1] + '}' + m.group(3)'''
+          corrected = '\n'.join(lines) + '\n'
+          script = corrected.split('        run: |\n', 1)[1].split('      - run: npm ci', 1)[0]
+          exec(compile(textwrap.dedent(script), '<corrected-ticket-migration>', 'exec'))
+          p.write_text(corrected)
+          p = Path('docs/ROADMAP.md')
+          p.write_text(p.read_text() + '\nRecovery note: initial trade-ticket migration workflow failed and did not commit app changes. Generator now emits explicit boolean aria-invalid values. This recovery still requires successful CI and browser acceptance; no production release.\n')
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - name: Commit corrected migration after checks
+        run: |
+          git diff --check
+          git add .github/workflows/centralize-trade-ticket.yml src/components/journal/manual-trade-modal.tsx src/components/journal/trade-ticket.css docs/ROADMAP.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "fix(ui): migrate trade ticket with boolean validation attributes"
+          git push origin HEAD:feat/journal-layout-filters
