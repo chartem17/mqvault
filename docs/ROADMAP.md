@@ -187,3 +187,12 @@ No database, production settings, account rules or Market changes.
 - [ ] AccountSwitcher, shared modal shells, full Field/Checkbox adoption and other screen consumers remain. Full site centralization and production release are not complete.
 
 No account API, rules schema, Supabase, production settings or Market changes. Existing default account identity colour is retained as data, not reinterpreted as a UI token.
+
+## Strategy UI shared controls package — 2026-10-31
+
+- [x] Code: Strategy Control and builder use shared fields/selects/textarea/checkbox and primary actions. Local metric renderers/status palettes extracted to strategy-ui; repeated surfaces share style definition.
+- [x] Guards: source SHAs, analysis/CRUD and builder-save blocks, callbacks/navigation counts checked unchanged. Engine, rule definitions, API and database are not modified.
+- [ ] Verify lint/TypeScript/final push/Vercel build.
+- [ ] Browser: create/cancel, numeric/list parameters, sessions, toggles, dates, strategy selection, duplicate/delete/Undo on safe test data, modal/evidence navigation and both themes.
+- [ ] Rule/evidence clickable-card shells, complete modal keyboard behavior, remaining layout typography and other screen adoption still need review. Native date fields are not a custom DateTime picker.
+- [ ] Full site centralization, localization and production release remain incomplete.
