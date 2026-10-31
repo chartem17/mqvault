@@ -2,12 +2,12 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useMemo, useState, type ReactNode } from 'react';
-import { Pencil, Plus, Search, Trash2, SlidersHorizontal, GripVertical } from 'lucide-react';
+import { Pencil, Plus, Search, Trash2, SlidersHorizontal, GripVertical, LayoutGrid, Table as TableIcon } from 'lucide-react';
 import { Button, Input, Select } from '@/components/ui/primitives';
 import { ManualTradeModal } from '@/components/journal/manual-trade-modal';
 import { useTrades, type JournalTrade, type TradeInput, type UpdateTradeInput } from '@/hooks/use-trades';
 import { useJournalLayout } from '@/hooks/use-journal-layout';
-import { JOURNAL_COLUMNS, defaultJournalLayout, visibleJournalColumns, moveJournalColumn, toggleJournalColumn, type JournalColumnId } from '@/lib/journal-layout';
+import { JOURNAL_COLUMNS, defaultJournalLayout, visibleJournalColumns, moveJournalColumn, toggleJournalColumn, type JournalColumnId, type JournalViewMode } from '@/lib/journal-layout';
 import { fmt } from '@/lib/utils-trade';
 import { getSessionKey, getSessionGroup, getSessionLabel } from '@/lib/sessions';
 import { matchesSessionSelection, SESSION_RULE_OPTIONS } from '@/lib/session-selection';
@@ -32,6 +32,8 @@ export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus }: { focus?:
   const [editingTrade, setEditingTrade] = useState<JournalTrade | null>(null);
   const [copyStatus, setCopyStatus] = useState('');
   const columns = visibleJournalColumns(prefs.layout);
+  const view = prefs.layout.view;
+  function setView(next: JournalViewMode) { if (prefs.canEdit) prefs.change({ ...prefs.layout, view: next }); }
   const focusedTrades = useMemo(() => applyJournalFocus(visibleTrades, focus), [visibleTrades, focus]);
   function accountName(id: string) { return accounts.find(account => account.id === id)?.name ?? 'Unknown'; }
   function raw(trade: JournalTrade, id: JournalColumnId): string | number | null {
@@ -89,19 +91,39 @@ export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus }: { focus?:
           <Button variant="secondary" size="sm" className="mt-3 w-full" onClick={() => { setSearch(''); setFilters({}); setFilterSession('All'); }}>Скинути фільтри</Button>
         </section>}
       </div>
+      <div className="relative grid grid-cols-2 items-center rounded-full border border-border bg-secondary/60 p-1 text-xs" role="tablist" aria-label="Вигляд журналу">
+        <span aria-hidden="true" className={`absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-primary shadow transition-transform duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${view === 'cards' ? 'translate-x-full' : 'translate-x-0'}`} />
+        <button type="button" role="tab" aria-selected={view === 'table'} onClick={() => setView('table')} className={`relative z-10 flex items-center justify-center gap-1.5 rounded-full px-3 py-1.5 transition-colors ${view === 'table' ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}><TableIcon className="h-3.5 w-3.5" />Таблиця</button>
+        <button type="button" role="tab" aria-selected={view === 'cards'} onClick={() => setView('cards')} className={`relative z-10 flex items-center justify-center gap-1.5 rounded-full px-3 py-1.5 transition-colors ${view === 'cards' ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}><LayoutGrid className="h-3.5 w-3.5" />Картки</button>
+      </div>
       {!editing && <Button variant="secondary" size="sm" disabled={!prefs.canEdit} onClick={() => setEditing(true)}>Впорядкувати колонки</Button>}
       <Button size="sm" onClick={() => { setEditingTrade(null); setShowModal(true); }}><Plus className="h-4 w-4" />Додати угоду</Button>
     </div>
     <div className="flex flex-wrap items-center gap-2 text-xs"><span className="text-muted-foreground">Сортування:</span><div><Select aria-label="Поле сортування" value={sort} onChange={e => setSort(e.target.value as JournalColumnId)}>{JOURNAL_COLUMNS.map(column => <option key={column.id} value={column.id}>{column.label}</option>)}</Select></div><Button variant="secondary" size="sm" onClick={() => setAscending(!ascending)}>{ascending ? 'За зростанням ↑' : 'За спаданням ↓'}</Button>{activeFilters.map(([id, value]) => <Button variant="secondary" size="sm" key={id} onClick={() => filter(id, '')}>{labelFor(id)}: {value} ×</Button>)}{filterSession !== 'All' && <Button variant="secondary" size="sm" onClick={() => setFilterSession('All')}>{filterSession} ×</Button>}</div>
-    {(editing || prefs.dirty) && <div className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 p-3"><p className="mr-auto text-xs">{editing ? 'Перетягніть заголовок або скористайтеся ← / →. Зміни ще не збережені.' : 'Видимість колонок змінена, але ще не збережена.'}</p><Button variant="secondary" size="sm" disabled={!prefs.canEdit} onClick={() => prefs.change(defaultJournalLayout())}>Стандартний вигляд</Button><Button variant="secondary" size="sm" disabled={prefs.saving} onClick={() => { prefs.cancel(); setEditing(false); setDragging(null); }}>Скасувати</Button><Button size="sm" disabled={!prefs.canEdit} onClick={async () => { if (await prefs.save()) { setEditing(false); setDragging(null); } }}>{prefs.saving ? 'Збереження…' : 'Підтвердити зміни'}</Button></div>}
+    {(editing || prefs.dirty) && <div className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 p-3"><p className="mr-auto text-xs">{editing ? 'Перетягніть заголовок або скористайтеся ← / →. Зміни ще не збережені.' : 'Вигляд журналу змінено, але ще не збережений.'}</p><Button variant="secondary" size="sm" disabled={!prefs.canEdit} onClick={() => prefs.change(defaultJournalLayout())}>Стандартний вигляд</Button><Button variant="secondary" size="sm" disabled={prefs.saving} onClick={() => { prefs.cancel(); setEditing(false); setDragging(null); }}>Скасувати</Button><Button size="sm" disabled={!prefs.canEdit} onClick={async () => { if (await prefs.save()) { setEditing(false); setDragging(null); } }}>{prefs.saving ? 'Збереження…' : 'Підтвердити зміни'}</Button></div>}
     {prefs.loading && <p role="status" className="text-xs text-muted-foreground">Завантаження вигляду журналу…</p>}
     {prefs.error && <div role="alert" className="rounded-lg border border-border p-3 text-sm">{prefs.error}<Button variant="secondary" size="sm" className="ml-2" disabled={prefs.saving || prefs.loading} onClick={() => { setEditing(false); void prefs.reload(); }}>Перечитати й відкинути локальні зміни</Button></div>}
     {focus.kind !== 'none' && <div role={focus.kind === 'invalid' ? 'alert' : 'status'} className="rounded-xl border border-primary/20 bg-primary/5 p-4"><p>Доказові угоди зі Strategy Control</p>{focus.kind === 'invalid' ? <p>{focus.message}</p> : <p className="mt-1 text-xs">ID у посиланні: {focus.ids.length}. В активній вибірці: {focusedTrades.length}. Після фільтрів: {filtered.length}. Частина ID може бути недоступна в обраних рахунках.</p>}<p className="mt-1 text-xs text-muted-foreground">Фіксований перелік ID, без копіювання угод і розширення вибірки рахунків.</p>{onClearFocus && <Button variant="secondary" size="sm" onClick={onClearFocus} className="mt-2">Зняти фільтр доказових угод</Button>}</div>}
     {error && <div role="alert" className="rounded-lg border border-destructive/30 p-3 text-sm text-destructive">{error}</div>}
     <p role="status" className="text-xs text-muted-foreground">{copyStatus}</p>
+    {view === 'cards' ? (
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {loading ? <EmptyState title="Завантаження угод…" role="status" className="sm:col-span-2 lg:col-span-3" /> : !filtered.length ? <EmptyState title="Угод за цими фільтрами немає." className="sm:col-span-2 lg:col-span-3" /> : filtered.map(trade => (
+          <button key={trade.id} type="button" onClick={() => { setEditingTrade(trade); setShowModal(true); }} className="group overflow-hidden rounded-2xl border border-border bg-card text-left transition hover:border-primary/40 hover:shadow-lg">
+            {trade.screenshot_url ? <img src={trade.screenshot_url} alt="" className="h-40 w-full object-cover" /> : <div className="flex h-40 items-center justify-center bg-secondary/40 text-xs text-muted-foreground">Немає скріншоту</div>}
+            <div className="space-y-1 p-3">
+              <div className="flex items-center justify-between"><span className="font-semibold">{trade.symbol}</span><span style={{ color: trade.direction === 'Long' ? positive : negative }}>{trade.direction}</span></div>
+              <div className="flex items-center justify-between text-xs text-muted-foreground"><span>{date(trade.opened_at)}</span><span style={{ color: (trade.net_pnl ?? 0) >= 0 ? positive : negative }}>{typeof trade.net_pnl === 'number' ? fmt.usd(trade.net_pnl) : '—'}</span></div>
+              <div className="flex items-center justify-between text-xs"><span>R: {typeof trade.result_r === 'number' ? fmt.r(trade.result_r) : '—'}</span><span>{session(trade)}</span></div>
+            </div>
+          </button>
+        ))}
+      </div>
+    ) : (
     <div className="overflow-x-auto rounded-xl border border-border bg-card"><table className="w-full text-xs"><thead><tr className="border-b border-border">{columns.map((id, index) => <th key={id} scope="col" draggable={editing && prefs.canEdit} onDragStart={e => { if (!editing || !prefs.canEdit) { e.preventDefault(); return; } setDragging(id); e.dataTransfer.setData('text/plain', id); e.dataTransfer.effectAllowed = 'move'; }} onDragEnd={() => setDragging(null)} onDragOver={e => { if (editing && dragging && prefs.canEdit) e.preventDefault(); }} onDrop={e => { e.preventDefault(); if (dragging) move(dragging, id); setDragging(null); }} className={`whitespace-nowrap px-3 py-3 text-left font-semibold ${editing ? 'bg-primary/10 ring-1 ring-inset ring-primary/20' : 'text-muted-foreground'}`}><span className="inline-flex items-center gap-1">{editing && <GripVertical className="h-4 w-4 cursor-grab" />}{labelFor(id)}{editing && <><Button variant="ghost" size="sm" aria-label={`Перемістити ${id} ліворуч`} disabled={!prefs.canEdit || index === 0} onClick={() => move(id, columns[index - 1])}>←</Button><Button variant="ghost" size="sm" aria-label={`Перемістити ${id} праворуч`} disabled={!prefs.canEdit || index === columns.length - 1} onClick={() => move(id, columns[index + 1])}>→</Button></>}</span></th>)}<th scope="col" className="sticky right-0 bg-card px-3 py-3">Дії</th></tr></thead><tbody>
       {loading ? <tr><td colSpan={columns.length + 1} className="p-8"><EmptyState title="Завантаження угод…" role="status" /></td></tr> : !filtered.length ? <tr><td colSpan={columns.length + 1} className="p-8"><EmptyState title="Угод за цими фільтрами немає." /></td></tr> : filtered.map((trade, index) => <tr key={trade.id} className={`border-b border-border/50 hover:bg-secondary/30 ${index % 2 ? 'bg-background/30' : ''}`}>{columns.map(id => <td key={id} className="whitespace-nowrap px-3 py-2">{cell(trade, id)}</td>)}<td className="sticky right-0 bg-card px-3 py-2"><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" aria-label="Edit trade" onClick={() => { setEditingTrade(trade); setShowModal(true); }}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" aria-label="Delete trade" disabled={saving} onClick={() => void remove(trade.id)}><Trash2 className="h-4 w-4" /></Button></div></td></tr>)}
     </tbody></table></div>
+    )}
     <ManualTradeModal open={showModal} accounts={accounts} defaultAccountId={activeAccountId !== 'all' ? activeAccountId : undefined} initialTrade={editingTrade} submitting={saving} onClose={() => { setShowModal(false); setEditingTrade(null); }} onSubmit={submit} />
   </div>;
 }
