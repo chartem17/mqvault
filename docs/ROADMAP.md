@@ -154,3 +154,14 @@
 - [ ] Full English/Ukrainian dictionaries and switch; production release.
 
 No database, financial logic, Market, screen layout or production changes. Active work branch: feat/journal-layout-filters.
+
+## Shared UI: trade-ticket consumer migration — 2026-10-31
+
+- [x] Code: manual-trade-modal fields (including native datetime), account Select, notes Textarea, footer Buttons and section Panels use shared primitives. Local GlideSelect colour/radius overrides removed; shared token defaults apply after select integration.
+- [x] Code: error/warning field visuals have one stylesheet; semantic surface/border/status tokens replace ticket-specific dark colours. Form initialization, calculations, validation and save logic are guarded as unchanged by the migration script.
+- [ ] Verify workflow lint/TypeScript and Vercel build.
+- [ ] Browser acceptance: add/edit, errors/warnings, read-only values, submitting, symbol lookup, account selection, both themes, native date controls and mobile. No real-data destructive tests.
+- [ ] Other consumers, shared Field/Checkbox/DateTime behavior, modal shell and local symbol picker buttons still need migration. Native datetime inputs are styled, not a custom calendar implementation.
+- [ ] Full centralization and production release are not complete.
+
+Recovery note: earlier attempts did not push app changes (generator, whitespace and workflow-permission failures). This recovery uses an in-memory generator correction, boolean aria-invalid and whitespace cleanup. Automated commit includes application/docs files only. Browser acceptance and production release remain pending.

@@ -5,6 +5,8 @@ import { ChevronDown, X } from "lucide-react";
 import { type JournalTrade, type TradeInput } from "@/hooks/use-trades";
 import type { TradingAccount } from "@/lib/account-data";
 import GlideSelect from "@/components/ui/glide-select";
+import { Button, Input, Panel, Select, Textarea } from "@/components/ui/primitives";
+import "./trade-ticket.css";
 import { useInstruments } from "@/hooks/use-instruments";
 import {
   marketForSymbol as findMarket,
@@ -447,24 +449,17 @@ export function ManualTradeModal({
         <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
           {label}
         </span>
-        <input
+        <Input
           data-trade-field={key}
           type={type}
           value={String(form[key] ?? "")}
-          onChange={(event) => setField(key, event.target.value as never)}
-          className={`bg-black/20 border rounded-lg px-3 py-2 text-sm outline-none transition focus:ring-1 ${
-            error
-              ? "border-red-400/80 bg-red-500/10 focus:ring-red-400"
-              : warning
-                ? "border-amber-300/70 bg-amber-400/5 focus:ring-amber-300"
-                : "border-white/10 focus:ring-primary"
-          }`}
+          onChange={(event) => setField(key, event.target.value as never)} className="trade-ticket-control" data-ui-state={error ? 'error' : warning ? 'warning' : undefined} aria-invalid={Boolean(error)}
         />
         {error ? (
-          <span className="text-[11px] text-red-300">{error}</span>
+          <span className="text-[11px] text-destructive">{error}</span>
         ) : null}
         {!error && warning ? (
-          <span className="text-[11px] text-amber-200/90">
+          <span className="text-[11px] text-gold">
             Optional, but recommended.
           </span>
         ) : null}
@@ -478,12 +473,11 @@ export function ManualTradeModal({
         <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
           {label}
         </span>
-        <input
+        <Input
           value={value}
           readOnly
           tabIndex={-1}
-          aria-readonly="true"
-          className="bg-secondary/40 border border-border rounded-lg px-3 py-2 text-sm text-muted-foreground"
+          aria-readonly="true" className="trade-ticket-control" data-ui-state={undefined} aria-invalid={false}
         />
       </label>
     );
@@ -508,17 +502,12 @@ export function ManualTradeModal({
           onChange={(value) => setField(key, value as never)}
           placeholder={label}
           showTags={false}
-          surfaceColor="#111817"
-          highlightColor="#1b2b28"
-          textColor="#e8f0ed"
-          accentColor="#33d6ba"
           size="lg"
-          radius={10}
           menuWidth={240}
           ariaLabel={label}
         />
         {error ? (
-          <span className="text-[11px] text-red-300">{error}</span>
+          <span className="text-[11px] text-destructive">{error}</span>
         ) : null}
       </label>
     );
@@ -544,9 +533,9 @@ export function ManualTradeModal({
         role="dialog"
         aria-modal="true"
         aria-label={initialTrade ? "Edit trade" : "Add trade"}
-        className="relative z-10 flex w-full max-w-4xl max-h-[calc(100dvh-1.5rem)] sm:max-h-[min(820px,calc(100dvh-3rem))] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0c1211] shadow-[0_28px_90px_rgba(0,0,0,.62)]"
+        className="relative z-10 flex w-full max-w-4xl max-h-[calc(100dvh-1.5rem)] sm:max-h-[min(820px,calc(100dvh-3rem))] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-[0_28px_90px_rgba(0,0,0,.62)]"
       >
-        <header className="border-b border-white/10 bg-[#101816] px-5 py-4 flex justify-between">
+        <header className="border-b border-border bg-panel px-5 py-4 flex justify-between">
           <div>
             <p className="text-[10px] uppercase tracking-[.18em] text-muted-foreground">
               Trade ticket
@@ -561,8 +550,8 @@ export function ManualTradeModal({
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 bg-[#0c1211]">
-          <section className="rounded-2xl border border-border bg-secondary/20 p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 bg-card">
+          <Panel className="p-4 space-y-4">
             <div>
               <h3 className="text-sm font-semibold">Execution</h3>
               <p className="text-xs text-muted-foreground mt-1">
@@ -576,19 +565,14 @@ export function ManualTradeModal({
                 <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
                   Opened at
                 </span>
-                <input
+                <Input
                   data-trade-field="opened_at"
                   type="datetime-local"
                   value={form.opened_at}
-                  onChange={(event) => changeOpenedAt(event.target.value)}
-                  className={`bg-black/20 border rounded-lg px-3 py-2 text-sm outline-none ${
-                    errors.opened_at
-                      ? "border-red-400/80 bg-red-500/10"
-                      : "border-white/10"
-                  }`}
+                  onChange={(event) => changeOpenedAt(event.target.value)} className="trade-ticket-control" data-ui-state={errors.opened_at ? 'error' : undefined} aria-invalid={Boolean(errors.opened_at)}
                 />
                 {errors.opened_at ? (
-                  <span className="text-[11px] text-red-300">
+                  <span className="text-[11px] text-destructive">
                     {errors.opened_at}
                   </span>
                 ) : null}
@@ -602,7 +586,7 @@ export function ManualTradeModal({
                 </span>
 
                 <div className="relative">
-                  <input
+                  <Input
                     data-trade-field="symbol"
                     value={symbolQuery}
                     onChange={(event) => {
@@ -611,12 +595,7 @@ export function ManualTradeModal({
                       setSymbolOpen(true);
                       setField("symbol", value);
                     }}
-                    onFocus={() => setSymbolOpen(true)}
-                    className={`w-full bg-black/20 border rounded-lg px-3 py-2 text-sm outline-none ${
-                      errors.symbol
-                        ? "border-red-400/80 bg-red-500/10"
-                        : "border-white/10"
-                    }`}
+                    onFocus={() => setSymbolOpen(true)} className="trade-ticket-control" data-ui-state={errors.symbol ? 'error' : undefined} aria-invalid={Boolean(errors.symbol)}
                   />
                   <button
                     type="button"
@@ -672,7 +651,7 @@ export function ManualTradeModal({
                 </div>
 
                 {errors.symbol ? (
-                  <span className="text-[11px] text-red-300">
+                  <span className="text-[11px] text-destructive">
                     {errors.symbol}
                   </span>
                 ) : null}
@@ -682,19 +661,19 @@ export function ManualTradeModal({
                 <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
                   Account
                 </span>
-                <select
+                <Select
                   value={form.account_id}
                   onChange={(event) =>
                     setField("account_id", event.target.value)
                   }
-                  className="bg-secondary/60 border border-border rounded-lg px-3 py-2 text-sm outline-none"
+                  className="trade-ticket-control"
                 >
                   {accounts.map((account) => (
                     <option key={account.id} value={account.id}>
                       {account.name}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
 
               {readOnly("Market", form.market)}
@@ -715,9 +694,9 @@ export function ManualTradeModal({
               {readOnly("Net P/L (auto)", netPreview)}
               {readOnly("R (auto)", rPreview)}
             </div>
-          </section>
+          </Panel>
 
-          <section className="rounded-2xl border border-border bg-secondary/20 p-4 space-y-4">
+          <Panel className="p-4 space-y-4">
             <div>
               <h3 className="text-sm font-semibold">Context</h3>
               <p className="text-xs text-muted-foreground mt-1">
@@ -760,41 +739,41 @@ export function ManualTradeModal({
                 <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
                   Notes
                 </span>
-                <textarea
+                <Textarea
                   value={form.notes}
                   onChange={(event) => setField("notes", event.target.value)}
                   rows={5}
-                  className="bg-secondary/60 border border-border rounded-lg px-3 py-2 text-sm resize-none outline-none"
+                  className="trade-ticket-control"
                 />
               </label>
             </div>
-          </section>
+          </Panel>
         </div>
 
-        <footer className="border-t border-white/10 bg-[#101816] p-4 flex items-center justify-end gap-2">
+        <footer className="border-t border-border bg-panel p-4 flex items-center justify-end gap-2">
           {submitError ? (
-            <p role="alert" className="mr-auto text-xs text-red-300">
+            <p role="alert" className="mr-auto text-xs text-destructive">
               {submitError}
             </p>
           ) : null}
 
-          <button
+          <Button variant="secondary"
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-lg border border-border text-sm"
+
           >
             Cancel
-          </button>
+          </Button>
 
-          <button
+          <Button loading={submitting}
             type="button"
             onClick={() => void save()}
             disabled={submitting}
             style={shakeSubmit ? shakeStyle : undefined}
-            className="px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground disabled:opacity-60"
+
           >
             {initialTrade ? "Save changes" : "Add trade"}
-          </button>
+          </Button>
         </footer>
       </aside>
     </div>
