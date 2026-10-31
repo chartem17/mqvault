@@ -1,0 +1,15 @@
+/* Active UI typography: Inter. Spectral is no longer imported or downloaded.
+   Compatibility alias keeps the integrated foundation's existing references working. */
+:root {
+  --font-spectral-sc: var(--font-ui);
+  --font-display: var(--font-ui), system-ui, sans-serif;
+}
+@theme inline {
+  --font-sans: var(--font-ui), system-ui, sans-serif;
+  --font-mono: var(--font-ui), system-ui, sans-serif;
+  --font-display: var(--font-ui), system-ui, sans-serif;
+}
+body, button, input, select, textarea, optgroup, option, table, svg text, .font-sans, .font-mono, .font-display {
+  font-family: var(--font-ui), system-ui, sans-serif;
+}
+body { font-feature-settings: "tnum" 1, "cv02" 1, "cv03" 1; }
