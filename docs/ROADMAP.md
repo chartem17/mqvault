@@ -196,3 +196,13 @@ No account API, rules schema, Supabase, production settings or Market changes. E
 - [ ] Browser: create/cancel, numeric/list parameters, sessions, toggles, dates, strategy selection, duplicate/delete/Undo on safe test data, modal/evidence navigation and both themes.
 - [ ] Rule/evidence clickable-card shells, complete modal keyboard behavior, remaining layout typography and other screen adoption still need review. Native date fields are not a custom DateTime picker.
 - [ ] Full site centralization, localization and production release remain incomplete.
+
+## Field/EmptyState and journal checkbox adoption — 2026-10-31
+
+- [x] Code: shared Field links native helper-input labels and messages via useId/htmlFor/aria-describedby; error/warning state CSS is shared. Manual ticket input/read-only helpers use it. Symbol no-results uses EmptyState.
+- [x] Code: journal column visibility uses shared Checkbox; loading/no-results table cells use EmptyState while preserving colSpan and handlers.
+- [ ] Verify lint/TypeScript/push/Vercel and browser acceptance (invalid/warning/read-only, first-error focus, filtered empty table, checkbox guard).
+- [ ] Remaining explicit ticket labels, custom GlideSelect field linkage, other forms, modal shells and other empty-state consumers still need migration. The old unimported trade-ticket.css remains for cleanup; this is not a completed all-form migration.
+- [ ] Full centralization, localization and production release remain pending. No database or financial logic changes.
+
+Field adoption recovery: normalize helper indentation before comparing unchanged trade logic. Original protection remains enabled. Initial failed attempt did not commit consumer migration. Browser acceptance and production release remain pending.

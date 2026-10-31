@@ -6,7 +6,9 @@ import { type JournalTrade, type TradeInput } from "@/hooks/use-trades";
 import type { TradingAccount } from "@/lib/account-data";
 import GlideSelect from "@/components/ui/glide-select";
 import { Button, Input, Panel, Select, Textarea } from "@/components/ui/primitives";
-import "./trade-ticket.css";
+import { Field } from "@/components/ui/field";
+import { EmptyState } from "@/components/ui/empty-state";
+import "@/components/ui/field.css";
 import { useInstruments } from "@/hooks/use-instruments";
 import {
   marketForSymbol as findMarket,
@@ -441,46 +443,12 @@ export function ManualTradeModal({
   }
 
   function input(key: keyof FormTrade, label: string, type = "text") {
-    const error = errors[key as RequiredField];
-    const warning = warningFields.has(key as WarningField);
-
-    return (
-      <label className="flex flex-col gap-1">
-        <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
-          {label}
-        </span>
-        <Input
-          data-trade-field={key}
-          type={type}
-          value={String(form[key] ?? "")}
-          onChange={(event) => setField(key, event.target.value as never)} className="trade-ticket-control" data-ui-state={error ? 'error' : warning ? 'warning' : undefined} aria-invalid={Boolean(error)}
-        />
-        {error ? (
-          <span className="text-[11px] text-destructive">{error}</span>
-        ) : null}
-        {!error && warning ? (
-          <span className="text-[11px] text-gold">
-            Optional, but recommended.
-          </span>
-        ) : null}
-      </label>
-    );
+  const error = errors[key as RequiredField];
+  const warning = warningFields.has(key as WarningField);
+  return <Field label={label} error={error} warning={warning ? "Optional, but recommended." : undefined}>{control => <Input {...control} data-trade-field={key} type={type} value={String(form[key] ?? "")} onChange={event => setField(key, event.target.value as never)} className="ui-field-control" />}</Field>;
   }
-
   function readOnly(label: string, value: string) {
-    return (
-      <label className="flex flex-col gap-1">
-        <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
-          {label}
-        </span>
-        <Input
-          value={value}
-          readOnly
-          tabIndex={-1}
-          aria-readonly="true" className="trade-ticket-control" data-ui-state={undefined} aria-invalid={false}
-        />
-      </label>
-    );
+  return <Field label={label}>{control => <Input {...control} value={value} readOnly tabIndex={-1} aria-readonly="true" className="ui-field-control" />}</Field>;
   }
 
   function select(
@@ -569,7 +537,7 @@ export function ManualTradeModal({
                   data-trade-field="opened_at"
                   type="datetime-local"
                   value={form.opened_at}
-                  onChange={(event) => changeOpenedAt(event.target.value)} className="trade-ticket-control" data-ui-state={errors.opened_at ? 'error' : undefined} aria-invalid={Boolean(errors.opened_at)}
+                  onChange={(event) => changeOpenedAt(event.target.value)} className="ui-field-control" data-ui-state={errors.opened_at ? 'error' : undefined} aria-invalid={Boolean(errors.opened_at)}
                 />
                 {errors.opened_at ? (
                   <span className="text-[11px] text-destructive">
@@ -595,7 +563,7 @@ export function ManualTradeModal({
                       setSymbolOpen(true);
                       setField("symbol", value);
                     }}
-                    onFocus={() => setSymbolOpen(true)} className="trade-ticket-control" data-ui-state={errors.symbol ? 'error' : undefined} aria-invalid={Boolean(errors.symbol)}
+                    onFocus={() => setSymbolOpen(true)} className="ui-field-control" data-ui-state={errors.symbol ? 'error' : undefined} aria-invalid={Boolean(errors.symbol)}
                   />
                   <button
                     type="button"
@@ -627,9 +595,7 @@ export function ManualTradeModal({
                       </div>
                       <div className="max-h-56 overflow-auto p-1">
                         {matchingAssets.length === 0 ? (
-                          <p className="px-3 py-4 text-center text-xs text-muted-foreground">
-                            No symbols found
-                          </p>
+                          <EmptyState title="No symbols found" className="px-3 py-4" />
                         ) : (
                           matchingAssets.map((asset) => (
                             <button
@@ -666,7 +632,7 @@ export function ManualTradeModal({
                   onChange={(event) =>
                     setField("account_id", event.target.value)
                   }
-                  className="trade-ticket-control"
+                  className="ui-field-control"
                 >
                   {accounts.map((account) => (
                     <option key={account.id} value={account.id}>
@@ -743,7 +709,7 @@ export function ManualTradeModal({
                   value={form.notes}
                   onChange={(event) => setField("notes", event.target.value)}
                   rows={5}
-                  className="trade-ticket-control"
+                  className="ui-field-control"
                 />
               </label>
             </div>
