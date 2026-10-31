@@ -215,7 +215,7 @@ export function DrawdownPanel() {
 
   if (!points.length) {
     return (
-      <section className={`${CARD} h-[420px] min-w-0 overflow-auto p-5`}>
+      <section className={`${CARD} h-[560px] min-h-0 min-w-0 overflow-auto p-5 xl:h-full`}>
         <div className="text-sm font-medium text-white">Drawdown episodes</div>
         <p className="mt-2 text-sm text-white/40">Недостатньо угод для аналізу просадок.</p>
       </section>
@@ -223,8 +223,8 @@ export function DrawdownPanel() {
   }
 
   return (
-    <section className="min-w-0 space-y-3">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+    <section className="flex h-[560px] min-h-0 min-w-0 flex-col gap-3 xl:h-full">
+      <div className="grid shrink-0 grid-cols-2 gap-3 md:grid-cols-4">
         <MetricTile
           label="MAX DD"
           value={`${(worstEpisode?.ddPct ?? 0).toFixed(2)}%`}
@@ -250,7 +250,7 @@ export function DrawdownPanel() {
         />
       </div>
 
-      <div className={`${CARD} flex h-[420px] min-w-0 flex-col overflow-hidden`}>
+      <div className={`${CARD} flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden`}>
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
           <div className="flex items-center gap-2">
             <TrendingDown className="h-4 w-4" style={{ color: RED }} />
