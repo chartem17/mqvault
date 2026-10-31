@@ -214,3 +214,10 @@ Field adoption recovery: normalize helper indentation before comparing unchanged
 - [ ] Verify workflow lint/TypeScript/push and Vercel.
 - [ ] Browser: open/close, Escape, outside click, saving guards, focus restoration, long content scroll, portal stacking, both themes/mobile. Existing custom modal focus-trap limitations are not claimed fixed.
 - [ ] Other agents screens, popovers, full Field/EmptyState adoption and source cleanup still need audit. Full site centralization and production release remain incomplete. No Supabase/API/auth changes.
+
+## UI source audit — snapshot e32d453
+
+- [x] Static UI inventory generated in UI-CENTRALIZATION-AUDIT.md; source snapshot and regex limitations stated. No application changes.
+- [ ] Classify candidates and consolidate duplicate shared wrappers before declaring centralized design complete.
+- [ ] Confirm modal integration final commit/build, browser acceptance, other-agent coordination and source/workflow cleanup.
+- [ ] Full localization, shared visual redesign and production release remain separate.
