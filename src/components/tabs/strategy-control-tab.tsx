@@ -102,6 +102,6 @@ export function StrategyControlTab() {
       </>}
     </div>
     <StrategyDetailsModal strategy={activeStrategy} open={strategyDetailsOpen} onClose={() => setStrategyDetailsOpen(false)} />
-    <FindingModal finding={selectedFinding} open={!!selectedFinding} onClose={() => setSelectedFinding(false)} />
+    <FindingModal finding={selectedFinding} open={!!selectedFinding} onClose={() => setSelectedFinding(null)} />
   </>;
 }
