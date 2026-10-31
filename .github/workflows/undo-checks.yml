@@ -1,0 +1,44 @@
+name: Undo branch checks
+on:
+  push:
+    branches: [feat/undo-delete-current]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: undo-checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-not-a-real-key
+      SUPABASE_SECRET_KEY: ci-placeholder-not-a-real-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Lint deletion and session components
+        run: npm run lint -- src/hooks/use-trades.tsx src/hooks/use-strategies.tsx src/components/ui/undo-toast.tsx src/components/ui/confirm-dialog.tsx src/lib/sessions.ts src/lib/session-selection.ts src/lib/strategy-control/trade-adapter.ts src/lib/strategy-control/rule-library.ts src/lib/strategy-control/strategy-storage.ts src/components/tabs/market-tab.tsx src/lib/supabase/deletion-result.ts src/lib/supabase/permanent-delete.ts
+      - name: Session boundary and timezone tests
+        run: |
+          npx tsc src/lib/sessions.ts --outDir .tmp-session-tests --module commonjs --target ES2020 --lib ES2020,DOM --skipLibCheck
+          node --test tests/sessions.test.mjs
+      - name: Session selection compatibility tests
+        run: |
+          npx tsc src/lib/session-selection.ts --outDir .tmp-session-selection-tests --module commonjs --target ES2020 --lib ES2020,DOM --strict --skipLibCheck
+          node --test tests/session-selection.test.mjs
+      - name: Permanent deletion response tests
+        run: |
+          npx tsc src/lib/supabase/deletion-result.ts --outDir .tmp-deletion-tests --module commonjs --target ES2020 --lib ES2020,DOM --strict --skipLibCheck
+          node --test tests/deletion-result.test.mjs
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Production build
+        run: npm run build

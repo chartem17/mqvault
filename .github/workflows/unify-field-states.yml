@@ -1,0 +1,91 @@
+name: Adopt shared fields and empty states
+on:
+  push:
+    branches: [feat/journal-layout-filters]
+    paths: [.github/workflows/unify-field-states.yml]
+permissions:
+  contents: write
+concurrency:
+  group: shared-field-adoption
+  cancel-in-progress: false
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/journal-layout-filters
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Connect shared field and empty-state components
+        shell: python
+        run: |
+          from pathlib import Path
+          import hashlib, re
+          def reviewed(path, expected):
+              raw = path.read_bytes()
+              assert hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest() == expected, 'Concurrent edits: ' + str(path)
+              return raw.decode()
+          path = Path('src/components/journal/manual-trade-modal.tsx')
+          old = reviewed(path, 'e4311a4cb690300575ecbe8cb543358736dfdd5f')
+          text = old.replace('import "./trade-ticket.css";', 'import { Field } from "@/components/ui/field";\nimport { EmptyState } from "@/components/ui/empty-state";\nimport "@/components/ui/field.css";')
+          start = text.index('  function input(')
+          end = text.index('  function select(', start)
+          helpers = '''  function input(key: keyof FormTrade, label: string, type = "text") {
+            const error = errors[key as RequiredField];
+            const warning = warningFields.has(key as WarningField);
+            return <Field label={label} error={error} warning={warning ? "Optional, but recommended." : undefined}>{control => <Input {...control} data-trade-field={key} type={type} value={String(form[key] ?? "")} onChange={event => setField(key, event.target.value as never)} className="ui-field-control" />}</Field>;
+          }
+          function readOnly(label: string, value: string) {
+            return <Field label={label}>{control => <Input {...control} value={value} readOnly tabIndex={-1} aria-readonly="true" className="ui-field-control" />}</Field>;
+          }
+
+          '''
+          import textwrap
+          helpers = textwrap.dedent(helpers)
+          helpers = '\n'.join('  ' + line if line else '' for line in helpers.splitlines()) + '\n'
+          text = text[:start] + helpers + text[end:]
+          text = text.replace('trade-ticket-control', 'ui-field-control')
+          text, count = re.subn(r'<p className="px-3 py-4 text-center text-xs text-muted-foreground">\s*No symbols found\s*</p>', '<EmptyState title="No symbols found" className="px-3 py-4" />', text)
+          assert count == 1
+          a = 'const SESSIONS'
+          b = '  function input('
+          assert old[old.index(a):old.index(b)] == text[text.index(a):text.index(b)], 'Trade calculations/state/save changed'
+          path.write_text('\n'.join(line.rstrip() for line in text.splitlines()) + '\n')
+          path = Path('src/components/tabs/journal-tab.tsx')
+          old = reviewed(path, '3afb54da965c8d087598c666235fe7ff0a7d3cb4')
+          text = old.replace('"use client";', '"use client";\nimport { Checkbox } from "@/components/ui/checkbox";\nimport { EmptyState } from "@/components/ui/empty-state";', 1)
+          assert text.count('<input type="checkbox"') == 1
+          text = text.replace('<input type="checkbox"', '<Checkbox')
+          before = 'className="p-8 text-center text-muted-foreground">Угод за цими фільтрами немає.</td>'
+          assert before in text
+          text = text.replace(before, 'className="p-8"><EmptyState title="Угод за цими фільтрами немає." /></td>')
+          before = 'className="p-8 text-center">Завантаження угод…</td>'
+          assert before in text
+          text = text.replace(before, 'className="p-8"><EmptyState title="Завантаження угод…" role="status" /></td>')
+          a = 'const positive'
+          b = '  return <div className="space-y-4 p-6">'
+          assert old[old.index(a):old.index(b)] == text[text.index(a):text.index(b)], 'Journal logic changed'
+          for marker in ['onChange=', 'onClick=', 'disabled=', 'prefs.save(', 'toggleJournalColumn(', 'colSpan={columns.length + 1}']:
+              assert old.count(marker) == text.count(marker), 'Journal constraint changed: ' + marker
+          path.write_text('\n'.join(line.rstrip() for line in text.splitlines()) + '\n')
+          path = Path('docs/ROADMAP.md')
+          roadmap = path.read_text()
+          assert roadmap.startswith('# Roadmap mqvault')
+          path.write_text(roadmap + '\n## Field/EmptyState and journal checkbox adoption — 2026-10-31\n\n- [x] Code: shared Field links native helper-input labels and messages via useId/htmlFor/aria-describedby; error/warning state CSS is shared. Manual ticket input/read-only helpers use it. Symbol no-results uses EmptyState.\n- [x] Code: journal column visibility uses shared Checkbox; loading/no-results table cells use EmptyState while preserving colSpan and handlers.\n- [ ] Verify lint/TypeScript/push/Vercel and browser acceptance (invalid/warning/read-only, first-error focus, filtered empty table, checkbox guard).\n- [ ] Remaining explicit ticket labels, custom GlideSelect field linkage, other forms, modal shells and other empty-state consumers still need migration. The old unimported trade-ticket.css remains for cleanup; this is not a completed all-form migration.\n- [ ] Full centralization, localization and production release remain pending. No database or financial logic changes.\n')
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - name: Commit application/docs only
+        run: |
+          git diff --check
+          git diff --exit-code -- .github/workflows
+          git add src/components/journal/manual-trade-modal.tsx src/components/tabs/journal-tab.tsx docs/ROADMAP.md
+          if git diff --cached --name-only | grep -q '^.github/workflows/'; then exit 1; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "refactor(ui): adopt shared field states and journal checkbox"
+          git push origin HEAD:feat/journal-layout-filters

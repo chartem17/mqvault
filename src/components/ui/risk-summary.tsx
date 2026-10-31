@@ -22,15 +22,15 @@ export function RiskSummary() {
   }, [visibleTrades]);
 
   if (!risk) {
-    return <span className="text-[11px] text-white/35">Risk data unavailable</span>;
+    return <span className="text-[11px] text-muted-foreground">Risk data unavailable</span>;
   }
 
   return (
-    <span className="text-[11px] text-white/40">
-      Avg risk/trade: <span className="font-medium text-white/65">{risk.average.toFixed(2)}%</span>
-      <span className="mx-1.5 text-white/20">·</span>
-      Max risk: <span className="font-medium text-white/65">{risk.max.toFixed(2)}%</span>
-      <span className="mx-1.5 text-white/20">·</span>
+    <span className="text-[11px] text-muted-foreground">
+      Avg risk/trade: <span className="font-medium text-muted-foreground">{risk.average.toFixed(2)}%</span>
+      <span className="mx-1.5 text-muted-foreground">·</span>
+      Max risk: <span className="font-medium text-muted-foreground">{risk.max.toFixed(2)}%</span>
+      <span className="mx-1.5 text-muted-foreground">·</span>
       <span>{risk.covered}/{risk.total} trades tracked</span>
     </span>
   );

@@ -1,0 +1,30 @@
+name: Journal evidence navigation checks
+on:
+  push:
+    branches: [feat/undo-delete-current]
+    paths:
+      - src/lib/journal-focus.ts
+      - src/app/page.tsx
+      - src/app/journal/page.tsx
+      - src/components/tabs/journal-tab.tsx
+      - tests/journal-focus.test.mjs
+      - .github/workflows/journal-focus-checks.yml
+permissions:
+  contents: read
+jobs:
+  journal-focus:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint -- src/lib/journal-focus.ts src/app/page.tsx src/app/journal/page.tsx src/components/tabs/journal-tab.tsx
+      - name: Exact ID filtering and legacy link regression tests
+        run: |
+          npx tsc src/lib/journal-focus.ts --outDir .tmp-journal-focus-tests --module commonjs --target ES2020 --lib ES2020,DOM --strict --skipLibCheck
+          node --test tests/journal-focus.test.mjs
+      - run: npx tsc --noEmit

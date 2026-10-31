@@ -1,0 +1,92 @@
+name: Audit UI centralization
+on:
+  push:
+    branches: [feat/journal-layout-filters]
+    paths: [.github/workflows/audit-ui-centralization.yml]
+permissions:
+  contents: write
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/journal-layout-filters
+      - name: Build source inventory without modifying application code
+        shell: python
+        run: |
+          from pathlib import Path
+          import re, subprocess
+          sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          paths = sorted(Path('src/components').rglob('*.tsx')) + sorted(Path('src/components').rglob('*.css'))
+          paths += [p for p in [Path('src/app/globals.css'), Path('src/app/layout.tsx'), Path('src/app/typography.css')] if p.exists()]
+          patterns = {
+              'button': r'<button\b',
+              'input': r'<input\b',
+              'select': r'<select\b',
+              'textarea': r'<textarea\b',
+              'checkbox': r'type=["\x27]checkbox["\x27]',
+              'date/time': r'type=["\x27](?:date|time|datetime-local)["\x27]',
+              'colour': r'#[0-9a-fA-F]{3,8}\b|\b(?:rgb|rgba|hsl|hsla|oklch)\(',
+              'palette': r'\b(?:text|bg|border|ring|fill|stroke)-(?:white|black|emerald|rose|amber|blue|teal|zinc|slate)(?:/|\b|-)',
+              'style tag': r'<style\b',
+              'font override': r'fontFamily|font-family\s*:|--font-(?:sans|mono|display)\s*:',
+          }
+          compiled = {key: re.compile(value) for key, value in patterns.items()}
+          rows = []
+          examples = []
+          sources = {}
+          totals = {key: 0 for key in patterns}
+          for path in paths:
+              source = path.read_text()
+              sources[str(path)] = source
+              counts = {key: len(pattern.findall(source)) for key, pattern in compiled.items()}
+              for key, count in counts.items(): totals[key] += count
+              shared = '/ui/' in str(path) or str(path).startswith('src/app/')
+              deferred = path.name in {'market-tab.tsx', 'calendar-tab.tsx', 'news-tab.tsx', 'screenshots-tab.tsx'}
+              scope = 'shared/theme' if shared else 'coordinate with other agent' if deferred else 'consumer'
+              rows.append((str(path), scope, counts))
+              for key in ['colour', 'palette', 'style tag', 'font override']:
+                  for match in list(compiled[key].finditer(source))[:4]:
+                      line = source.count('\n', 0, match.start()) + 1
+                      examples.append((str(path), line, key, match.group(0)))
+          report = [
+              '# UI centralization audit', '',
+              'Source snapshot: `' + sha + '` on `feat/journal-layout-filters`.', '',
+              '## Method and limitations', '',
+              'Static regex inventory of component TSX/CSS and app theme/layout files. Counts are candidate occurrences, not confirmed defects or an adoption percentage. They can include comments/strings. Shared native primitives intentionally contain native elements. Black backdrops, data-driven account colours, chart/tooltips and theme token definitions may be intentional. No browser, focus, accessibility or financial correctness certification is implied.', '',
+              '## Candidate totals', '',
+              '| Pattern | Occurrences |', '| --- | ---: |',
+          ]
+          report += ['| ' + key + ' | ' + str(count) + ' |' for key, count in totals.items()]
+          report += ['', '## Per-file inventory', '', '| File | Scope | Native button/input/select/textarea | Checkbox / date-time | Literal colour / palette utility | Style tag / font override |', '| --- | --- | --- | --- | --- | --- |']
+          for filename, scope, c in rows:
+              report.append('| `' + filename + '` | ' + scope + ' | ' + '/'.join(str(c[k]) for k in ['button', 'input', 'select', 'textarea']) + ' | ' + str(c['checkbox']) + ' / ' + str(c['date/time']) + ' | ' + str(c['colour']) + ' / ' + str(c['palette']) + ' | ' + str(c['style tag']) + ' / ' + str(c['font override']) + ' |')
+          report += ['', '## Representative candidates', '', 'At most four examples per category per file; not a complete issue list.', '', '| File:line | Category | Match |', '| --- | --- | --- |']
+          report += ['| `' + path + ':' + str(line) + '` | ' + category + ' | `' + value.replace('|', '\\|') + '` |' for path, line, category, value in examples]
+          modules = ['primitives', 'checkbox', 'field', 'empty-state', 'card-content', 'dialog-styles', 'navigation-button', 'overview-styles', 'strategy-ui', 'form-styles']
+          report += ['', '## Shared module references', '', 'Files containing a matching module import path; this is not a count of rendered controls. Inline wrappers and explicit consumer overrides still require review.', '']
+          for module in modules:
+              refs = [filename for filename, text in sources.items() if re.search(r'(?:/|\./)' + re.escape(module) + r'["\x27]', text)]
+              report.append('- `' + module + '`: ' + (', '.join('`' + ref + '`' for ref in refs) if refs else 'no references found in scanned scope'))
+          report += ['', '## Shared-layer consolidation review', '', '- Review whether StatCard, MetricTile, StrategyMetricCard and StrategySummaryMetric should share a single configurable metric implementation; extraction alone does not remove all duplication.', '- Review CARD_SURFACE, FORM_SURFACE, STRATEGY_SURFACE and Panel before changing panel appearance: not every wrapper currently delegates to one component.', '- Review compatibility font aliases separately from actual loaded next/font imports. A legacy Spectral variable name does not mean the Spectral font is still loaded.', '- Review unimported legacy CSS and explicit per-instance GlideSelect props. Do not delete data-driven account colours as if they were hardcoded theme defects.', '- Do not treat native date input styling as a custom date/time picker implementation.', '', '## One-off workflow cleanup inventory', '', 'Candidates only. Do not delete active runs, standard regression CI or other agents workflows without reviewing references.', '']
+          prefixes = ('spectral-ui-package', 'centralize-', 'recover-', 'unify-', 'audit-ui-centralization')
+          for path in sorted(Path('.github/workflows').glob('*')):
+              if path.stem.startswith(prefixes): report.append('- `' + str(path) + '`')
+          report += ['', '## Next acceptance gates', '', '1. Review and classify candidates: intentional, shared token source, migrate, consolidate or coordinate.', '2. Complete adoption/consolidation in the owned screens as one bounded cleanup package; preserve event handlers, account scope and financial calculations.', '3. Coordinate Market/calendar/news/screenshots changes separately; this audit does not authorize editing their logic.', '4. Verify both themes, mobile, modal focus/close/save guards, dropdown clipping, errors/empty states and 360/560px row geometry.', '5. Only then approve a visual redesign of the shared primitives. Full localization and production promotion remain separate approvals.', '']
+          output = Path('docs/UI-CENTRALIZATION-AUDIT.md')
+          output.write_text('\n'.join(report))
+          roadmap = Path('docs/ROADMAP.md')
+          text = roadmap.read_text()
+          assert text.startswith('# Roadmap mqvault')
+          roadmap.write_text(text + '\n## UI source audit — snapshot ' + sha[:7] + '\n\n- [x] Static UI inventory generated in UI-CENTRALIZATION-AUDIT.md; source snapshot and regex limitations stated. No application changes.\n- [ ] Classify candidates and consolidate duplicate shared wrappers before declaring centralized design complete.\n- [ ] Confirm modal integration final commit/build, browser acceptance, other-agent coordination and source/workflow cleanup.\n- [ ] Full localization, shared visual redesign and production release remain separate.\n')
+      - name: Commit documentation only
+        run: |
+          git diff --check
+          git diff --exit-code -- src .github/workflows
+          git add docs/UI-CENTRALIZATION-AUDIT.md docs/ROADMAP.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "docs(ui): inventory remaining centralization work"
+          git push origin HEAD:feat/journal-layout-filters

@@ -1,0 +1,103 @@
+name: Unify Overview styling
+on:
+  push:
+    branches: [feat/journal-layout-filters]
+    paths: [.github/workflows/unify-overview.yml]
+permissions:
+  contents: write
+concurrency:
+  group: overview-styling-package
+  cancel-in-progress: false
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/journal-layout-filters
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Apply reviewed styling-only substitutions
+        shell: python
+        run: |
+          from pathlib import Path
+          import hashlib, re
+          files = {
+              'src/components/tabs/overview-tab.tsx': '85909d96450b4b2676c5b8be0dd2ff847711be5f',
+              'src/components/ui/drawdown-panel.tsx': '0aa2efacd94b9e971c69e535e8c9c254676714ec',
+              'src/components/ui/risk-summary.tsx': '738b4827dd0957e229d9d9dadb3152fbbc71f5dd',
+          }
+          for filename, expected in files.items():
+              path = Path(filename)
+              raw = path.read_bytes()
+              assert hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest() == expected, 'Concurrent changes; review ' + filename
+              old = raw.decode()
+              text = old
+              geometry = ['h-[360px]', 'h-[560px]', 'h-[320px]', 'xl:h-full', 'min-h-0', 'overflow-auto', 'scrollbarGutter: "stable"']
+              tooltip = None
+              if filename.endswith('overview-tab.tsx'):
+                  a = text.index('      {hover && hoverPoint ? <div data-dark')
+                  endmark = '      </div> : null}'
+                  b = text.index(endmark, a) + len(endmark)
+                  tooltip = text[a:b]
+                  text = text[:a] + '__DARK_TOOLTIP__' + text[b:]
+              if not filename.endswith('risk-summary.tsx'):
+                  assert 'const CARD = "rounded-2xl border border-white/10 bg-panel";' in text
+                  text = text.replace('const CARD = "rounded-2xl border border-white/10 bg-panel";', '')
+                  if filename.endswith('overview-tab.tsx'):
+                      text = text.replace('import { RiskSummary } from "@/components/ui/risk-summary";', 'import { RiskSummary } from "@/components/ui/risk-summary";\nimport { CARD_SURFACE as CARD, CARD_TITLE, LIST_ROW, CHART_THEME } from "@/components/ui/overview-styles";')
+                  else:
+                      text = text.replace('import { fmt } from "@/lib/utils-trade";', 'import { fmt } from "@/lib/utils-trade";\nimport { CARD_SURFACE as CARD, CARD_TITLE, EPISODE_TRIGGER, MetricTile } from "./overview-styles";')
+                      start = text.index('function MetricTile(')
+                      end = text.index('export function DrawdownPanel()', start)
+                      text = text[:start] + text[end:]
+                  text = text.replace('className="text-sm font-medium text-white"', 'className={CARD_TITLE}')
+                  text = text.replace('className="mb-4 shrink-0 text-sm font-medium text-white"', 'className={`${CARD_TITLE} mb-4 shrink-0`}')
+                  text = text.replace('className="mb-4 text-sm font-medium text-white"', 'className={`${CARD_TITLE} mb-4`}')
+              text = text.replace('border-white/10', 'border-border').replace('border-white/6', 'border-border').replace('divide-white/10', 'divide-border')
+              for opacity in ['20', '35', '40', '45', '50', '55', '60', '65']:
+                  text = text.replace('text-white/' + opacity, 'text-muted-foreground')
+              for opacity in ['70', '80', '95']:
+                  text = text.replace('text-white/' + opacity, 'text-foreground')
+              text = re.sub(r'\btext-white\b(?!/)', 'text-foreground', text)
+              text = text.replace('bg-white/[0.02]', 'bg-secondary/30').replace('bg-white/[0.03]', 'bg-secondary/30').replace('bg-white/[0.05]', 'bg-secondary/50')
+              text = text.replace('hover:bg-white/[0.025]', 'hover:bg-secondary/30').replace('hover:bg-white/5', 'hover:bg-secondary/30')
+              text = text.replace('bg-white/10', 'bg-accent').replace('bg-white/8', 'bg-secondary').replace('bg-white/80', 'bg-foreground/80')
+              text = text.replace('text-emerald-500', 'text-green').replace('text-rose-500', 'text-red')
+              if filename.endswith('overview-tab.tsx'):
+                  row = 'className="flex items-center justify-between gap-3 rounded-lg border border-border bg-secondary/30 px-3 py-2.5"'
+                  assert row in text
+                  text = text.replace(row, 'className={LIST_ROW}')
+                  for before, after in [('\"rgba(118,208,90,0.12)\"','CHART_THEME.gainArea'),('\"rgba(240,106,115,0.12)\"','CHART_THEME.lossArea'),('\"radial-gradient(circle at 20% 0%, rgba(118,208,90,0.07), transparent 60%)\"','CHART_THEME.gainGlow'),('\"radial-gradient(circle at 20% 0%, rgba(240,106,115,0.07), transparent 60%)\"','CHART_THEME.lossGlow')]:
+                      assert before in text, before
+                      text = text.replace(before, after)
+                  text = text.replace('fill="rgba(9,10,15,0.98)"', 'fill={CHART_THEME.pointFill}')
+                  tooltip = tooltip.replace('background: "rgba(9,10,15,0.96)"', 'background: CHART_THEME.tooltipBackground').replace('border: "1px solid rgb(var(--ink) / 0.10)"', 'border: CHART_THEME.tooltipBorder')
+                  text = text.replace('__DARK_TOOLTIP__', tooltip)
+              if filename.endswith('drawdown-panel.tsx'):
+                  trigger = 'className="group grid w-full grid-cols-1 gap-3 px-4 py-4 text-left transition hover:bg-secondary/30 md:grid-cols-[minmax(150px,1.1fr)_minmax(220px,2fr)_minmax(150px,1fr)_auto] md:items-center"'
+                  assert trigger in text
+                  text = text.replace(trigger, 'className={EPISODE_TRIGGER}')
+              for token in geometry:
+                  assert old.count(token) == text.count(token), 'Geometry changed: ' + token
+              path.write_text('\n'.join(line.rstrip() for line in text.splitlines()) + '\n')
+          path = Path('docs/ROADMAP.md')
+          roadmap = path.read_text()
+          assert roadmap.startswith('# Roadmap mqvault')
+          path.write_text(roadmap + '\n## Unified Overview styling package — 2026-10-31\n\n- [x] Code: Overview and Drawdown share surface/title/list/accordion styles and compact MetricTile; RiskSummary text uses theme tokens.\n- [x] Code: gain/loss metric and chart fill/glow colours use semantic tokens; deliberately dark tooltip retains its own central palette.\n- [x] Guard: original file SHAs verified; 360/560/320px height and scroll constraint counts retained. Styling substitutions do not alter financial formulas or hook calls.\n- [ ] Verify this workflow lint/TypeScript, final push and Vercel deployment. No browser acceptance implied.\n- [ ] Browser: both themes, row alignment, Details scroll, mobile, calendar selection/navigation, chart hover, all/single-account values.\n- [ ] Full site centralization remains incomplete: calendar/nav buttons and day states, modal/table shells, remaining forms/checkboxes and other screens still require adoption. Overview class-based wrappers share styles but are not all Panel components.\n- [ ] Production release and full English/Ukrainian localization.\n\nNo database, production settings, account rules or Market changes.\n')
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - name: Commit application and documentation only
+        run: |
+          git diff --check
+          git diff --exit-code -- .github/workflows
+          git add src/components/tabs/overview-tab.tsx src/components/ui/drawdown-panel.tsx src/components/ui/risk-summary.tsx docs/ROADMAP.md
+          if git diff --cached --name-only | grep -q '^.github/workflows/'; then exit 1; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "refactor(ui): unify Overview and Drawdown styling"
+          git push origin HEAD:feat/journal-layout-filters

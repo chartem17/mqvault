@@ -1,0 +1,51 @@
+name: Recover shared field adoption
+on:
+  push:
+    branches: [feat/journal-layout-filters]
+    paths: [.github/workflows/recover-field-states.yml]
+permissions:
+  contents: write
+concurrency:
+  group: shared-field-adoption
+  cancel-in-progress: false
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/journal-layout-filters
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Run indentation-corrected generator in memory
+        shell: python
+        run: |
+          from pathlib import Path
+          import textwrap
+          source = Path('.github/workflows/unify-field-states.yml').read_text()
+          before = "helpers = '\\n'.join('  ' + line if line else '' for line in helpers.splitlines()) + '\\n'"
+          after = "helpers = '\\n'.join('  ' + line.lstrip() if line.strip() else '' for line in helpers.splitlines()) + '\\n'"
+          assert source.count(before) == 1, 'Expected helper generator missing'
+          corrected = source.replace(before, after, 1)
+          script = corrected.split('        run: |\n', 1)[1].split('      - run: npm ci', 1)[0]
+          exec(compile(textwrap.dedent(script), '<corrected-field-adoption>', 'exec'), {'__name__': '__main__'})
+          path = Path('docs/ROADMAP.md')
+          roadmap = path.read_text()
+          assert roadmap.startswith('# Roadmap mqvault')
+          path.write_text(roadmap + '\nField adoption recovery: normalize helper indentation before comparing unchanged trade logic. Original protection remains enabled. Initial failed attempt did not commit consumer migration. Browser acceptance and production release remain pending.\n')
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - name: Commit consumer changes only
+        run: |
+          git diff --check
+          git diff --exit-code -- .github/workflows
+          git add src/components/journal/manual-trade-modal.tsx src/components/tabs/journal-tab.tsx docs/ROADMAP.md
+          if git diff --cached --name-only | grep -q '^.github/workflows/'; then exit 1; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "refactor(ui): connect shared fields and journal empty states"
+          git push origin HEAD:feat/journal-layout-filters

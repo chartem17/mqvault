@@ -1,0 +1,29 @@
+name: Account overview checks
+on:
+  push:
+    branches: [feat/undo-delete-current]
+    paths:
+      - src/lib/account-overview.ts
+      - src/lib/account-data.ts
+      - src/components/tabs/overview-tab.tsx
+      - tests/account-overview.test.mjs
+      - .github/workflows/account-overview-checks.yml
+permissions:
+  contents: read
+jobs:
+  account-overview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint -- src/lib/account-overview.ts src/components/tabs/overview-tab.tsx
+      - name: Overview calculation regression tests
+        run: |
+          npx tsc src/lib/account-overview.ts --outDir .tmp-account-overview-tests --module commonjs --target ES2020 --lib ES2020,DOM --strict --skipLibCheck
+          node --test tests/account-overview.test.mjs
+      - run: npx tsc --noEmit

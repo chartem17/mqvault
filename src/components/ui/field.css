@@ -1,0 +1,8 @@
+.ui-field-control[data-ui-state="error"] {
+  border-color: var(--color-destructive);
+  background: color-mix(in oklab, var(--color-destructive) 10%, var(--color-background));
+}
+.ui-field-control[data-ui-state="warning"] {
+  border-color: var(--color-gold);
+  background: color-mix(in oklab, var(--color-gold) 5%, var(--color-background));
+}

@@ -1,0 +1,65 @@
+name: Centralize GlideSelect
+on:
+  push:
+    branches: [feat/journal-layout-filters]
+    paths: [.github/workflows/centralize-glide-select.yml]
+permissions:
+  contents: write
+jobs:
+  centralize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/journal-layout-filters
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Extract styles and adopt semantic tokens
+        shell: python
+        run: |
+          from pathlib import Path
+          import hashlib, re
+          p = Path('src/components/ui/glide-select.tsx')
+          raw = p.read_bytes()
+          assert hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest() == '3621315a4534e1743a0f94916e3fd4b2fe7cbc92', 'GlideSelect changed; review before applying'
+          text = raw.decode()
+          match = re.search(r'<style>\{`(.*?)`\}</style>', text, re.S)
+          assert match, 'Embedded stylesheet not found'
+          css = match.group(1)
+          css = css.replace('rgba(232,240,237,.11)', 'var(--color-border)').replace('rgba(232,240,237,.13)', 'var(--color-border)')
+          css = css.replace('0 20px 52px rgba(0,0,0,.65)', 'var(--ui-select-shadow)')
+          css = css.replace('rgba(248,113,113,.8)', 'var(--color-destructive)').replace('rgba(239,68,68,.07)', 'color-mix(in oklab,var(--color-destructive) 7%,var(--s))')
+          css = css.replace('font:500 var(--f)/1 inherit;', 'font-family:inherit;font-size:var(--f);font-weight:500;line-height:1;')
+          css += '\n@media (prefers-reduced-motion: reduce){.glide-select *{animation:none!important;transition:none!important}}\n'
+          out = Path('src/components/ui/glide-select.css')
+          assert not out.exists(), 'Stylesheet already exists; reconcile manually'
+          out.write_text(css)
+          text = text[:match.start()] + text[match.end():]
+          text = text.replace('import { Check, ChevronDown } from "lucide-react";', 'import { Check, ChevronDown } from "lucide-react";\nimport "./glide-select.css";')
+          for before, after in [('accentColor="#33d6ba"','accentColor="var(--color-primary)"'),('surfaceColor="#111817"','surfaceColor="var(--color-popover)"'),('highlightColor="#1b2b28"','highlightColor="var(--color-accent)"'),('textColor="#e8f0ed"','textColor="var(--color-popover-foreground)"'),('radius=10','radius'),('"--r":`${radius}px`','"--r":radius === undefined ? "var(--radius-xl)" : `${radius}px`')]:
+              assert before in text, 'Expected source missing: ' + before
+              text = text.replace(before, after, 1)
+          p.write_text(text)
+          p = Path('src/app/globals.css')
+          css = p.read_text()
+          assert '--ui-select-shadow:' not in css, 'Shadow token already defined'
+          css += '\n/* Shared control elevation; consumers must not hardcode popup shadows. */\n:root { --ui-select-shadow: 0 20px 52px rgb(0 0 0 / 0.65); }\n.light { --ui-select-shadow: 0 12px 32px rgb(var(--ink) / 0.14); }\n'
+          p.write_text(css)
+          p = Path('docs/ROADMAP.md')
+          text = p.read_text()
+          text += '\n## UI centralization: Inter and existing select — 2026-10-31\n\n- [x] Inter replaced rejected Spectral SC in d4594d4; prior Spectral entry is historical, not current typography.\n- [x] Shared primitives and first ConfirmDialog Button migration: b7c0e97. This is not all-screen adoption.\n- [x] Code: GlideSelect CSS extracted into one shared stylesheet; default palette, radius and popup shadow use theme tokens; existing props/handlers retained. Existing explicit per-instance overrides still win and need a consumer audit.\n- [x] Code: invalid font shorthand replaced with valid inherited family/size/weight rules; reduced-motion rule retained.\n- [ ] Verify this workflow lint/TypeScript outcome and Vercel build; source status is not browser acceptance.\n- [ ] Browser: both themes, dropdown clipping, keyboard, long labels, disabled state, controlled/uncontrolled values, explicit overrides.\n- [ ] Next: audit and migrate screen consumers to shared primitives and remove per-instance styling; Field/Checkbox/DateTime; only then redesign shared components.\n- [ ] Full English/Ukrainian dictionaries and switch; production release.\n\nNo database, financial logic, Market, screen layout or production changes. Active work branch: feat/journal-layout-filters.\n'
+          p.write_text(text)
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - name: Commit tested source changes
+        run: |
+          git diff --check
+          git add src/components/ui/glide-select.tsx src/components/ui/glide-select.css src/app/globals.css docs/ROADMAP.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "refactor(ui): centralize GlideSelect theme styling"
+          git push origin HEAD:feat/journal-layout-filters

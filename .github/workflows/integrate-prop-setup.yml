@@ -1,0 +1,42 @@
+name: Verify prop account setup
+on:
+  push:
+    branches: [feat/undo-delete-current]
+    paths:
+      - src/**
+      - tests/account-setup.test.mjs
+      - tests/account-payload.test.mjs
+      - tests/account-input.typecheck.ts
+      - .github/workflows/integrate-prop-setup.yml
+permissions:
+  contents: read
+concurrency:
+  group: verify-prop-setup-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-not-a-real-key
+      SUPABASE_SECRET_KEY: ci-placeholder-not-a-real-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Lint account integration
+        run: npm run lint -- src/lib/account-api.ts src/lib/account-payload.ts src/lib/account-setup.ts src/lib/account-data.ts src/components/accounts/new-account-modal.tsx src/components/account-switcher.tsx src/hooks/use-trades.tsx src/app/api/accounts/route.ts tests/account-input.typecheck.ts
+      - name: Account setup and sparse update regression tests
+        run: |
+          npx tsc src/lib/account-setup.ts --outDir .tmp-account-tests --module commonjs --target ES2020 --lib ES2020,DOM --strict --skipLibCheck
+          node --test tests/account-setup.test.mjs
+          npx tsc src/lib/account-payload.ts --outDir .tmp-account-payload-tests --module commonjs --target ES2020 --lib ES2020,DOM --strict --skipLibCheck
+          node --test tests/account-payload.test.mjs
+      - name: TypeScript including form to hook contract
+        run: npx tsc --noEmit
+      - name: Production build
+        run: npm run build

@@ -1,0 +1,8 @@
+:root {
+  --dialog-backdrop: rgb(0 0 0 / 0.7);
+  --dialog-shadow: 0 24px 80px rgb(0 0 0 / 0.55);
+}
+.light {
+  --dialog-backdrop: rgb(0 0 0 / 0.45);
+  --dialog-shadow: 0 16px 56px rgb(17 24 22 / 0.2);
+}

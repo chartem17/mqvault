@@ -1,0 +1,47 @@
+name: Clean completed UI workflow
+
+on:
+  push:
+    branches:
+      - feat/journal-layout-filters
+    paths:
+      - .github/workflows/complete-form-controls.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: clean-completed-ui-workflow
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/journal-layout-filters
+
+      - name: Verify shared date-time control exists
+        run: |
+          test -f src/components/ui/date-time-field.tsx
+          grep -q "export const DateTimeField" src/components/ui/date-time-field.tsx
+
+      - name: Remove completed one-shot workflow
+        id: cleanup
+        run: |
+          if [ -f .github/workflows/complete-ui-tabs.yml ]; then
+            git rm .github/workflows/complete-ui-tabs.yml
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit cleanup
+        if: steps.cleanup.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(ci): remove completed UI tabs workflow"
+          git push origin HEAD:feat/journal-layout-filters

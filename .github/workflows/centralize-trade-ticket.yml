@@ -1,0 +1,87 @@
+name: Centralize trade ticket
+on:
+  push:
+    branches: [feat/journal-layout-filters]
+    paths: [.github/workflows/centralize-trade-ticket.yml]
+permissions:
+  contents: write
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/journal-layout-filters
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Migrate reviewed form without touching financial logic
+        shell: python
+        run: |
+          from pathlib import Path
+          import hashlib, re
+          p = Path('src/components/journal/manual-trade-modal.tsx')
+          raw = p.read_bytes()
+          assert hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest() == '46da24064f03e4f9bc8a27f7ce7b8c1c1af68cbd', 'Trade form changed; review first'
+          original = raw.decode()
+          s = original
+          s = s.replace('import GlideSelect from "@/components/ui/glide-select";', 'import GlideSelect from "@/components/ui/glide-select";\nimport { Button, Input, Panel, Select, Textarea } from "@/components/ui/primitives";\nimport "./trade-ticket.css";')
+          for tag, component in [('input','Input'),('textarea','Textarea'),('select','Select')]:
+              s = re.sub(r'<' + tag + r'(?=\s)', '<' + component, s)
+              s = s.replace('</' + tag + '>', '</' + component + '>')
+          pattern = r'(<Input\b[\s\S]*?)(\s+className=(?:\{`[\s\S]*?`\}|"[^"]*"))([\s\S]*?/>)'
+          found = list(re.finditer(pattern, s))
+          assert len(found) == 4, 'Expected exactly four input definitions'
+          states = ["error ? 'error' : warning ? 'warning' : undefined", 'undefined', "errors.opened_at ? 'error' : undefined", "errors.symbol ? 'error' : undefined"]
+          i = [0]
+          def input_style(m):
+              state = states[i[0]]
+              i[0] += 1
+              return m.group(1) + ' className="trade-ticket-control" data-ui-state={' + state + '} aria-invalid={' + state + ' === "error"}' + m.group(3)
+          s = re.sub(pattern, input_style, s)
+          s = s.replace('className="bg-secondary/60 border border-border rounded-lg px-3 py-2 text-sm outline-none"', 'className="trade-ticket-control"')
+          s = s.replace('className="bg-secondary/60 border border-border rounded-lg px-3 py-2 text-sm resize-none outline-none"', 'className="trade-ticket-control"')
+          for prop in ['surfaceColor="#111817"', 'highlightColor="#1b2b28"', 'textColor="#e8f0ed"', 'accentColor="#33d6ba"', 'radius={10}']:
+              assert prop in s
+              s = s.replace('          ' + prop + '\n', '')
+          oldsection = '<section className="rounded-2xl border border-border bg-secondary/20 p-4 space-y-4">'
+          assert s.count(oldsection) == 2
+          s = s.replace(oldsection, '<Panel className="p-4 space-y-4">').replace('</section>', '</Panel>')
+          s = s.replace('border-white/10', 'border-border').replace('bg-[#0c1211]', 'bg-card').replace('bg-[#101816]', 'bg-panel')
+          s = s.replace('text-red-300', 'text-destructive').replace('text-amber-200/90', 'text-gold')
+          old = 'className="px-4 py-2 rounded-lg border border-border text-sm"'
+          assert old in s
+          pos = s.index(old)
+          start = s.rfind('<button', 0, pos)
+          end = s.index('</button>', pos) + len('</button>')
+          s = s[:start] + s[start:end].replace('<button', '<Button variant="secondary"', 1).replace(old, '').replace('</button>', '</Button>') + s[end:]
+          old = 'className="px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground disabled:opacity-60"'
+          assert old in s
+          pos = s.index(old)
+          start = s.rfind('<button', 0, pos)
+          end = s.index('</button>', pos) + len('</button>')
+          s = s[:start] + s[start:end].replace('<button', '<Button loading={submitting}', 1).replace(old, '').replace('</button>', '</Button>') + s[end:]
+          before = original[original.index('const SESSIONS'):original.index('  function input(')]
+          after = s[s.index('const SESSIONS'):s.index('  function input(')]
+          assert before == after, 'Form initialization, calculations, validation or save logic changed'
+          p.write_text(s)
+          p = Path('src/components/journal/trade-ticket.css')
+          assert not p.exists(), 'Shared ticket styles already exist; review first'
+          p.write_text('/* State visuals are defined once, not repeated by each ticket input. */\n.trade-ticket-control[data-ui-state="error"] { border-color: var(--color-destructive); background: color-mix(in oklab, var(--color-destructive) 10%, var(--color-background)); }\n.trade-ticket-control[data-ui-state="warning"] { border-color: var(--color-gold); background: color-mix(in oklab, var(--color-gold) 5%, var(--color-background)); }\n')
+          p = Path('docs/ROADMAP.md')
+          s = p.read_text()
+          s += '\n## Shared UI: trade-ticket consumer migration — 2026-10-31\n\n- [x] Code: manual-trade-modal fields (including native datetime), account Select, notes Textarea, footer Buttons and section Panels use shared primitives. Local GlideSelect colour/radius overrides removed; shared token defaults apply after select integration.\n- [x] Code: error/warning field visuals have one stylesheet; semantic surface/border/status tokens replace ticket-specific dark colours. Form initialization, calculations, validation and save logic are guarded as unchanged by the migration script.\n- [ ] Verify workflow lint/TypeScript and Vercel build.\n- [ ] Browser acceptance: add/edit, errors/warnings, read-only values, submitting, symbol lookup, account selection, both themes, native date controls and mobile. No real-data destructive tests.\n- [ ] Other consumers, shared Field/Checkbox/DateTime behavior, modal shell and local symbol picker buttons still need migration. Native datetime inputs are styled, not a custom calendar implementation.\n- [ ] Full centralization and production release are not complete.\n'
+          p.write_text(s)
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - name: Commit migration only after checks
+        run: |
+          git diff --check
+          git add src/components/journal/manual-trade-modal.tsx src/components/journal/trade-ticket.css docs/ROADMAP.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "refactor(ui): migrate trade ticket to shared primitives"
+          git push origin HEAD:feat/journal-layout-filters

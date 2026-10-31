@@ -1,0 +1,116 @@
+name: Unify account form controls
+on:
+  push:
+    branches: [feat/journal-layout-filters]
+    paths: [.github/workflows/unify-account-forms.yml]
+permissions:
+  contents: write
+concurrency:
+  group: account-form-styling
+  cancel-in-progress: false
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/journal-layout-filters
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Migrate reviewed form consumers
+        shell: python
+        run: |
+          from pathlib import Path
+          import hashlib, re
+          def replace_button(text, oldclass, variant, size):
+              needle = 'className="' + oldclass + '"'
+              assert needle in text, 'Expected action missing: ' + oldclass
+              while needle in text:
+                  pos = text.index(needle)
+                  start = text.rfind('<button', 0, pos)
+                  assert start >= 0
+                  end = text.index('</button>', pos) + len('</button>')
+                  block = text[start:end]
+                  assert block.count('<button') == 1
+                  block = block.replace('<button', '<Button variant="' + variant + '" size="' + size + '"', 1).replace(needle, '').replace('</button>', '</Button>')
+                  text = text[:start] + block + text[end:]
+              return text
+          sources = {
+              'src/components/accounts/new-account-modal.tsx': 'a5a4161fb452567291e82a2f86004c451ae2b467',
+              'src/components/accounts/account-rules-card.tsx': '40077c267a76bb0fe8ce75e63bc2a213b326c122',
+          }
+          for filename, expected in sources.items():
+              path = Path(filename)
+              raw = path.read_bytes()
+              assert hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest() == expected, 'Concurrent account work detected; review first'
+              original = raw.decode()
+              text = original
+              isnew = filename.endswith('new-account-modal.tsx')
+              controls = 'Button, Input, Select' if isnew else 'Button, Input, Select, Textarea'
+              text = text.replace('"use client";', '"use client";\nimport { ' + controls + ' } from "@/components/ui/primitives";', 1)
+              text, count = re.subn(r'^const INPUT = "[^"]*";\n', '', text, count=1, flags=re.M)
+              assert count == 1
+              text = text.replace('className={INPUT}', '')
+              for tag, name in [('input', 'Input'), ('select', 'Select'), ('textarea', 'Textarea')]:
+                  text = re.sub(r'<' + tag + r'(?=\s)', '<' + name, text)
+                  text = text.replace('</' + tag + '>', '</' + name + '>')
+              if isnew:
+                  text = text.replace('const LABEL = "flex flex-col gap-1 text-xs text-white/60";', 'import { FIELD_LABEL as LABEL, CHOICE_LAYOUT, CHOICE_SELECTED, CHOICE_IDLE } from "@/components/ui/form-styles";')
+                  assert 'const LABEL =' not in text
+                  text = text.replace('`rounded-2xl border p-4 text-left ${', '`${CHOICE_LAYOUT} ${').replace('"border-emerald-400/60 bg-emerald-400/10"', 'CHOICE_SELECTED').replace('"border-white/10 bg-white/[0.03]"', 'CHOICE_IDLE')
+                  actions = [
+                      ('rounded-xl border border-white/10 p-2 text-white/60 disabled:opacity-50', 'ghost', 'icon'),
+                      ('rounded-xl border border-white/10 px-4 py-2.5 text-sm', 'secondary', 'md'),
+                      ('rounded-xl bg-emerald-400 px-4 py-2.5 text-sm font-medium text-black disabled:opacity-50', 'primary', 'md'),
+                  ]
+              else:
+                  text = text.replace('const CARD = "rounded-2xl border border-white/10 bg-panel p-5";', 'import { FORM_SURFACE as CARD } from "@/components/ui/form-styles";')
+                  assert 'const CARD =' not in text
+                  actions = [
+                      ('rounded-xl border border-white/10 px-3 py-2 text-xs text-white disabled:opacity-40', 'secondary', 'sm'),
+                      ('text-xs text-white/60 underline disabled:opacity-40', 'ghost', 'sm'),
+                      ('rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/60 disabled:opacity-40', 'secondary', 'sm'),
+                      ('rounded-xl border border-white/10 px-4 py-2 text-sm disabled:opacity-40', 'secondary', 'md'),
+                      ('rounded-xl bg-teal-400 px-4 py-2 text-sm font-medium text-black disabled:opacity-40', 'primary', 'md'),
+                  ]
+              for classname, variant, size in actions:
+                  text = replace_button(text, classname, variant, size)
+              text = text.replace('border-white/10', 'border-border').replace('bg-[#0d1117]', 'bg-card').replace('bg-white/[0.03]', 'bg-secondary/30')
+              text = text.replace('bg-panel', 'bg-card').replace('bg-white/10', 'bg-secondary')
+              for opacity in ['35', '40', '45', '55', '60']:
+                  text = text.replace('text-white/' + opacity, 'text-muted-foreground')
+              for opacity in ['70', '75']:
+                  text = text.replace('text-white/' + opacity, 'text-foreground')
+              text = re.sub(r'\btext-white\b(?!/)', 'text-foreground', text)
+              text = text.replace('text-amber-300', 'text-gold').replace('text-red-300', 'text-destructive').replace('text-red-200', 'text-destructive').replace('border-red-400/20', 'border-destructive/20').replace('bg-red-500/10', 'bg-destructive/10')
+              for token in ['max-h-[90dvh]', 'overflow-y-auto', 'disabled={saving', 'onSubmit=', 'Dialog.Trigger', 'Dialog.Close', 'onEscapeKeyDown=', 'onPointerDownOutside=']:
+                  assert original.count(token) == text.count(token), 'Behavior constraint changed: ' + token
+              if isnew:
+                  start = original.index('function optionalNumber(')
+                  end = original.index('  return createPortal(')
+                  assert original[start:end] == text[text.index('function optionalNumber('):text.index('  return createPortal(')], 'Account creation logic changed'
+              else:
+                  start = original.index('  const load = useCallback(')
+                  end = original.index('  if (accountId === "all")')
+                  assert original[start:end] == text[text.index('  const load = useCallback('):text.index('  if (accountId === "all")')], 'Account API/revision logic changed'
+              path.write_text('\n'.join(line.rstrip() for line in text.splitlines()) + '\n')
+          path = Path('docs/ROADMAP.md')
+          roadmap = path.read_text()
+          assert roadmap.startswith('# Roadmap mqvault')
+          path.write_text(roadmap + '\n## Shared account forms package — 2026-10-31\n\n- [x] Code: new-account-modal and account-rules-card native controls and primary/secondary/close/reload actions use shared primitives. Choice labels and selected/idle states use shared form styles.\n- [x] Guard: pinned source SHAs checked; creation and API/revision blocks compared unchanged; disabled/modal/submit constraints retained.\n- [ ] Verify package lint/TypeScript, final push, Vercel build and browser acceptance.\n- [ ] Safe tests: four personal/prop × manual/MT5 combinations, optional blank fields, save/error/loading/conflict, cancel/reopen, both themes and mobile. Do not create or mutate real accounts for tests.\n- [ ] AccountSwitcher, shared modal shells, full Field/Checkbox adoption and other screen consumers remain. Full site centralization and production release are not complete.\n\nNo account API, rules schema, Supabase, production settings or Market changes. Existing default account identity colour is retained as data, not reinterpreted as a UI token.\n')
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - name: Commit application and documentation only
+        run: |
+          git diff --check
+          git diff --exit-code -- .github/workflows
+          git add src/components/accounts/new-account-modal.tsx src/components/accounts/account-rules-card.tsx docs/ROADMAP.md
+          if git diff --cached --name-only | grep -q '^.github/workflows/'; then exit 1; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "refactor(ui): unify account creation and rule controls"
+          git push origin HEAD:feat/journal-layout-filters

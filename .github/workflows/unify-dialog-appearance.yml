@@ -1,0 +1,95 @@
+name: Unify dialog appearance
+on:
+  push:
+    branches: [feat/journal-layout-filters]
+    paths: [.github/workflows/unify-dialog-appearance.yml]
+permissions:
+  contents: write
+concurrency:
+  group: shared-dialog-appearance
+  cancel-in-progress: false
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/journal-layout-filters
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Share dialog surfaces without replacing behavior
+        shell: python
+        run: |
+          from pathlib import Path
+          import hashlib, re
+          files = {
+              'src/components/ui/confirm-dialog.tsx': '619db8be341819cdc2410c53d785ea3acc02550a',
+              'src/components/journal/manual-trade-modal.tsx': '0f593c130765c3c0e5a365091433c539a2f3e1d4',
+              'src/components/accounts/new-account-modal.tsx': '3321debfcdf92e2857d88db8e86c105ff003b82f',
+              'src/components/accounts/account-rules-card.tsx': '76296e90a486295783447db01343cd32e173a13b',
+              'src/components/tabs/strategy-control-tab.tsx': '3f5693e4f1686165924c87e32c6b4104938c40d3',
+          }
+          def surface(classes, native):
+              remove = {'border', 'border-border', 'bg-card', 'bg-panel', 'bg-background', 'text-foreground', 'text-white'}
+              kept = [token for token in classes.split() if token not in remove and not token.startswith(('rounded-', 'shadow-', 'backdrop:bg-', 'backdrop:backdrop-blur-'))]
+              return 'className={dialogSurface("' + ' '.join(kept) + '"' + (', true' if native else '') + ')}'
+          def apply_surface(text, tag, native):
+              pattern = r'(<'+ re.escape(tag) + r'\b[\s\S]*?)className="([^"]*)"'
+              text, count = re.subn(pattern, lambda m: m.group(1) + surface(m.group(2), native), text, count=1)
+              assert count == 1, 'Dialog surface missing: ' + tag
+              return text
+          def overlay(classes):
+              kept = [token for token in classes.split() if not token.startswith(('bg-black/', 'backdrop-blur'))]
+              return 'className={`${DIALOG_BACKDROP} ' + ' '.join(kept) + '`}'
+          for filename, expected in files.items():
+              path = Path(filename)
+              raw = path.read_bytes()
+              assert hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest() == expected, 'Concurrent changes; review ' + filename
+              old = raw.decode()
+              text = old
+              strategy = filename.endswith('strategy-control-tab.tsx')
+              native = filename.endswith(('confirm-dialog.tsx', 'new-account-modal.tsx'))
+              if native:
+                  text = apply_surface(text, 'dialog', True)
+              elif filename.endswith('manual-trade-modal.tsx'):
+                  text = apply_surface(text, 'aside', False)
+                  target = 'className="absolute inset-0 bg-black/65 backdrop-blur-sm"'
+                  assert target in text
+                  text = text.replace(target, overlay('absolute inset-0 bg-black/65 backdrop-blur-sm'), 1)
+              elif filename.endswith('account-rules-card.tsx'):
+                  text = apply_surface(text, 'Dialog.Content', False)
+                  target = 'className="fixed inset-0 z-50 bg-black/70"'
+                  assert target in text
+                  text = text.replace(target, overlay('fixed inset-0 z-50 bg-black/70'), 1)
+              elif strategy:
+                  pattern = r'className="(max-h-\[90vh\] w-full max-w-(?:3xl|4xl) overflow-y-auto rounded-3xl border border-border bg-background p-6 shadow-2xl)"'
+                  text, count = re.subn(pattern, lambda m: surface(m.group(1), False), text)
+                  assert count == 2, 'Expected both strategy modals'
+                  target = 'className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"'
+                  assert text.count(target) == 2
+                  text = text.replace(target, overlay('fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm'))
+              names = 'dialogSurface' if native else 'dialogSurface, DIALOG_BACKDROP'
+              text = text.replace('"use client";', '"use client";\nimport { ' + names + ' } from "@/components/ui/dialog-styles";', 1)
+              for token in ['onClick=', 'onCancel=', 'onSubmit=', 'onEscapeKeyDown=', 'onPointerDownOutside=', 'showModal(', 'node.close(', '.focus(', 'disabled=', 'role="dialog"', 'aria-modal=', 'overflow-y-auto', 'max-h-[90dvh]', 'max-h-[90vh]', 'max-w-4xl', 'max-w-3xl', 'max-w-2xl', 'max-w-[min(820px,calc(100dvh-3rem))]']:
+                  assert old.count(token) == text.count(token), 'Behavior or geometry changed: ' + token
+              path.write_text('\n'.join(line.rstrip() for line in text.splitlines()) + '\n')
+          path = Path('docs/ROADMAP.md')
+          roadmap = path.read_text()
+          assert roadmap.startswith('# Roadmap mqvault')
+          path.write_text(roadmap + '\n## Shared modal appearance — 2026-10-31\n\n- [x] Code: confirm, trade ticket, new account, prop-rules editor and two Strategy Control modal bodies share surface/backdrop definitions. Theme-aware backdrop/shadow tokens are centralized.\n- [x] Scope: presentation only. Native/Radix/custom mechanisms and existing handlers, focus code, save guards, size and scroll constraints retained. Visual backdrop opacity/radius/shadow now follow shared defaults.\n- [ ] Verify workflow lint/TypeScript/push and Vercel.\n- [ ] Browser: open/close, Escape, outside click, saving guards, focus restoration, long content scroll, portal stacking, both themes/mobile. Existing custom modal focus-trap limitations are not claimed fixed.\n- [ ] Other agents screens, popovers, full Field/EmptyState adoption and source cleanup still need audit. Full site centralization and production release remain incomplete. No Supabase/API/auth changes.\n')
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - name: Commit application/docs only
+        run: |
+          git diff --check
+          git diff --exit-code -- .github/workflows
+          git add src/components/ui/confirm-dialog.tsx src/components/journal/manual-trade-modal.tsx src/components/accounts/new-account-modal.tsx src/components/accounts/account-rules-card.tsx src/components/tabs/strategy-control-tab.tsx docs/ROADMAP.md
+          if git diff --cached --name-only | grep -q '^.github/workflows/'; then exit 1; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "refactor(ui): share modal surfaces and backdrops"
+          git push origin HEAD:feat/journal-layout-filters

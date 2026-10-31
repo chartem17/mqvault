@@ -1,0 +1,22 @@
+name: Journal layout checks
+on:
+  push:
+    branches: [feat/journal-layout-filters]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  layout-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx tsc src/lib/journal-layout.ts --outDir .tmp-journal-layout-tests --module commonjs --target ES2020 --strict --skipLibCheck
+      - run: node --test tests/journal-layout.test.mjs
+      - run: npm run lint
+      - run: npx tsc --noEmit
