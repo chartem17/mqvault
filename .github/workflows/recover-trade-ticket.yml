@@ -17,25 +17,28 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - name: Correct migration generator and rerun guarded transformation
+      - name: Correct generator and rerun migration in isolated namespace
         shell: python
         run: |
           from pathlib import Path
           import textwrap
-          p = Path('.github/workflows/centralize-trade-ticket.yml')
-          source = p.read_text()
-          lines = source.splitlines()
-          targets = [i for i, line in enumerate(lines) if 'return m.group(1)' in line and 'aria-invalid' in line]
+          workflow_path = Path('.github/workflows/centralize-trade-ticket.yml')
+          lines = workflow_path.read_text().splitlines()
+          targets = [index for index, line in enumerate(lines) if 'return m.group(1)' in line and 'aria-invalid' in line]
           assert len(targets) == 1, 'Expected exactly one generator line'
-          i = targets[0]
-          indent = lines[i][:len(lines[i]) - len(lines[i].lstrip())]
-          lines[i] = indent + '''return m.group(1) + ' className="trade-ticket-control" data-ui-state={' + state + '} aria-invalid={' + ['Boolean(error)', 'false', 'Boolean(errors.opened_at)', 'Boolean(errors.symbol)'][i[0] - 1] + '}' + m.group(3)'''
+          index = targets[0]
+          indent = lines[index][:len(lines[index]) - len(lines[index].lstrip())]
+          lines[index] = indent + '''return m.group(1) + ' className="trade-ticket-control" data-ui-state={' + state + '} aria-invalid={' + ['Boolean(error)', 'false', 'Boolean(errors.opened_at)', 'Boolean(errors.symbol)'][i[0] - 1] + '}' + m.group(3)'''
           corrected = '\n'.join(lines) + '\n'
           script = corrected.split('        run: |\n', 1)[1].split('      - run: npm ci', 1)[0]
-          exec(compile(textwrap.dedent(script), '<corrected-ticket-migration>', 'exec'))
-          p.write_text(corrected)
-          p = Path('docs/ROADMAP.md')
-          p.write_text(p.read_text() + '\nRecovery note: initial trade-ticket migration workflow failed and did not commit app changes. Generator now emits explicit boolean aria-invalid values. This recovery still requires successful CI and browser acceptance; no production release.\n')
+          exec(compile(textwrap.dedent(script), '<corrected-ticket-migration>', 'exec'), {'__name__': '__main__'})
+          workflow_path.write_text(corrected)
+          ticket_path = Path('src/components/journal/manual-trade-modal.tsx')
+          ticket_path.write_text('\n'.join(line.rstrip() for line in ticket_path.read_text().splitlines()) + '\n')
+          roadmap_path = Path('docs/ROADMAP.md')
+          roadmap = roadmap_path.read_text()
+          assert roadmap.startswith('# Roadmap mqvault'), 'Roadmap must remain a roadmap'
+          roadmap_path.write_text(roadmap + '\nRecovery note: initial migration and first recovery failed before app commit. Recovery now emits boolean aria-invalid, isolates generator execution and strips trailing whitespace. lint/TypeScript/diff checks and browser acceptance remain separate from implementation status. No production release.\n')
       - run: npm ci
       - run: npm run lint
       - run: npx tsc --noEmit
@@ -45,5 +48,5 @@ jobs:
           git add .github/workflows/centralize-trade-ticket.yml src/components/journal/manual-trade-modal.tsx src/components/journal/trade-ticket.css docs/ROADMAP.md
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m "fix(ui): migrate trade ticket with boolean validation attributes"
+          git commit -m "fix(ui): complete shared trade ticket migration"
           git push origin HEAD:feat/journal-layout-filters
