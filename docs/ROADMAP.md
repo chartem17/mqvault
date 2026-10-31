@@ -177,3 +177,13 @@ Recovery note: earlier attempts did not push app changes (generator, whitespace 
 - [ ] Production release and full English/Ukrainian localization.
 
 No database, production settings, account rules or Market changes.
+
+## Shared account forms package — 2026-10-31
+
+- [x] Code: new-account-modal and account-rules-card native controls and primary/secondary/close/reload actions use shared primitives. Choice labels and selected/idle states use shared form styles.
+- [x] Guard: pinned source SHAs checked; creation and API/revision blocks compared unchanged; disabled/modal/submit constraints retained.
+- [ ] Verify package lint/TypeScript, final push, Vercel build and browser acceptance.
+- [ ] Safe tests: four personal/prop × manual/MT5 combinations, optional blank fields, save/error/loading/conflict, cancel/reopen, both themes and mobile. Do not create or mutate real accounts for tests.
+- [ ] AccountSwitcher, shared modal shells, full Field/Checkbox adoption and other screen consumers remain. Full site centralization and production release are not complete.
+
+No account API, rules schema, Supabase, production settings or Market changes. Existing default account identity colour is retained as data, not reinterpreted as a UI token.
