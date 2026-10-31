@@ -141,3 +141,16 @@
 - [ ] Повна міграція екранів на семантичні токени й спільні примітиви; локальні кольори не вважати усунутими.
 - [ ] English default / Ukrainian option та повні словники. Шрифт не означає переклад.
 - [ ] Production-реліз; PR #18 не мержився автоматично.
+
+## UI centralization: Inter and existing select — 2026-10-31
+
+- [x] Inter replaced rejected Spectral SC in d4594d4; prior Spectral entry is historical, not current typography.
+- [x] Shared primitives and first ConfirmDialog Button migration: b7c0e97. This is not all-screen adoption.
+- [x] Code: GlideSelect CSS extracted into one shared stylesheet; default palette, radius and popup shadow use theme tokens; existing props/handlers retained. Existing explicit per-instance overrides still win and need a consumer audit.
+- [x] Code: invalid font shorthand replaced with valid inherited family/size/weight rules; reduced-motion rule retained.
+- [ ] Verify this workflow lint/TypeScript outcome and Vercel build; source status is not browser acceptance.
+- [ ] Browser: both themes, dropdown clipping, keyboard, long labels, disabled state, controlled/uncontrolled values, explicit overrides.
+- [ ] Next: audit and migrate screen consumers to shared primitives and remove per-instance styling; Field/Checkbox/DateTime; only then redesign shared components.
+- [ ] Full English/Ukrainian dictionaries and switch; production release.
+
+No database, financial logic, Market, screen layout or production changes. Active work branch: feat/journal-layout-filters.

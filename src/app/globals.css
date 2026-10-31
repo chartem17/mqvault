@@ -202,3 +202,7 @@ body { margin: 0; min-height: 100dvh; background: var(--page-bg); color: var(--c
 /* Single approved type family; legacy utility names share the same font. */
 @theme inline { --font-display: var(--font-spectral-sc), Georgia, serif; }
 body, button, input, select, textarea, optgroup, option, table, svg text, .font-sans, .font-mono, .font-display { font-family: var(--font-spectral-sc), Georgia, serif; }
+
+/* Shared control elevation; consumers must not hardcode popup shadows. */
+:root { --ui-select-shadow: 0 20px 52px rgb(0 0 0 / 0.65); }
+.light { --ui-select-shadow: 0 12px 32px rgb(var(--ink) / 0.14); }
