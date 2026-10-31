@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { ChevronDown, X } from "lucide-react";
 import { type JournalTrade, type TradeInput } from "@/hooks/use-trades";
 import type { TradingAccount } from "@/lib/account-data";
-import GlideSelect from "@/components/ui/glide-select";
 import { Button, Input, Panel, Select, Textarea } from "@/components/ui/primitives";
 import { Field } from "@/components/ui/field";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -464,17 +463,23 @@ export function ManualTradeModal({
         <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
           {label}
         </span>
-        <GlideSelect
-          className={`w-full ${error ? "glide-select--error" : ""}`}
-          options={values.map((value) => ({ value, label: value }))}
+        <Select
+          className="ui-field-control"
+          data-ui-state={error ? "error" : undefined}
+          aria-invalid={Boolean(error)}
+          aria-label={label}
           value={String(form[key] ?? "")}
-          onChange={(value) => setField(key, value as never)}
-          placeholder={label}
-          showTags={false}
-          size="lg"
-          menuWidth={240}
-          ariaLabel={label}
-        />
+          onChange={(event) => setField(key, event.target.value as never)}
+        >
+          <option value="" disabled>
+            {label}
+          </option>
+          {values.map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </Select>
         {error ? (
           <span className="text-[11px] text-destructive">{error}</span>
         ) : null}
