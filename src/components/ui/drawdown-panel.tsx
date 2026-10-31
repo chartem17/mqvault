@@ -211,11 +211,11 @@ export function DrawdownPanel() {
       ? daysBetween(lastRecovered.peakDate, lastRecovered.recoverDate ?? lastRecovered.troughDate)
       : 0;
 
-  const displayedEpisodes = [...episodes].sort((a, b) => a.ddPct - b.ddPct).slice(0, 5);
+  const displayedEpisodes = [...episodes].sort((a, b) => a.ddPct - b.ddPct);
 
   if (!points.length) {
     return (
-      <section className={`${CARD} p-5`}>
+      <section className={`${CARD} h-[420px] min-w-0 overflow-auto p-5`}>
         <div className="text-sm font-medium text-white">Drawdown episodes</div>
         <p className="mt-2 text-sm text-white/40">Недостатньо угод для аналізу просадок.</p>
       </section>
@@ -223,7 +223,7 @@ export function DrawdownPanel() {
   }
 
   return (
-    <section className="space-y-3">
+    <section className="min-w-0 space-y-3">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <MetricTile
           label="MAX DD"
@@ -250,8 +250,8 @@ export function DrawdownPanel() {
         />
       </div>
 
-      <div className={`${CARD} overflow-hidden`}>
-        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+      <div className={`${CARD} flex h-[420px] min-w-0 flex-col overflow-hidden`}>
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
           <div className="flex items-center gap-2">
             <TrendingDown className="h-4 w-4" style={{ color: RED }} />
             <div>
@@ -262,6 +262,7 @@ export function DrawdownPanel() {
           <div className="text-xs text-white/40">{episodes.length} total</div>
         </div>
 
+        <div role="region" aria-label="Drawdown episodes list" tabIndex={0} className="min-h-0 flex-1 overflow-auto overscroll-contain focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" style={{ scrollbarGutter: "stable" }}>
         {displayedEpisodes.length === 0 ? (
           <div className="p-5 text-sm text-white/40">No drawdown episodes detected.</div>
         ) : (
@@ -278,6 +279,7 @@ export function DrawdownPanel() {
                   <button
                     type="button"
                     className="group grid w-full grid-cols-1 gap-3 px-4 py-4 text-left transition hover:bg-white/[0.025] md:grid-cols-[minmax(150px,1.1fr)_minmax(220px,2fr)_minmax(150px,1fr)_auto] md:items-center"
+                    aria-expanded={isOpen}
                     onClick={() => setExpandedId((current) => current === episode.id ? null : episode.id)}
                   >
                     <div>
@@ -317,11 +319,8 @@ export function DrawdownPanel() {
           </div>
         )}
 
-        {episodes.length > displayedEpisodes.length && (
-          <div className="border-t border-white/10 px-4 py-2 text-xs text-white/35">
-            Showing 5 deepest episodes out of {episodes.length}.
-          </div>
-        )}
+        </div>
+        <div className="shrink-0 border-t border-white/10 px-4 py-2 text-xs text-white/35">{displayedEpisodes.length} episodes · deepest first</div>
       </div>
     </section>
   );
