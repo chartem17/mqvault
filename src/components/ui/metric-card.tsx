@@ -7,6 +7,8 @@ export const METRIC_STYLES = {
   compact: { root: "p-4", header: "", label: "text-[11px] uppercase tracking-wide text-muted-foreground", value: "mt-1 text-lg font-semibold", hint: "mt-0.5 text-[11px] text-muted-foreground" },
   dashboard: { root: "p-4 shadow-sm", header: "mb-3 flex items-center justify-between", label: "text-[11px] uppercase tracking-[0.18em] text-muted-foreground", value: "text-3xl font-semibold tracking-tight text-foreground", hint: "mt-1 text-sm text-muted-foreground" },
   summary: { root: "rounded-xl bg-muted/40 p-4", header: "", label: "text-[11px] uppercase tracking-[0.16em] text-muted-foreground", value: "mt-2 text-3xl font-semibold text-foreground", hint: "mt-1 text-sm text-muted-foreground" },
+  pulse: { root: "p-4", header: "flex items-center justify-between gap-2", label: "text-xs uppercase tracking-wider text-muted-foreground", value: "mt-3 text-lg font-semibold", hint: "mt-1 text-xs" },
+  detail: { root: "rounded-xl bg-secondary/30 p-3", header: "", label: "text-[10px] uppercase tracking-wider text-muted-foreground", value: "mt-1 text-sm", hint: "mt-1 text-xs text-muted-foreground" },
 };
 export type MetricCardProps = {
   label: string;
@@ -16,9 +18,11 @@ export type MetricCardProps = {
   variant?: keyof typeof METRIC_STYLES;
   valueClassName?: string;
   valueColor?: string;
+  hintColor?: string;
+  iconColor?: string;
   className?: string;
 };
-export function MetricCard({ label, value, hint, icon, variant = "standard", valueClassName, valueColor, className }: MetricCardProps) {
+export function MetricCard({ label, value, hint, icon, variant = "standard", valueClassName, valueColor, hintColor, iconColor, className }: MetricCardProps) {
   const styles = METRIC_STYLES[variant];
-  return <Panel className={cn(styles.root, className)}><div className={styles.header}><p className={styles.label}>{label}</p>{icon && <span className="text-muted-foreground">{icon}</span>}</div><div className={cn(styles.value, valueClassName)} style={valueColor ? { color: valueColor } : undefined}>{value}</div>{hint ? <p className={styles.hint}>{hint}</p> : null}</Panel>;
+  return <Panel className={cn(styles.root, className)}><div className={styles.header}><p className={styles.label}>{label}</p>{icon && <span className="text-muted-foreground" style={iconColor ? { color: iconColor } : undefined}>{icon}</span>}</div><div className={cn(styles.value, valueClassName)} style={valueColor ? { color: valueColor } : undefined}>{value}</div>{hint ? <p className={styles.hint} style={hintColor ? { color: hintColor } : undefined}>{hint}</p> : null}</Panel>;
 }

@@ -1,0 +1,136 @@
+name: Remove retired tabs and adapt Market Calendar
+on:
+  push:
+    branches: [feat/journal-layout-filters]
+    paths: [.github/workflows/complete-ui-tabs.yml]
+permissions:
+  contents: write
+concurrency:
+  group: complete-ui-tabs
+  cancel-in-progress: false
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/journal-layout-filters
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Apply approved tab removal and shared UI adaptation
+        shell: python
+        run: |
+          from pathlib import Path
+          import hashlib, re
+          pinned = {
+              'src/app/page.tsx': 'b03696f9d5b500134edc22d28d61c64af7a3eb14',
+              'src/components/app-shell-layout.tsx': 'e9655cbd993236b41f9e5e7c034fcd00acfbf9ef',
+              'src/components/tabs/market-tab.tsx': 'e17d64bcbaba5478bf8ecf2cd3b61d268ffde755',
+              'src/components/tabs/calendar-tab.tsx': '2fc6e16f45bbaecfc0c10b0692bd096f7cf1e324',
+              'src/components/tabs/news-tab.tsx': '2bc763ea8ab1ef8a8687039fd2f2ba97a602e1b4',
+              'src/components/tabs/screenshots-tab.tsx': '48076dcc0ad114cca87bee613a317d0aaa265276',
+          }
+          sources = {}
+          for filename, expected in pinned.items():
+              raw = Path(filename).read_bytes()
+              assert hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest() == expected, 'Concurrent edits: ' + filename
+              sources[filename] = raw.decode()
+          path = Path('src/app/page.tsx')
+          text = sources[str(path)]
+          for line in ['import { NewsTab } from "@/components/tabs/news-tab";\n', 'import { ScreenshotsTab } from "@/components/tabs/screenshots-tab";\n', '      case "news": return <NewsTab />;\n', '      case "screenshots": return <ScreenshotsTab />;\n']:
+              assert line in text
+              text = text.replace(line, '', 1)
+          text = text.replace(', "news", "screenshots"', '')
+          path.write_text(text)
+          path = Path('src/components/app-shell-layout.tsx')
+          text = sources[str(path)].replace(', Newspaper, Camera', '')
+          for line in ['  { id: "news", label: "Новини", icon: Newspaper },\n', '  { id: "screenshots", label: "Скріни", icon: Camera },\n']:
+              assert line in text
+              text = text.replace(line, '', 1)
+          path.write_text(text)
+          removed = {'src/components/tabs/news-tab.tsx', 'src/components/tabs/screenshots-tab.tsx'}
+          for path in Path('src').rglob('*'):
+              if path.is_file() and str(path) not in removed and path.suffix in {'.ts', '.tsx', '.js', '.jsx'}:
+                  assert not re.search(r'\b(?:NewsTab|ScreenshotsTab)\b|(?:/|\./)(?:news-tab|screenshots-tab)["\x27]', path.read_text()), 'Remaining retired component reference: ' + str(path)
+          for filename in removed: Path(filename).unlink()
+          def action(text, classname, variant, size):
+              needle = 'className="' + classname + '"'
+              assert needle in text, 'Action missing: ' + classname
+              pos = text.index(needle)
+              start = text.rfind('<button', 0, pos)
+              end = text.index('</button>', pos) + len('</button>')
+              block = text[start:end]
+              assert start >= 0 and block.count('<button') == 1
+              block = block.replace('<button', '<Button variant="' + variant + '" size="' + size + '"', 1).replace(needle, '').replace('</button>', '</Button>')
+              return text[:start] + block + text[end:]
+          for filename in ['src/components/tabs/market-tab.tsx', 'src/components/tabs/calendar-tab.tsx']:
+              old = sources[filename]
+              text = old
+              market = filename.endswith('market-tab.tsx')
+              imports = '\nimport { Button' + ('' if market else ', Select') + ' } from "@/components/ui/primitives";\nimport { MetricCard } from "@/components/ui/metric-card";\nimport { surfaceClass } from "@/components/ui/surface-styles";'
+              text = text.replace('"use client";', '"use client";' + imports, 1)
+              text = text.replace(' style={{ fontFamily: "var(--font-display)" }}', '')
+              if market:
+                  text = action(text, 'rounded-lg border border-border p-2 hover:bg-secondary', 'secondary', 'icon')
+                  start = text.index('function Pulse(')
+                  text = text[:start] + '''function Pulse({ label, value, meta, icon, color }: { label: string; value: string; meta: string; icon: ReactNode; color: string }) {
+                    return <MetricCard variant="pulse" label={label} value={value} hint={meta} icon={icon} hintColor={color} iconColor={color} />;
+                  }
+                  function Metric({ label, value }: { label: string; value: string }) {
+                    return <MetricCard variant="detail" label={label} value={value} />;
+                  }
+                  '''
+                  text = text.replace('var(--muted-foreground)', 'var(--color-muted-foreground)')
+                  text = text.replace('border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400', 'border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive')
+                  a = 'const POS'
+                  b = '  return <div className="p-6'
+                  assert old[old.index(a):old.index(b)] == text[text.index(a):text.index(b)], 'Market data logic changed'
+              else:
+                  text = action(text, 'rounded-xl border border-border bg-card/70 p-2 text-muted-foreground hover:text-primary', 'secondary', 'icon')
+                  text = action(text, 'rounded-lg border border-border bg-secondary/50 px-3 py-1.5 text-xs text-foreground', 'secondary', 'sm')
+                  before = 'className="rounded-lg border border-border bg-secondary/50 px-3 py-1.5 text-xs text-foreground outline-none"'
+                  assert before in text
+                  text = text.replace(before, 'aria-label="Filter calendar currency" className="w-auto"', 1)
+                  text = re.sub(r'<select(?=\s)', '<Select', text).replace('</select>', '</Select>')
+                  start = text.index('function Metric(')
+                  text = text[:start] + '''function Metric({ label, value }: { label: string; value: string }) {
+                    return <MetricCard variant="detail" label={label} value={value} />;
+                  }
+                  function Summary({ label, value, hint }: { label: string; value: string; hint: string }) {
+                    return <MetricCard variant="compact" label={label} value={value} hint={hint} valueClassName="truncate" />;
+                  }
+                  '''
+                  text = text.replace('bg-[#0c1211]/55', 'bg-secondary/30')
+                  a = 'function mapImpact('
+                  b = '  return <div className="min-h-full'
+                  assert old[old.index(a):old.index(b)] == text[text.index(a):text.index(b)], 'Calendar data/exposure logic changed'
+                  text = text.replace('border-red-400/30 bg-red-500/10 text-red-300', 'border-red/30 bg-red/10 text-red').replace('border-amber-300/30 bg-amber-400/10 text-amber-200', 'border-gold/30 bg-gold/10 text-gold').replace('border-white/10 bg-white/[0.04] text-muted-foreground', 'border-border bg-secondary/30 text-muted-foreground')
+              def shared_surface(match):
+                  classes = match.group(1).split()
+                  kept = [c for c in classes if c not in {'border', 'border-border'} and not c.startswith(('rounded-', 'bg-card'))]
+                  return 'className={surfaceClass("' + ' '.join(kept) + '")}'
+              text = re.sub(r'className="([^"\n]*\bbg-card(?:/\d+)?[^"\n]*)"', shared_surface, text)
+              for token in ['onClick=', 'onChange=', 'fetch(', 'useMarketQuotes(', 'setSelectedId(', 'EXPOSURE_WINDOW_MS']:
+                  assert old.count(token) == text.count(token), 'Unexpected behavior change: ' + token
+              Path(filename).write_text('\n'.join(line.rstrip() for line in text.splitlines()) + '\n')
+          path = Path('docs/ROADMAP.md')
+          roadmap = path.read_text()
+          assert roadmap.startswith('# Roadmap mqvault')
+          path.write_text(roadmap + '\n## Agreed completion plan: steps 1–2 — 2026-11-01\n\n- [x] Code: News/Screenshots removed from tab registry, rendering and navigation; their two component files deleted after reference check. Retired ?tab values fall back to Overview through the existing registry fallback.\n- [x] Code: Market/Calendar retain data, providers, event/exposure logic and callbacks while adopting shared surfaces, MetricCard variants and common refresh/select controls. Unique calendar/event interactions remain.\n- [ ] Confirm checks/final push/Vercel and browser acceptance for five remaining tabs, calendar filters/details and market refresh.\n- [ ] Next combined steps 3–4: unified Select/DateTime/Checkbox public controls, remove consumer overrides, verify adoption then cleanup unused files/completed workflows.\n\nScreenshot URLs, attachments, journal data, database, API and production settings are not deleted or modified. This UI removal is not a storage purge. Other data-source work must be rebased/reconciled rather than blindly merged over these UI changes.\n')
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - name: Verify protected code unchanged
+        run: |
+          git diff --check
+          git diff --exit-code -- src/app/api src/hooks src/lib src/components/journal .github/workflows
+      - name: Commit reviewed removal and adaptation
+        run: |
+          git add src/app/page.tsx src/components/app-shell-layout.tsx src/components/tabs/market-tab.tsx src/components/tabs/calendar-tab.tsx src/components/tabs/news-tab.tsx src/components/tabs/screenshots-tab.tsx docs/ROADMAP.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "refactor(ui): remove retired tabs and adapt market calendar"
+          git push origin HEAD:feat/journal-layout-filters
