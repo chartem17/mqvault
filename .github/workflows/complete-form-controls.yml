@@ -1,67 +1,47 @@
-name: Centralize form controls and clean completed workflow
+name: Clean completed UI workflow
+
 on:
   push:
-    branches: [feat/journal-layout-filters]
-    paths: [.github/workflows/complete-form-controls.yml]
+    branches:
+      - feat/journal-layout-filters
+    paths:
+      - .github/workflows/complete-form-controls.yml
+
 permissions:
   contents: write
+
 concurrency:
-  group: complete-form-controls
+  group: clean-completed-ui-workflow
   cancel-in-progress: false
+
 jobs:
-  integrate:
+  cleanup:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
           ref: feat/journal-layout-filters
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-      - name: Apply shared control integration and cleanup
-        shell: python
+
+      - name: Verify shared date-time control exists
         run: |
-          from pathlib import Path
-          import hashlib
-          pinned = {
-              'src/components/tabs/calendar-tab.tsx': '17f27cff2eb4e09990cd79db1c5df43e9f205015',
-              'src/components/ui/date-time-field.tsx': None,
-              '.github/workflows/complete-ui-tabs.yml': '8b7c5961da6f0c2615b162fbd8ed932336b18a5e',
-          }
-          for filename, expected in pinned.items():
-              if expected is None:
-                  assert not Path(filename).exists(), 'Unexpected existing file: ' + filename
-                  continue
-              raw = Path(filename).read_bytes()
-              assert hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest() == expected, 'Concurrent edits: ' + filename
-          Path('src/components/ui/date-time-field.tsx').write_text('''"use client";\n\nimport { forwardRef, type InputHTMLAttributes } from "react";\nimport { Input } from "./primitives";\n\nexport type DateTimeFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {\n  type?: "date" | "time" | "datetime-local";\n};\n\nexport const DateTimeField = forwardRef<HTMLInputElement, DateTimeFieldProps>(function DateTimeField({ type = "date", className, ...props }, ref) {\n  return <Input {...props} ref={ref} type={type} className={className} />;\n});\n''')
-          path = Path('src/components/tabs/calendar-tab.tsx')
-          old = path.read_text()
-          assert 'import { Button, Select } from "@/components/ui/primitives";' in old
-          assert '<Select' in old and '</Select>' in old
-          assert 'onChange={e => setCurrency(e.target.value)}' in old
-          assert 'value={currency}' in old
-          assert '<option value="all">All currencies</option>' in old
-          assert old.count('fetch("/api/economic-calendar")') == 1
-          assert old.count('setImpact(') == 4
-          assert old.count('setMode(') == 3
-          assert old.count('tradeTouchesEvent(') == 3
-          workflow = Path('.github/workflows/complete-ui-tabs.yml')
-          assert workflow.exists()
-          workflow.unlink()
-      - run: npm ci
-      - run: npm run lint
-      - run: npx tsc --noEmit
-      - name: Verify protected code unchanged
+          test -f src/components/ui/date-time-field.tsx
+          grep -q "export const DateTimeField" src/components/ui/date-time-field.tsx
+
+      - name: Remove completed one-shot workflow
+        id: cleanup
         run: |
-          git diff --check
-          git diff --exit-code -- src/app/api src/hooks src/lib src/components/journal
-      - name: Commit reviewed control integration and cleanup
+          if [ -f .github/workflows/complete-ui-tabs.yml ]; then
+            git rm .github/workflows/complete-ui-tabs.yml
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit cleanup
+        if: steps.cleanup.outputs.changed == 'true'
         run: |
-          git add src/components/ui/date-time-field.tsx .github/workflows/complete-ui-tabs.yml
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m "refactor(ui): centralize datetime and select controls"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(ci): remove completed UI tabs workflow"
           git push origin HEAD:feat/journal-layout-filters
