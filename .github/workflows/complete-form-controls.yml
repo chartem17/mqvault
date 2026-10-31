@@ -1,0 +1,69 @@
+name: Centralize form controls and clean completed workflow
+on:
+  push:
+    branches: [feat/journal-layout-filters]
+    paths: [.github/workflows/complete-form-controls.yml]
+permissions:
+  contents: write
+concurrency:
+  group: complete-form-controls
+  cancel-in-progress: false
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/journal-layout-filters
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Apply shared control integration and cleanup
+        shell: python
+        run: |
+          from pathlib import Path
+          import hashlib
+          pinned = {
+              'src/components/tabs/calendar-tab.tsx': '2fc6e16f45bbaecfc0c10b0692bd096f7cf1e324',
+              'src/components/ui/date-time-field.tsx': None,
+              '.github/workflows/complete-ui-tabs.yml': '8b7c5961da6f0c2615b162fbd8ed932336b18a5e',
+          }
+          for filename, expected in pinned.items():
+              if expected is None:
+                  assert not Path(filename).exists(), 'Unexpected existing file: ' + filename
+                  continue
+              raw = Path(filename).read_bytes()
+              assert hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest() == expected, 'Concurrent edits: ' + filename
+          Path('src/components/ui/date-time-field.tsx').write_text('''"use client";\n\nimport { forwardRef, type InputHTMLAttributes } from "react";\nimport { Input } from "./primitives";\n\nexport type DateTimeFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {\n  type?: "date" | "time" | "datetime-local";\n};\n\nexport const DateTimeField = forwardRef<HTMLInputElement, DateTimeFieldProps>(function DateTimeField({ type = "date", className, ...props }, ref) {\n  return <Input {...props} ref={ref} type={type} className={className} />;\n});\n''')
+          path = Path('src/components/tabs/calendar-tab.tsx')
+          old = path.read_text()
+          text = old
+          assert 'import { Button, Select } from "@/components/ui/primitives";' in text
+          assert '<Select' in text and '</Select>' in text
+          assert 'onChange={(e) => setCurrency(e.target.value)}' in text
+          assert 'value={currency}' in text
+          assert '<option value="all">All currencies</option>' in text
+          assert old.count('fetch("/api/economic-calendar")') == text.count('fetch("/api/economic-calendar")')
+          assert old.count('setImpact(') == text.count('setImpact(')
+          assert old.count('setMode(') == text.count('setMode(')
+          assert old.count('tradeTouchesEvent(') == text.count('tradeTouchesEvent(')
+          path.write_text(text)
+          workflow = Path('.github/workflows/complete-ui-tabs.yml')
+          assert workflow.exists()
+          workflow.unlink()
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - name: Verify protected code unchanged
+        run: |
+          git diff --check
+          git diff --exit-code -- src/app/api src/hooks src/lib src/components/journal
+      - name: Commit reviewed control integration and cleanup
+        run: |
+          git add src/components/ui/date-time-field.tsx src/components/tabs/calendar-tab.tsx .github/workflows/complete-ui-tabs.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "refactor(ui): centralize datetime and select controls"
+          git push origin HEAD:feat/journal-layout-filters
