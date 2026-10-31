@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
+import { Manrope, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TradesProvider } from "@/hooks/use-trades";
 import { UndoProvider } from "@/components/ui/undo-toast";
 import { TimezoneProvider } from "@/components/providers/timezone-provider";
 
+const manrope = Manrope({ subsets: ["latin", "cyrillic"], variable: "--font-manrope", display: "swap" });
+const jetbrainsMono = JetBrains_Mono({ subsets: ["latin", "cyrillic"], variable: "--font-jetbrains", display: "swap" });
+
 export const metadata: Metadata = { title: "Trade Vault", description: "Personal trading journal & macro workspace" };
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return <html lang="en" suppressHydrationWarning><body style={{ margin: 0, minHeight: "100dvh", backgroundColor: "var(--page-bg)" }}>
+  return <html lang="en" className={`${manrope.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning><body style={{ margin: 0, minHeight: "100dvh", backgroundColor: "var(--page-bg)" }}>
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
       <TimezoneProvider><UndoProvider><TradesProvider>{children}</TradesProvider></UndoProvider></TimezoneProvider>
     </ThemeProvider>

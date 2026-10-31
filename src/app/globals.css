@@ -1,43 +1,66 @@
 @import "tailwindcss";
 
+/*
+ * Design tokens. Change the look of the whole app here, not in individual components.
+ * Surfaces step up in lightness (page -> card -> panel); gain/loss are muted on purpose so
+ * numbers stay readable without the colour shouting. Light theme overrides live in `.light`.
+ */
 @theme {
-  --font-sans: 'Manrope', 'Inter', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-  --font-display: 'Cabinet Grotesk', 'Manrope', sans-serif;
-  --color-background: oklch(0.11 0.008 220);
-  --color-foreground: oklch(0.90 0.006 220);
-  --color-card: oklch(0.14 0.008 220);
-  --color-card-foreground: oklch(0.90 0.006 220);
-  --color-panel: oklch(0.18 0.010 220);
-  --color-popover: oklch(0.14 0.008 220);
-  --color-popover-foreground: oklch(0.90 0.006 220);
-  --color-primary: oklch(0.70 0.13 185);
-  --color-primary-foreground: oklch(0.10 0.008 220);
-  --color-secondary: oklch(0.18 0.008 220);
-  --color-secondary-foreground: oklch(0.90 0.006 220);
-  --color-muted: oklch(0.18 0.008 220);
-  --color-muted-foreground: oklch(0.60 0.008 220);
-  --color-accent: oklch(0.20 0.015 185);
-  --color-accent-foreground: oklch(0.90 0.006 220);
-  --color-destructive: oklch(0.65 0.20 15);
-  --color-border: oklch(0.22 0.008 220);
-  --color-input: oklch(0.22 0.008 220);
-  --color-ring: oklch(0.70 0.13 185);
-  --color-green: oklch(0.70 0.15 142);
-  --color-red: oklch(0.70 0.18 15);
-  --color-gold: oklch(0.80 0.14 75);
-  --color-teal: oklch(0.70 0.13 185);
-  --radius: 0.625rem;
+  --color-background: oklch(0.125 0.012 235);
+  --color-foreground: oklch(0.92 0.006 235);
+  --color-card: oklch(0.155 0.012 235);
+  --color-card-foreground: oklch(0.92 0.006 235);
+  --color-panel: oklch(0.185 0.013 235);
+  --color-popover: oklch(0.155 0.012 235);
+  --color-popover-foreground: oklch(0.92 0.006 235);
+  --color-primary: oklch(0.78 0.10 185);
+  --color-primary-foreground: oklch(0.12 0.012 235);
+  --color-secondary: oklch(0.19 0.012 235);
+  --color-secondary-foreground: oklch(0.92 0.006 235);
+  --color-muted: oklch(0.19 0.012 235);
+  --color-muted-foreground: oklch(0.64 0.010 235);
+  --color-accent: oklch(0.215 0.022 200);
+  --color-accent-foreground: oklch(0.92 0.006 235);
+  --color-destructive: oklch(0.68 0.15 15);
+  --color-border: oklch(0.245 0.010 235);
+  --color-input: oklch(0.245 0.010 235);
+  --color-ring: oklch(0.78 0.10 185);
+  --color-green: oklch(0.76 0.12 158);
+  --color-red: oklch(0.72 0.13 12);
+  --color-gold: oklch(0.80 0.12 80);
+  --color-teal: oklch(0.78 0.10 185);
+  --radius: 0.75rem;
+
+  /* Radius scale: slightly rounder than the Tailwind defaults, applied to every rounded-* utility. */
+  --radius-md: 0.5rem;
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1.125rem;
+  --radius-3xl: 1.5rem;
+}
+
+/* Font families come from next/font in layout.tsx (latin + cyrillic). */
+@theme inline {
+  --font-sans: var(--font-manrope), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SFMono-Regular", monospace;
 }
 
 :root {
   --ink: 255 255 255;
-  --page-bg: #090b10;
+  --page-bg: #0a0d12;
+  --font-display: var(--font-manrope), system-ui, sans-serif;
+  /* Panel finish: a faint light edge on top and a soft glow when a panel is focused or clickable. */
+  --edge-light: rgb(255 255 255 / 0.055);
+  --glow: oklch(0.78 0.10 185 / 0.16);
+  --glow-ring: oklch(0.78 0.10 185 / 0.38);
 }
 
 .light {
   --ink: 17 24 22;
   --page-bg: #eceeed;
+  --edge-light: transparent;
+  --glow: oklch(0.52 0.13 185 / 0.14);
+  --glow-ring: oklch(0.52 0.13 185 / 0.4);
   --color-background: oklch(0.96 0.003 170);
   --color-foreground: oklch(0.20 0.010 170);
   --color-card: oklch(1 0 0);
@@ -66,7 +89,7 @@
 *, *::before, *::after { box-sizing: border-box; }
 html { background: var(--page-bg); color-scheme: dark; -webkit-font-smoothing: antialiased; }
 html.light { background: var(--page-bg); color-scheme: light; }
-body { margin: 0; min-height: 100dvh; background: var(--page-bg); color: var(--color-foreground); font-family: var(--font-sans); font-feature-settings: "tnum" 1, "cv02" 1, "cv03" 1; }
+body { margin: 0; min-height: 100dvh; background: var(--page-bg); color: var(--color-foreground); font-family: var(--font-manrope), system-ui, sans-serif; font-feature-settings: "tnum" 1, "cv02" 1, "cv03" 1; }
 
 /* Solid cards in every theme */
 :is([class~="bg-card/50"], [class~="bg-card/60"], [class~="bg-card/70"], [class~="bg-card/75"], [class~="bg-card/80"], [class~="bg-card/90"]) {
@@ -140,3 +163,39 @@ body { margin: 0; min-height: 100dvh; background: var(--page-bg); color: var(--c
 .light [data-dark] { color: #fff; }
 .light [data-dark] [class*="text-white"] { color: rgb(255 255 255 / 0.9); }
 .light [data-dark] :is([class~="text-white/55"], [class~="text-white/60"]) { color: rgb(255 255 255 / 0.6); }
+
+/* ---- Global finish: controls, focus, scrollbars ---- */
+@layer base {
+  :root { accent-color: var(--color-primary); }
+  ::selection { background: color-mix(in oklab, var(--color-primary) 32%, transparent); }
+  :focus-visible { outline: 2px solid color-mix(in oklab, var(--color-ring) 70%, transparent); outline-offset: 2px; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible { outline-offset: 0; }
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator,
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator { opacity: 0.55; cursor: pointer; transition: opacity 0.15s ease; }
+  input[type="date"]::-webkit-calendar-picker-indicator:hover,
+  input[type="time"]::-webkit-calendar-picker-indicator:hover,
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+  * { scrollbar-width: thin; scrollbar-color: rgb(var(--ink) / 0.22) transparent; }
+  h1 { letter-spacing: -0.02em; }
+  h2, h3 { letter-spacing: -0.01em; }
+}
+
+/*
+ * Panel finish (dark theme). Layered under Tailwind utilities, so a component's own
+ * shadow-* / transition-* classes still win. Glow shows only on clickable panels (hover)
+ * and on panels that contain a keyboard- or input-focused control.
+ */
+@layer components {
+  .dark :is([class~="bg-card"], [class~="bg-card/50"], [class~="bg-card/60"], [class~="bg-card/70"], [class~="bg-card/75"], [class~="bg-card/80"], [class~="bg-card/90"], [class~="bg-panel"]) {
+    box-shadow: inset 0 1px 0 var(--edge-light);
+    transition: box-shadow 0.25s ease;
+  }
+  .dark :is([class~="bg-card"], [class~="bg-card/50"], [class~="bg-card/60"], [class~="bg-card/70"], [class~="bg-card/75"], [class~="bg-card/80"], [class~="bg-card/90"], [class~="bg-panel"]):is([class~="cursor-pointer"]:hover, :has(:focus-visible)) {
+    box-shadow: inset 0 1px 0 var(--edge-light), 0 0 0 1px var(--glow-ring), 0 12px 40px -16px var(--glow);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
