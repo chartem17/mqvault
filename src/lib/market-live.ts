@@ -1,6 +1,7 @@
 import "server-only";
 import { MARKET_WATCHLIST, type WatchlistInstrument } from "@/lib/market-watchlist";
 import type { MarketQuote } from "@/lib/market-types";
+import { markQuotesStale } from "@/lib/market-stale";
 
 const TWELVE_CACHE_MS = 60_000;
 const TWELVE_RETRY_AFTER_429_MS = 90_000;
@@ -97,7 +98,9 @@ async function fetchTwelveBatch(items: WatchlistInstrument[]): Promise<MarketQuo
   if (twelveCache && Date.now() < twelveCache.expiresAt) return twelveCache.quotes;
   if (Date.now() < twelveBlockedUntil) {
     const seconds = Math.ceil((twelveBlockedUntil - Date.now()) / 1_000);
-    return items.map((item) => unavailable(item, `Twelve Data rate limit: retrying automatically in ${seconds}s`));
+    const reason = `Twelve Data rate limit: retrying automatically in ${seconds}s`;
+    if (twelveCache?.quotes.length) return markQuotesStale(twelveCache.quotes, `${reason}; showing last known prices`);
+    return items.map((item) => unavailable(item, reason));
   }
   if (twelveInFlight) return twelveInFlight;
 
@@ -134,9 +137,9 @@ async function fetchTwelveBatch(items: WatchlistInstrument[]): Promise<MarketQuo
       twelveCache = { quotes, expiresAt: Date.now() + TWELVE_CACHE_MS };
       return quotes;
     } catch (error) {
-      // Preserve the last successful values during a temporary provider throttle.
-      if (twelveCache?.quotes.length) return twelveCache.quotes;
+      // Keep the last successful values during a temporary provider failure, but flag them as stale.
       const message = error instanceof Error ? error.message : "Twelve Data unavailable";
+      if (twelveCache?.quotes.length) return markQuotesStale(twelveCache.quotes, `${message}; showing last known prices`);
       return items.map((item) => unavailable(item, message));
     } finally {
       twelveInFlight = null;

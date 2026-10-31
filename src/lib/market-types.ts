@@ -17,5 +17,6 @@ export type MarketQuote = {
   delayed: boolean;
   provider: Provider;
   updatedAt: number | null;
+  stale?: boolean;
   error?: string;
 };
