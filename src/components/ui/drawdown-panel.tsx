@@ -4,10 +4,11 @@ import { useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, TrendingDown } from "lucide-react";
 import { useTrades, type JournalTrade } from "@/hooks/use-trades";
 import { fmt } from "@/lib/utils-trade";
+import { CARD_SURFACE as CARD, CARD_TITLE, EPISODE_TRIGGER, MetricTile } from "./overview-styles";
 
 const RED = "var(--color-red)";
 const GREEN = "var(--color-green)";
-const CARD = "rounded-2xl border border-white/10 bg-panel";
+
 
 type DDTrade = JournalTrade;
 
@@ -134,42 +135,32 @@ function EpisodeDetails({ episode, accountNames }: { episode: Episode; accountNa
   const durationEnd = episode.recoverDate ?? episode.troughDate;
 
   return (
-    <div className="grid gap-3 border-t border-white/10 px-4 py-4 text-xs sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-3 border-t border-border px-4 py-4 text-xs sm:grid-cols-2 xl:grid-cols-4">
       <div className="space-y-1">
-        <div className="text-[10px] uppercase tracking-wide text-white/35">Timeline</div>
-        <div className="text-white/70">Peak → trough: {episode.peakDate} → {episode.troughDate}</div>
-        <div className="text-white/45">{daysBetween(episode.peakDate, durationEnd)} days · {trades.length} trades</div>
+        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Timeline</div>
+        <div className="text-foreground">Peak → trough: {episode.peakDate} → {episode.troughDate}</div>
+        <div className="text-muted-foreground">{daysBetween(episode.peakDate, durationEnd)} days · {trades.length} trades</div>
       </div>
 
       <div className="space-y-1">
-        <div className="text-[10px] uppercase tracking-wide text-white/35">Execution</div>
-        <div className="text-white/70">{wins} wins · {losses} losses</div>
-        <div className="text-white/45">Largest loss: <span style={{ color: RED }}>{fmt.usd(largestLoss)}</span></div>
-        <div className="text-white/45">Average risk: {averageRisk > 0 ? fmt.pct(averageRisk) : "—"}</div>
+        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Execution</div>
+        <div className="text-foreground">{wins} wins · {losses} losses</div>
+        <div className="text-muted-foreground">Largest loss: <span style={{ color: RED }}>{fmt.usd(largestLoss)}</span></div>
+        <div className="text-muted-foreground">Average risk: {averageRisk > 0 ? fmt.pct(averageRisk) : "—"}</div>
       </div>
 
       <div className="space-y-1">
-        <div className="text-[10px] uppercase tracking-wide text-white/35">Pattern</div>
-        <div className="text-white/70">Worst pair: {mostFrequent(trades.map((trade) => trade.symbol || ""))}</div>
-        <div className="text-white/45">Main session: {mostFrequent(trades.map((trade) => trade.session || ""))}</div>
-        <div className="text-white/45">Episode P&L: <span style={{ color: totalPnl < 0 ? RED : GREEN }}>{fmt.usd(totalPnl)}</span></div>
+        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Pattern</div>
+        <div className="text-foreground">Worst pair: {mostFrequent(trades.map((trade) => trade.symbol || ""))}</div>
+        <div className="text-muted-foreground">Main session: {mostFrequent(trades.map((trade) => trade.session || ""))}</div>
+        <div className="text-muted-foreground">Episode P&L: <span style={{ color: totalPnl < 0 ? RED : GREEN }}>{fmt.usd(totalPnl)}</span></div>
       </div>
 
       <div className="space-y-1">
-        <div className="text-[10px] uppercase tracking-wide text-white/35">Context</div>
-        <div className="text-white/70">{episode.recoverDate ? `Recovered ${episode.recoverDate}` : "Recovery in progress"}</div>
-        <div className="text-white/45">Accounts: {involvedAccounts.join(" · ")}</div>
+        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Context</div>
+        <div className="text-foreground">{episode.recoverDate ? `Recovered ${episode.recoverDate}` : "Recovery in progress"}</div>
+        <div className="text-muted-foreground">Accounts: {involvedAccounts.join(" · ")}</div>
       </div>
-    </div>
-  );
-}
-
-function MetricTile({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
-  return (
-    <div className={`${CARD} p-4`}>
-      <div className="text-[11px] uppercase tracking-wide text-white/40">{label}</div>
-      <div className="mt-1 text-lg font-semibold" style={{ color }}>{value}</div>
-      {sub && <div className="mt-0.5 text-[11px] text-white/40">{sub}</div>}
     </div>
   );
 }
@@ -216,8 +207,8 @@ export function DrawdownPanel() {
   if (!points.length) {
     return (
       <section className={`${CARD} h-[560px] min-h-0 min-w-0 overflow-auto p-5 xl:h-full`}>
-        <div className="text-sm font-medium text-white">Drawdown episodes</div>
-        <p className="mt-2 text-sm text-white/40">Недостатньо угод для аналізу просадок.</p>
+        <div className={CARD_TITLE}>Drawdown episodes</div>
+        <p className="mt-2 text-sm text-muted-foreground">Недостатньо угод для аналізу просадок.</p>
       </section>
     );
   }
@@ -251,22 +242,22 @@ export function DrawdownPanel() {
       </div>
 
       <div className={`${CARD} flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden`}>
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
             <TrendingDown className="h-4 w-4" style={{ color: RED }} />
             <div>
-              <div className="text-sm font-medium text-white">Drawdown episodes</div>
-              <div className="text-[11px] text-white/40">Peak → trough → recovery across all included trades</div>
+              <div className={CARD_TITLE}>Drawdown episodes</div>
+              <div className="text-[11px] text-muted-foreground">Peak → trough → recovery across all included trades</div>
             </div>
           </div>
-          <div className="text-xs text-white/40">{episodes.length} total</div>
+          <div className="text-xs text-muted-foreground">{episodes.length} total</div>
         </div>
 
         <div role="region" aria-label="Drawdown episodes list" tabIndex={0} className="min-h-0 flex-1 overflow-auto overscroll-contain focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" style={{ scrollbarGutter: "stable" }}>
         {displayedEpisodes.length === 0 ? (
-          <div className="p-5 text-sm text-white/40">No drawdown episodes detected.</div>
+          <div className="p-5 text-sm text-muted-foreground">No drawdown episodes detected.</div>
         ) : (
-          <div className="divide-y divide-white/10">
+          <div className="divide-y divide-border">
             {displayedEpisodes.map((episode, index) => {
               const recovered = episode.recoverIndex !== null;
               const durationEnd = episode.recoverDate ?? (latestPoint ? dayOf(latestPoint.trade) : undefined) ?? episode.troughDate;
@@ -278,21 +269,21 @@ export function DrawdownPanel() {
                 <div key={episode.id}>
                   <button
                     type="button"
-                    className="group grid w-full grid-cols-1 gap-3 px-4 py-4 text-left transition hover:bg-white/[0.025] md:grid-cols-[minmax(150px,1.1fr)_minmax(220px,2fr)_minmax(150px,1fr)_auto] md:items-center"
+                    className={EPISODE_TRIGGER}
                     aria-expanded={isOpen}
                     onClick={() => setExpandedId((current) => current === episode.id ? null : episode.id)}
                   >
                     <div>
-                      <div className="text-sm font-medium text-white">{index === 0 ? "Worst episode" : `Episode #${index + 1}`}</div>
-                      <div className="mt-0.5 text-[11px] text-white/40">{episode.peakDate} → {episode.troughDate}</div>
+                      <div className={CARD_TITLE}>{index === 0 ? "Worst episode" : `Episode #${index + 1}`}</div>
+                      <div className="mt-0.5 text-[11px] text-muted-foreground">{episode.peakDate} → {episode.troughDate}</div>
                     </div>
 
                     <div>
                       <div className="mb-1 flex justify-between gap-3 text-xs">
                         <span style={{ color: RED }}>{episode.ddPct.toFixed(2)}% · {fmt.usd(episode.ddAmount)}</span>
-                        <span className="text-white/35">{episode.trades.length} trades</span>
+                        <span className="text-muted-foreground">{episode.trades.length} trades</span>
                       </div>
-                      <div className="h-1.5 overflow-hidden rounded-full bg-white/[0.05]">
+                      <div className="h-1.5 overflow-hidden rounded-full bg-secondary/50">
                         <div className="h-full rounded-full" style={{ width: `${normalizedDepth}%`, backgroundColor: RED }} />
                       </div>
                     </div>
@@ -301,12 +292,12 @@ export function DrawdownPanel() {
                       <div className="font-medium" style={{ color: recovered ? GREEN : RED }}>
                         {recovered ? "Recovered" : "In progress"}
                       </div>
-                      <div className="mt-0.5 text-white/40">
+                      <div className="mt-0.5 text-muted-foreground">
                         {durationDays} days · {recovered ? `${episode.trades.length} trades` : "still underwater"}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1 text-xs text-white/40 group-hover:text-white/70">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground group-hover:text-foreground">
                       Details
                       {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     </div>
@@ -320,7 +311,7 @@ export function DrawdownPanel() {
         )}
 
         </div>
-        <div className="shrink-0 border-t border-white/10 px-4 py-2 text-xs text-white/35">{displayedEpisodes.length} episodes · deepest first</div>
+        <div className="shrink-0 border-t border-border px-4 py-2 text-xs text-muted-foreground">{displayedEpisodes.length} episodes · deepest first</div>
       </div>
     </section>
   );

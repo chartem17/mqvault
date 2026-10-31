@@ -165,3 +165,15 @@ No database, financial logic, Market, screen layout or production changes. Activ
 - [ ] Full centralization and production release are not complete.
 
 Recovery note: earlier attempts did not push app changes (generator, whitespace and workflow-permission failures). This recovery uses an in-memory generator correction, boolean aria-invalid and whitespace cleanup. Automated commit includes application/docs files only. Browser acceptance and production release remain pending.
+
+## Unified Overview styling package — 2026-10-31
+
+- [x] Code: Overview and Drawdown share surface/title/list/accordion styles and compact MetricTile; RiskSummary text uses theme tokens.
+- [x] Code: gain/loss metric and chart fill/glow colours use semantic tokens; deliberately dark tooltip retains its own central palette.
+- [x] Guard: original file SHAs verified; 360/560/320px height and scroll constraint counts retained. Styling substitutions do not alter financial formulas or hook calls.
+- [ ] Verify this workflow lint/TypeScript, final push and Vercel deployment. No browser acceptance implied.
+- [ ] Browser: both themes, row alignment, Details scroll, mobile, calendar selection/navigation, chart hover, all/single-account values.
+- [ ] Full site centralization remains incomplete: calendar/nav buttons and day states, modal/table shells, remaining forms/checkboxes and other screens still require adoption. Overview class-based wrappers share styles but are not all Panel components.
+- [ ] Production release and full English/Ukrainian localization.
+
+No database, production settings, account rules or Market changes.
