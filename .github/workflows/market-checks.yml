@@ -1,0 +1,34 @@
+name: Market feed checks
+on:
+  pull_request:
+    branches: [feat/undo-delete-current, main]
+permissions:
+  contents: read
+concurrency:
+  group: market-checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-not-a-real-key
+      SUPABASE_SECRET_KEY: ci-placeholder-not-a-real-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Lint market files
+        run: npm run lint -- src/lib/market-watchlist.ts src/lib/market-stale.ts src/lib/market-live.ts src/lib/market-types.ts src/components/tabs/market-tab.tsx
+      - name: Market watchlist and stale quote tests
+        run: |
+          npx tsc src/lib/market-watchlist.ts src/lib/market-stale.ts --outDir .tmp-market-tests --module commonjs --target ES2020 --lib ES2020,DOM --strict --skipLibCheck
+          node --test tests/market-watchlist.test.mjs
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Production build
+        run: npm run build
