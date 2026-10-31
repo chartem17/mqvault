@@ -221,3 +221,10 @@ Field adoption recovery: normalize helper indentation before comparing unchanged
 - [ ] Classify candidates and consolidate duplicate shared wrappers before declaring centralized design complete.
 - [ ] Confirm modal integration final commit/build, browser acceptance, other-agent coordination and source/workflow cleanup.
 - [ ] Full localization, shared visual redesign and production release remain separate.
+
+## Single-source shared UI core — 2026-11-01
+
+- [x] Code: one surface definition and MetricCard implementation; legacy public metric/surface names delegate to them. Existing cn merging reused.
+- [ ] Confirm checks, final push, Vercel and visual acceptance; compatible APIs do not imply pixel-perfect output.
+- [ ] Next: classify and remove confirmed-unused CSS/temporary workflows after completed-run/reference checks; do not delete compatibility modules still imported by screens.
+- [ ] Remaining screen adoption, full localization and production release are not complete.
