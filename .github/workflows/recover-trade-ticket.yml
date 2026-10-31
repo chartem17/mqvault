@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - name: Correct generator and rerun migration in isolated namespace
+      - name: Run corrected migration without modifying workflow files
         shell: python
         run: |
           from pathlib import Path
@@ -32,20 +32,21 @@ jobs:
           corrected = '\n'.join(lines) + '\n'
           script = corrected.split('        run: |\n', 1)[1].split('      - run: npm ci', 1)[0]
           exec(compile(textwrap.dedent(script), '<corrected-ticket-migration>', 'exec'), {'__name__': '__main__'})
-          workflow_path.write_text(corrected)
           ticket_path = Path('src/components/journal/manual-trade-modal.tsx')
           ticket_path.write_text('\n'.join(line.rstrip() for line in ticket_path.read_text().splitlines()) + '\n')
           roadmap_path = Path('docs/ROADMAP.md')
           roadmap = roadmap_path.read_text()
           assert roadmap.startswith('# Roadmap mqvault'), 'Roadmap must remain a roadmap'
-          roadmap_path.write_text(roadmap + '\nRecovery note: initial migration and first recovery failed before app commit. Recovery now emits boolean aria-invalid, isolates generator execution and strips trailing whitespace. lint/TypeScript/diff checks and browser acceptance remain separate from implementation status. No production release.\n')
+          roadmap_path.write_text(roadmap + '\nRecovery note: earlier attempts did not push app changes (generator, whitespace and workflow-permission failures). This recovery uses an in-memory generator correction, boolean aria-invalid and whitespace cleanup. Automated commit includes application/docs files only. Browser acceptance and production release remain pending.\n')
       - run: npm ci
       - run: npm run lint
       - run: npx tsc --noEmit
-      - name: Commit corrected migration after checks
+      - name: Commit application files only after checks
         run: |
           git diff --check
-          git add .github/workflows/centralize-trade-ticket.yml src/components/journal/manual-trade-modal.tsx src/components/journal/trade-ticket.css docs/ROADMAP.md
+          git diff --exit-code -- .github/workflows
+          git add src/components/journal/manual-trade-modal.tsx src/components/journal/trade-ticket.css docs/ROADMAP.md
+          if git diff --cached --name-only | grep -q '^.github/workflows/'; then exit 1; fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m "fix(ui): complete shared trade ticket migration"
