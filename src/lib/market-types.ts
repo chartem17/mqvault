@@ -1,7 +1,8 @@
-export type AssetClass = "crypto" | "forex" | "metal" | "index";
-export type Provider = "binance" | "twelve-data";
-export type MarketState = "open" | "closed" | "unknown";
+import type { MarketInstrument } from "@/lib/instruments";
 
+export type AssetClass = MarketInstrument["assetClass"];
+export type Provider = MarketInstrument["provider"];
+export type MarketState = "open" | "closed" | "unknown";
 export type MarketQuote = {
   symbol: string;
   displaySymbol: string;

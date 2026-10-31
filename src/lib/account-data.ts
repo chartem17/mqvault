@@ -1,4 +1,6 @@
-export type AccountPhase = "phase-1" | "phase-2" | "funded" | "manual";
+import type { AccountType, PropPhase } from "./account-setup";
+export type { AccountType } from "./account-setup";
+export type AccountPhase = PropPhase | "manual";
 export type AccountStatus = "active" | "passed" | "failed" | "archived";
 export type AccountSource = "manual" | "mt5";
 export type AccountPlatform = "manual" | "mt5";
@@ -6,6 +8,8 @@ export type AccountKind = "manual" | "mt5_bridge" | "sync_api";
 
 export type TradingAccount = {
   id: string;
+  accountType?: AccountType;
+  minTradingDays?: number;
   name: string;
   broker: string;
   platform: AccountPlatform;
@@ -27,11 +31,12 @@ export const phaseLabel: Record<AccountPhase, string> = {
   manual: "Manual",
   "phase-1": "Phase 1",
   "phase-2": "Phase 2",
+  "phase-3": "Phase 3",
   funded: "Funded",
 };
 
 export const kindLabel: Record<AccountKind, string> = {
   manual: "Manual journal",
-  mt5_bridge: "MT5 bridge",
+  mt5_bridge: "MT5 profile · manual journal",
   sync_api: "Sync via API",
 };

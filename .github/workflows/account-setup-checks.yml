@@ -1,0 +1,33 @@
+name: Account setup foundation checks
+on:
+  push:
+    branches: [feat/undo-delete-current]
+    paths:
+      - src/lib/account-setup.ts
+      - tests/account-setup.test.mjs
+      - .github/workflows/account-setup-checks.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - src/lib/account-setup.ts
+      - tests/account-setup.test.mjs
+      - .github/workflows/account-setup-checks.yml
+permissions:
+  contents: read
+jobs:
+  account-setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint -- src/lib/account-setup.ts
+      - name: Validate four account combinations and prop settings
+        run: |
+          npx tsc src/lib/account-setup.ts --outDir .tmp-account-tests --module commonjs --target ES2020 --lib ES2020,DOM --strict --skipLibCheck
+          node --test tests/account-setup.test.mjs
+      - run: npx tsc --noEmit

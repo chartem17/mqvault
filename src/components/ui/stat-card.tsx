@@ -1,22 +1,5 @@
 "use client";
-import { type ReactNode } from "react";
-import { cn } from "@/lib/utils";
-
-export function StatCard({
-  label, value, sub, trend, colorClass, className,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  trend?: "up" | "down" | "neutral";
-  colorClass?: string;
-  className?: string;
-}) {
-  return (
-    <div className={cn("rounded-2xl border border-white/10 bg-panel p-4 flex flex-col gap-1.5", className)}>
-      <p className="text-xs text-white/55 font-medium uppercase tracking-wider">{label}</p>
-      <p className={cn("text-2xl font-bold tabular-nums", colorClass)}>{value}</p>
-      {sub && <p className="text-xs text-white/50">{sub}</p>}
-    </div>
-  );
+import { MetricCard } from "./metric-card";
+export function StatCard({ label, value, sub, colorClass, className }: { label: string; value: string; sub?: string; trend?: "up" | "down" | "neutral"; colorClass?: string; className?: string }) {
+  return <MetricCard label={label} value={value} hint={sub} valueClassName={colorClass} className={className} />;
 }

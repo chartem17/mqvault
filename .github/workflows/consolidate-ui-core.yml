@@ -1,0 +1,117 @@
+name: Consolidate UI surface and metric core
+on:
+  push:
+    branches: [feat/journal-layout-filters]
+    paths: [.github/workflows/consolidate-ui-core.yml]
+permissions:
+  contents: write
+concurrency:
+  group: ui-core-consolidation
+  cancel-in-progress: false
+jobs:
+  consolidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/journal-layout-filters
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Consolidate reviewed shared modules
+        shell: python
+        run: |
+          from pathlib import Path
+          import hashlib
+          expected = {
+              'primitives.tsx': '36a574d1b85748d6681d4a0aa6791c411f542992',
+              'overview-styles.tsx': '4b89cf14d961b9710f97a0bd0712ae6ce7257698',
+              'form-styles.ts': 'd26cc69919b0298ae12f67e25639950d0aaa07f7',
+              'strategy-ui.tsx': '297b8434dab2ea78e9ca2e4902b72821ef2edcf8',
+              'dialog-styles.ts': '9ba4468d72874fa4587a66b4a0ef659c3ae77411',
+              'stat-card.tsx': 'f5f97e797826e0b704a38d21956beb08648ae356',
+              'card-content.tsx': '2006f68356019a4af81b62da5ef431c82d6783f1',
+          }
+          root = Path('src/components/ui')
+          source = {}
+          for filename, sha in expected.items():
+              raw = (root / filename).read_bytes()
+              assert hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest() == sha, 'Shared module changed; review ' + filename
+              source[filename] = raw.decode()
+          text = source['primitives.tsx']
+          old = 'const join = (...parts: (string | undefined | false)[]) => parts.filter(Boolean).join(" ");'
+          assert old in text
+          text = text.replace(old, 'import { cn } from "@/lib/utils";\nimport { surfaceClass } from "./surface-styles";')
+          text = text.replace('className={join(', 'className={cn(')
+          old = 'className={cn("min-w-0 rounded-2xl border border-border bg-card text-card-foreground", className)}'
+          assert old in text
+          text = text.replace(old, 'className={surfaceClass(className)}')
+          (root / 'primitives.tsx').write_text(text)
+          text = source['overview-styles.tsx']
+          text = text.replace('import { Panel } from "./primitives";', 'import { MetricCard } from "./metric-card";\nimport { SURFACE_BASE } from "./surface-styles";')
+          text = text.replace('export const CARD_SURFACE = "min-w-0 rounded-2xl border border-border bg-card text-card-foreground";', 'export const CARD_SURFACE = SURFACE_BASE;')
+          start = text.index('export function MetricTile(')
+          text = text[:start] + '''export function MetricTile({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
+            return <MetricCard variant="compact" label={label} value={value} hint={sub} valueColor={color} />;
+          }
+          '''
+          (root / 'overview-styles.tsx').write_text(text)
+          text = source['form-styles.ts']
+          text = 'import { surfaceClass } from "./surface-styles";\n' + text.replace('export const FORM_SURFACE = "rounded-2xl border border-border bg-card p-5 text-card-foreground";', 'export const FORM_SURFACE = surfaceClass("p-5");')
+          (root / 'form-styles.ts').write_text(text)
+          text = source['strategy-ui.tsx']
+          text = text.replace('import { Panel } from "./primitives";', 'import { MetricCard } from "./metric-card";\nimport { surfaceClass } from "./surface-styles";')
+          text = text.replace('export const STRATEGY_SURFACE = "rounded-2xl border border-border bg-card p-5 shadow-sm";', 'export const STRATEGY_SURFACE = surfaceClass("p-5 shadow-sm");')
+          start = text.index('export function StrategyMetricCard(')
+          text = text[:start] + '''export function StrategyMetricCard({ label, value, hint, icon, valueTone }: { label: string; value: string; hint?: string; icon: ReactNode; valueTone?: string }) {
+            return <MetricCard variant="dashboard" label={label} value={value} hint={hint} icon={icon} valueClassName={valueTone} />;
+          }
+          export function StrategySummaryMetric({ label, value, hint, tone }: { label: string; value: string; hint: string; tone?: string }) {
+            return <MetricCard variant="summary" label={label} value={value} hint={hint} valueClassName={tone} />;
+          }
+          '''
+          (root / 'strategy-ui.tsx').write_text(text)
+          text = source['dialog-styles.ts']
+          text = text.replace('import { cn } from "@/lib/utils";', 'import { cn } from "@/lib/utils";\nimport { surfaceClass } from "./surface-styles";')
+          text = text.replace('export const DIALOG_SURFACE = "rounded-2xl border border-border bg-card text-foreground shadow-[var(--dialog-shadow)]";', 'export const DIALOG_SURFACE = surfaceClass("text-foreground shadow-[var(--dialog-shadow)]");')
+          (root / 'dialog-styles.ts').write_text(text)
+          (root / 'stat-card.tsx').write_text('''"use client";
+          import { MetricCard } from "./metric-card";
+          export function StatCard({ label, value, sub, colorClass, className }: { label: string; value: string; sub?: string; trend?: "up" | "down" | "neutral"; colorClass?: string; className?: string }) {
+            return <MetricCard label={label} value={value} hint={sub} valueClassName={colorClass} className={className} />;
+          }
+          ''')
+          text = source['card-content.tsx']
+          text = text.replace('import { cn } from "@/lib/utils";', 'import { cn } from "@/lib/utils";\nimport { METRIC_STYLES } from "./metric-card";')
+          text = text.replace('className="text-xs font-medium uppercase tracking-wider text-muted-foreground"', 'className={METRIC_STYLES.standard.label}')
+          text = text.replace('cn("text-2xl font-bold tabular-nums", className)', 'cn(METRIC_STYLES.standard.value, className)')
+          text = text.replace('className="text-xs text-muted-foreground"', 'className={METRIC_STYLES.standard.hint}')
+          (root / 'card-content.tsx').write_text(text)
+          for filename in expected:
+              path = root / filename
+              path.write_text('\n'.join(line.rstrip() for line in path.read_text().splitlines()) + '\n')
+          for filename in ['stat-card.tsx', 'overview-styles.tsx', 'strategy-ui.tsx']:
+              assert '<MetricCard' in (root / filename).read_text(), 'Metric wrapper not connected'
+          assert 'parts.filter(Boolean)' not in (root / 'primitives.tsx').read_text()
+          docs = Path('docs/UI-SINGLE-SOURCE.md')
+          docs.write_text('# Single-source UI core\n\nSurface appearance: src/components/ui/surface-styles.ts. Panel, Overview, forms, strategy and dialog compatibility definitions derive from it; layout-specific padding and shadows are explicit variants.\n\nMetric rendering: src/components/ui/metric-card.tsx. Standard/compact/dashboard/summary preserve their existing value-size and spacing configurations. StatCard, MetricTile, StrategyMetricCard and StrategySummaryMetric remain public compatibility wrappers, not independent renderers. CardLabel/CardValue/CardHint use the same metric typography configuration.\n\nPrimitives use the existing cn/tailwind-merge helper instead of plain concatenation, so explicit consumer layout overrides resolve consistently. No new dependencies.\n\nNo consumer financial calculations, handlers, routes, API, authentication or database updates. No claim of full-site adoption: deferred screens and remaining specialized controls still need audit.\n\nPending: CI/build and visual regression in both themes, wrapping, metric colour classes, custom value colours, panel variants, dialogs, 360/560px rows and dense tables. Cleanup of unused CSS and completed one-off workflows follows only after verification and exact deletion approval. Production release is separate.\n')
+          path = Path('docs/ROADMAP.md')
+          roadmap = path.read_text()
+          assert roadmap.startswith('# Roadmap mqvault')
+          path.write_text(roadmap + '\n## Single-source shared UI core — 2026-11-01\n\n- [x] Code: one surface definition and MetricCard implementation; legacy public metric/surface names delegate to them. Existing cn merging reused.\n- [ ] Confirm checks, final push, Vercel and visual acceptance; compatible APIs do not imply pixel-perfect output.\n- [ ] Next: classify and remove confirmed-unused CSS/temporary workflows after completed-run/reference checks; do not delete compatibility modules still imported by screens.\n- [ ] Remaining screen adoption, full localization and production release are not complete.\n')
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - name: Verify no screen or workflow edits
+        run: |
+          git diff --check
+          git diff --exit-code -- src/components/tabs src/components/accounts src/components/journal src/app .github/workflows
+      - name: Commit shared core and documentation only
+        run: |
+          git add src/components/ui/primitives.tsx src/components/ui/overview-styles.tsx src/components/ui/form-styles.ts src/components/ui/strategy-ui.tsx src/components/ui/dialog-styles.ts src/components/ui/stat-card.tsx src/components/ui/card-content.tsx docs/UI-SINGLE-SOURCE.md docs/ROADMAP.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "refactor(ui): consolidate shared surfaces and metric rendering"
+          git push origin HEAD:feat/journal-layout-filters

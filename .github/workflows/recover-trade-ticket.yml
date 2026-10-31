@@ -1,0 +1,53 @@
+name: Recover trade ticket migration
+on:
+  push:
+    branches: [feat/journal-layout-filters]
+    paths: [.github/workflows/recover-trade-ticket.yml]
+permissions:
+  contents: write
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/journal-layout-filters
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Run corrected migration without modifying workflow files
+        shell: python
+        run: |
+          from pathlib import Path
+          import textwrap
+          workflow_path = Path('.github/workflows/centralize-trade-ticket.yml')
+          lines = workflow_path.read_text().splitlines()
+          targets = [index for index, line in enumerate(lines) if 'return m.group(1)' in line and 'aria-invalid' in line]
+          assert len(targets) == 1, 'Expected exactly one generator line'
+          index = targets[0]
+          indent = lines[index][:len(lines[index]) - len(lines[index].lstrip())]
+          lines[index] = indent + '''return m.group(1) + ' className="trade-ticket-control" data-ui-state={' + state + '} aria-invalid={' + ['Boolean(error)', 'false', 'Boolean(errors.opened_at)', 'Boolean(errors.symbol)'][i[0] - 1] + '}' + m.group(3)'''
+          corrected = '\n'.join(lines) + '\n'
+          script = corrected.split('        run: |\n', 1)[1].split('      - run: npm ci', 1)[0]
+          exec(compile(textwrap.dedent(script), '<corrected-ticket-migration>', 'exec'), {'__name__': '__main__'})
+          ticket_path = Path('src/components/journal/manual-trade-modal.tsx')
+          ticket_path.write_text('\n'.join(line.rstrip() for line in ticket_path.read_text().splitlines()) + '\n')
+          roadmap_path = Path('docs/ROADMAP.md')
+          roadmap = roadmap_path.read_text()
+          assert roadmap.startswith('# Roadmap mqvault'), 'Roadmap must remain a roadmap'
+          roadmap_path.write_text(roadmap + '\nRecovery note: earlier attempts did not push app changes (generator, whitespace and workflow-permission failures). This recovery uses an in-memory generator correction, boolean aria-invalid and whitespace cleanup. Automated commit includes application/docs files only. Browser acceptance and production release remain pending.\n')
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - name: Commit application files only after checks
+        run: |
+          git diff --check
+          git diff --exit-code -- .github/workflows
+          git add src/components/journal/manual-trade-modal.tsx src/components/journal/trade-ticket.css docs/ROADMAP.md
+          if git diff --cached --name-only | grep -q '^.github/workflows/'; then exit 1; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "fix(ui): complete shared trade ticket migration"
+          git push origin HEAD:feat/journal-layout-filters

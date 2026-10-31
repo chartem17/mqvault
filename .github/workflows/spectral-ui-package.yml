@@ -1,0 +1,74 @@
+name: Integrate Spectral UI foundation
+on:
+  push:
+    branches: [feat/journal-layout-filters]
+    paths: [.github/workflows/spectral-ui-package.yml]
+permissions:
+  contents: write
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/journal-layout-filters
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: git fetch origin 7046b2c86ce5424c2d184937e934ae830fb278a4
+      - name: Integrate pinned foundation without replacing screens
+        shell: python
+        run: |
+          from pathlib import Path
+          import subprocess, re, hashlib
+          source = '7046b2c86ce5424c2d184937e934ae830fb278a4'
+          csspath = Path('src/app/globals.css')
+          original = csspath.read_bytes()
+          if hashlib.sha1(b'blob ' + str(len(original)).encode() + b'\0' + original).hexdigest() != 'c3fa7160042845443870e8e03925b48211c41e52':
+              raise RuntimeError('Global CSS changed; review before integration')
+          old = original.decode()
+          css = subprocess.check_output(['git', 'show', source + ':src/app/globals.css'], text=True)
+          palette = re.findall(r'(--color-[\w-]+:\s*[^;]+;)', old.split('@theme {', 1)[1].split('}', 1)[0])
+          head, tail = css.split('}', 1)
+          for declaration in palette:
+              key = declaration.split(':', 1)[0]
+              head, count = re.subn(re.escape(key) + r':\s*[^;]+;', lambda _: declaration, head)
+              if count != 1: raise RuntimeError('Missing palette token ' + key)
+          css = head + '}' + tail
+          css = css.replace('var(--font-manrope), system-ui, sans-serif', 'var(--font-spectral-sc), Georgia, serif')
+          css = css.replace('var(--font-jetbrains), ui-monospace, "SFMono-Regular", monospace', 'var(--font-spectral-sc), Georgia, serif')
+          css = css.replace('--page-bg: #0a0d12;', '--page-bg: #090b10;')
+          css = css.replace('gain/loss are muted on purpose so\n * numbers stay readable without the colour shouting.', 'the original brighter gain/loss palette is preserved.')
+          css += '\n/* Single approved type family; legacy utility names share the same font. */\n@theme inline { --font-display: var(--font-spectral-sc), Georgia, serif; }\nbody, button, input, select, textarea, optgroup, option, table, svg text, .font-sans, .font-mono, .font-display { font-family: var(--font-spectral-sc), Georgia, serif; }\n'
+          csspath.write_text(css)
+          p = Path('src/app/layout.tsx')
+          data = p.read_bytes()
+          if hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest() != 'dedf6ff2ff22cdd1be9707b51b6f4ca5d3748678':
+              raise RuntimeError('Root layout changed; preserve new providers before integrating')
+          layout = data.decode()
+          layout = layout.replace('import type { Metadata } from "next";', 'import type { Metadata } from "next";\nimport { Spectral_SC } from "next/font/google";')
+          layout = layout.replace('export const metadata:', 'const spectral = Spectral_SC({ subsets: ["latin", "cyrillic"], weight: ["400", "500", "600", "700"], variable: "--font-spectral-sc", display: "swap" });\n\nexport const metadata:')
+          layout = layout.replace('<html lang="en" suppressHydrationWarning>', '<html lang="en" className={spectral.variable} suppressHydrationWarning>')
+          p.write_text(layout)
+          p = Path('docs/UI-DESIGN-SYSTEM.md')
+          if p.exists(): raise RuntimeError('Design system document already exists; reconcile manually')
+          p.write_text('# Shared UI foundation: integrated Spectral preview\n\nIntegrated foundation source: Claude PR #18, pinned commit 7046b2c. Target: feat/journal-layout-filters, retaining current journal and equal-height overview implementation. Only globals.css/layout.tsx change in app code.\n\nSpectral SC (latin/cyrillic; weights 400/500/600/700) is loaded through next/font. Sans, mono and display utility aliases all use the approved Spectral SC family; mono is now a compatibility name, not a monospaced guarantee. Native controls and SVG labels use the same family. SC intentionally uses small caps. No forced uppercasing of stored text.\n\nOriginal pre-Claude dark colour tokens and page background are retained. Claude radius scale, control focus, panel finish, scrollbars and reduced-motion support are integrated. Existing light-theme values are retained. This is not a full migration away from hardcoded colour utilities or inline fonts; audit remaining exceptions before declaring it complete.\n\nNo screen markup, financial formula, account scope or database changes. English/Ukrainian translation and language switch are not implemented by this font package. No production release.\n\nRequired visual acceptance: actual loaded font (not fallback), English/Ukrainian including Ґґ Єє Іі Її, symbols and numbers, both themes, mobile, forms, dropdowns, equal-height rows and Drawdown details. CI success is not browser acceptance.\n')
+          p = Path('docs/ROADMAP.md')
+          text = p.read_text()
+          text += '\n## Shared UI + Spectral SC integration — 2026-10-31\n\n- [x] Код: фундамент Claude 7046b2c адаптований до актуальної гілки журналу; попередня палітра збережена замість приглушеної.\n- [x] Код: Spectral SC централізовано підключений для UI/контролів/таблиць/SVG і legacy font aliases, latin + cyrillic.\n- [ ] Перевірити результат CI та Vercel build, завантаження шрифту й українські гліфи в браузері.\n- [ ] Візуальне приймання обох тем, щільних таблиць і виправленої сітки після зміни метрик шрифту.\n- [ ] Повна міграція екранів на семантичні токени й спільні примітиви; локальні кольори не вважати усунутими.\n- [ ] English default / Ukrainian option та повні словники. Шрифт не означає переклад.\n- [ ] Production-реліз; PR #18 не мержився автоматично.\n'
+          p.write_text(text)
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - run: npx tsc src/lib/journal-layout.ts --outDir .tmp-journal-layout-tests --module commonjs --target ES2020 --strict --skipLibCheck
+      - run: node --test tests/journal-layout.test.mjs
+      - name: Commit integration to test branch only
+        run: |
+          git diff --check
+          git add src/app/globals.css src/app/layout.tsx docs/UI-DESIGN-SYSTEM.md docs/ROADMAP.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "feat: integrate Spectral SC and shared UI foundation"
+          git push origin HEAD:feat/journal-layout-filters

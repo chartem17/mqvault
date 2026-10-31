@@ -1,0 +1,87 @@
+name: Apply and verify overview layout package
+on:
+  push:
+    branches: [feat/journal-layout-filters]
+    paths: [.github/workflows/overview-layout-package.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: overview-layout-package
+  cancel-in-progress: false
+jobs:
+  apply:
+    if: github.ref == 'refs/heads/feat/journal-layout-filters'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/journal-layout-filters
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Apply guarded layout changes
+        shell: python
+        run: |
+          from pathlib import Path
+          import hashlib
+          def load(path, expected):
+              p = Path(path)
+              data = p.read_bytes()
+              actual = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
+              if actual != expected:
+                  raise RuntimeError('Source changed; review before applying: ' + path)
+              return p, data.decode()
+          def replace(text, old, new):
+              if text.count(old) != 1:
+                  raise RuntimeError('Expected exactly one layout anchor: ' + old[:100])
+              return text.replace(old, new, 1)
+          p, overview = load('src/components/tabs/overview-tab.tsx', 'da104808aff3e097214d9692bb84c8be4a959f8b')
+          overview = replace(overview, '.sort((a, b) => b.pnl - a.pnl).slice(0, 8)', '.sort((a, b) => b.pnl - a.pnl)')
+          overview = replace(overview, '<div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">', '<div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">')
+          for title in ['Monthly P&amp;L', 'Top symbols']:
+              old = '<div className={`${CARD} p-5`}><div className="mb-4 text-sm font-medium text-white">' + title + '</div><div className="space-y-3">'
+              new = '<div className={`${CARD} flex h-[360px] min-w-0 flex-col overflow-hidden p-5`}><div className="mb-4 shrink-0 text-sm font-medium text-white">' + title + '</div><div role="region" aria-label="' + title.replace('&amp;', '&') + ' list" tabIndex={0} className="min-h-0 flex-1 space-y-3 overflow-auto overscroll-contain pr-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" style={{ scrollbarGutter: "stable" }}>'
+              overview = replace(overview, old, new)
+          start = overview.index('function RDistributionChart(')
+          end = overview.index('export function OverviewTab()', start)
+          chart = overview[start:end]
+          chart = replace(chart, 'className={`${CARD} p-5`}', 'className={`${CARD} flex h-[320px] min-w-0 flex-col overflow-hidden p-5`}')
+          chart = replace(chart, 'className="mb-4 flex items-start justify-between gap-3"', 'className="mb-4 flex shrink-0 flex-wrap items-start justify-between gap-3"')
+          chart = replace(chart, '<div className="flex h-48 items-end gap-2">', '<div role="region" aria-label="R-Multiple distribution chart" tabIndex={0} className="min-h-0 flex-1 overflow-auto overscroll-contain focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"><div className="flex h-48 min-w-[420px] items-end gap-2">')
+          chart = replace(chart, '})}</div>\n  </div>;', '})}</div></div>\n  </div>;')
+          overview = overview[:start] + chart + overview[end:]
+          p.write_text(overview)
+          p, drawdown = load('src/components/ui/drawdown-panel.tsx', '911fb6b52a6f68e36261611134b3816d1bf4fec0')
+          drawdown = replace(drawdown, '[...episodes].sort((a, b) => a.ddPct - b.ddPct).slice(0, 5)', '[...episodes].sort((a, b) => a.ddPct - b.ddPct)')
+          drawdown = replace(drawdown, '<section className={`${CARD} p-5`}>', '<section className={`${CARD} h-[420px] min-w-0 overflow-auto p-5`}>')
+          drawdown = replace(drawdown, '<section className="space-y-3">', '<section className="min-w-0 space-y-3">')
+          drawdown = replace(drawdown, '<div className={`${CARD} overflow-hidden`}>', '<div className={`${CARD} flex h-[420px] min-w-0 flex-col overflow-hidden`}>')
+          drawdown = replace(drawdown, 'className="flex items-center justify-between border-b border-white/10 px-4 py-3"', 'className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 px-4 py-3"')
+          drawdown = replace(drawdown, '        {displayedEpisodes.length === 0 ? (', '        <div role="region" aria-label="Drawdown episodes list" tabIndex={0} className="min-h-0 flex-1 overflow-auto overscroll-contain focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" style={{ scrollbarGutter: "stable" }}>\n        {displayedEpisodes.length === 0 ? (')
+          drawdown = replace(drawdown, '        {episodes.length > displayedEpisodes.length && (\n          <div className="border-t border-white/10 px-4 py-2 text-xs text-white/35">\n            Showing 5 deepest episodes out of {episodes.length}.\n          </div>\n        )}', '        </div>\n        <div className="shrink-0 border-t border-white/10 px-4 py-2 text-xs text-white/35">{displayedEpisodes.length} episodes · deepest first</div>')
+          drawdown = replace(drawdown, '                    onClick={() => setExpandedId', '                    aria-expanded={isOpen}\n                    onClick={() => setExpandedId')
+          p.write_text(drawdown)
+          p = Path('docs/ROADMAP.md')
+          roadmap = p.read_text()
+          marker = '## Overview bounded layout package — 2026-10-31'
+          if marker in roadmap:
+              raise RuntimeError('Package already recorded; do not apply twice')
+          roadmap += '\n' + marker + '\n\n- [x] Код: Monthly P&L і Top symbols — картки 360px, нерухомі заголовки, внутрішній scroll, усі інструменти без top-8 обрізання.\n- [x] Код: Drawdown episodes — картка 420px з однією прокруткою; Details зсувають наступні рядки лише всередині. Показ усіх епізодів без top-5 обрізання; заголовок і footer не прокручуються.\n- [x] Код: R-Multiple — власна висота 320px, незалежність від сусіднього Drawdown, horizontal scroll на вузьких екранах.\n- [ ] Перевірити фактичний результат CI і Vercel Preview; статус коду не є статусом браузерного приймання чи релізу.\n- [ ] Браузерне приймання: багато/мало/нуль даних; Details; mobile; keyboard scroll; суми й порядок без змін.\n- [ ] Окремо далі: нормалізація EURUSD / EUR/USD для групування, без видалення угод. Цей пакет її не виконує.\n- [ ] Production-реліз цього пакета не виконаний.\n\nГілка: feat/journal-layout-filters. Попередній NEXT PROPOSED пункт Top symbols/Monthly P&L тепер має реалізацію коду за цим уточненням; перевірка/реліз залишаються відкритими. Формули, Supabase та Market не змінювалися.\n'
+          p.write_text(roadmap)
+      - run: npm ci
+      - run: npx tsc src/lib/journal-layout.ts --outDir .tmp-journal-layout-tests --module commonjs --target ES2020 --strict --skipLibCheck
+      - run: node --test tests/journal-layout.test.mjs
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - name: Commit verified source changes to test branch only
+        run: |
+          git diff --check
+          git add src/components/tabs/overview-tab.tsx src/components/ui/drawdown-panel.tsx docs/ROADMAP.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "fix: bound overview cards and scroll drawdown details"
+          git push origin HEAD:feat/journal-layout-filters

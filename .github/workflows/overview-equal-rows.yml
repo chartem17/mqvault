@@ -1,0 +1,71 @@
+name: Correct equal-height overview rows
+on:
+  push:
+    branches: [feat/journal-layout-filters]
+    paths: [.github/workflows/overview-equal-rows.yml]
+permissions:
+  contents: write
+concurrency:
+  group: overview-layout-package
+  cancel-in-progress: false
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/journal-layout-filters
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Align complete rows and preserve internal scrolling
+        shell: python
+        run: |
+          from pathlib import Path
+          import hashlib
+          def once(s, old, new):
+              if s.count(old) != 1:
+                  raise RuntimeError('Source changed; review anchor: ' + old[:100])
+              return s.replace(old, new, 1)
+          p = Path('src/components/tabs/overview-tab.tsx')
+          data = p.read_bytes()
+          if hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest() != 'c5356a35845efc03c7550b65739251f4029bc42e':
+              raise RuntimeError('Overview changed; refusing overwrite')
+          s = data.decode()
+          s = once(s, 'grid items-start gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]', 'grid items-stretch gap-6 xl:h-[560px] xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] xl:grid-rows-[minmax(0,1fr)]')
+          s = once(s, 'flex h-[320px] min-w-0 flex-col overflow-hidden p-5', 'flex h-[320px] min-h-0 min-w-0 flex-col overflow-hidden p-5 xl:h-full')
+          s = once(s, 'flex h-48 min-w-[420px] items-end gap-2', 'flex h-full min-h-[192px] min-w-[420px] items-end gap-2')
+          s = once(s, 'className="flex flex-1 flex-col items-center gap-2"', 'className="flex h-full min-h-0 flex-1 flex-col items-center gap-2"')
+          s = once(s, 'className="flex h-36 w-full items-end"', 'className="flex min-h-0 w-full flex-1 items-end"')
+          old = '<div className={`${CARD} p-5`}><div className="mb-4 text-sm font-medium text-white">Sessions</div><div className="space-y-3">'
+          new = '<div className={`${CARD} flex h-[360px] min-w-0 flex-col overflow-hidden p-5`}><div className="mb-4 shrink-0 text-sm font-medium text-white">Sessions</div><div role="region" aria-label="Sessions and session detail" tabIndex={0} className="min-h-0 flex-1 overflow-auto overscroll-contain pr-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" style={{ scrollbarGutter: "stable" }}><div className="space-y-3">'
+          s = once(s, old, new)
+          old = '{item.label} · {item.trades} · {fmt.usd(item.pnl)}</span>)}</div></div>'
+          s = once(s, old, '{item.label} · {item.trades} · {fmt.usd(item.pnl)}</span>)}</div></div></div>')
+          p.write_text(s)
+          p = Path('src/components/ui/drawdown-panel.tsx')
+          s = p.read_text()
+          s = once(s, 'className="min-w-0 space-y-3"', 'className="flex h-[560px] min-h-0 min-w-0 flex-col gap-3 xl:h-full"')
+          s = once(s, 'className="grid grid-cols-2 gap-3 md:grid-cols-4"', 'className="grid shrink-0 grid-cols-2 gap-3 md:grid-cols-4"')
+          s = once(s, 'flex h-[420px] min-w-0 flex-col overflow-hidden', 'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden')
+          s = once(s, 'h-[420px] min-w-0 overflow-auto p-5', 'h-[560px] min-h-0 min-w-0 overflow-auto p-5 xl:h-full')
+          p.write_text(s)
+          p = Path('docs/ROADMAP.md')
+          s = p.read_text()
+          s += '\n## Overview row alignment correction — 2026-10-31\n\nПопередній пакет візуально НЕ прийнятий: незалежні висоти створили сходинки. Цей запис уточнює попередні пункти 320px/420px.\n\n- [x] Код виправлення: desktop ряд Drawdown + R-Multiple має спільну висоту 560px; ліва колонка включає метрики, gap і flex-список епізодів. Графік використовує доступну висоту.\n- [x] Код виправлення: Monthly P&L / Top symbols / Sessions мають висоту 360px; Sessions разом із Session detail у власному скролі.\n- [x] Details лишаються всередині одного scroll-контейнера; не збільшують зовнішню висоту.\n- [ ] Перевірити результат CI, Preview та фактичну геометрію в браузері; lint/TypeScript не є візуальним тестом.\n- [ ] Приймання користувачем після попереднього відхилення; production-реліз окремо.\n\nФормули, БД і нормалізацію пар не змінено.\n'
+          p.write_text(s)
+      - run: npm ci
+      - run: npx tsc src/lib/journal-layout.ts --outDir .tmp-journal-layout-tests --module commonjs --target ES2020 --strict --skipLibCheck
+      - run: node --test tests/journal-layout.test.mjs
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - name: Commit to test branch only
+        run: |
+          git diff --check
+          git add src/components/tabs/overview-tab.tsx src/components/ui/drawdown-panel.tsx docs/ROADMAP.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "fix: align overview rows and expand distribution chart"
+          git push origin HEAD:feat/journal-layout-filters

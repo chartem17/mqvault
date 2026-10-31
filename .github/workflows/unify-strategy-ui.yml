@@ -1,0 +1,125 @@
+name: Unify strategy UI
+on:
+  push:
+    branches: [feat/journal-layout-filters]
+    paths: [.github/workflows/unify-strategy-ui.yml]
+permissions:
+  contents: write
+concurrency:
+  group: strategy-ui-package
+  cancel-in-progress: false
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/journal-layout-filters
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Apply reviewed strategy UI migration
+        shell: python
+        run: |
+          from pathlib import Path
+          import hashlib, re
+          def action(text, classname, variant, size='md'):
+              needle = 'className="' + classname + '"'
+              assert needle in text, 'Expected action missing: ' + classname
+              while needle in text:
+                  pos = text.index(needle)
+                  start = text.rfind('<button', 0, pos)
+                  end = text.index('</button>', pos) + len('</button>')
+                  block = text[start:end]
+                  assert start >= 0 and block.count('<button') == 1
+                  block = block.replace('<button', '<Button variant="' + variant + '" size="' + size + '"', 1).replace(needle, '').replace('</button>', '</Button>')
+                  text = text[:start] + block + text[end:]
+              return text
+          files = {
+              'src/components/strategy-control/strategy-builder.tsx': 'acc323c393e50beb229761a77498c8ef0c0a30b5',
+              'src/components/tabs/strategy-control-tab.tsx': '6ba2fa515b3d862c7d9cad05644c86bfb140a90d',
+          }
+          for filename, expected in files.items():
+              path = Path(filename)
+              raw = path.read_bytes()
+              assert hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest() == expected, 'Concurrent strategy changes; review first'
+              old = raw.decode()
+              text = old
+              builder = filename.endswith('strategy-builder.tsx')
+              imports = '\nimport { Button, Input, ' + ('Textarea' if builder else 'Select') + ' } from "@/components/ui/primitives";'
+              if builder:
+                  imports += '\nimport { Checkbox } from "@/components/ui/checkbox";\nimport { STRATEGY_SURFACE } from "@/components/ui/strategy-ui";'
+              else:
+                  imports += '\nimport { statusTone, impactTone, STRATEGY_SURFACE, StrategyMetricCard as StatCard, StrategySummaryMetric as SummaryMetric } from "@/components/ui/strategy-ui";'
+              text = text.replace('"use client";', '"use client";' + imports, 1)
+              if builder:
+                  text = text.replace('<input type="checkbox"', '<Checkbox')
+                  text = text.replace('className="h-4 w-4 rounded border-border"', '')
+                  for name in ['w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none', 'w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none']:
+                      assert name in text
+                      text = text.replace('className="' + name + '"', '')
+                  text = action(text, 'rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-300', 'primary')
+                  text = action(text, 'rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent', 'secondary')
+              else:
+                  start = text.index('const statusTone:')
+                  end = text.index('function formatPct(', start)
+                  text = text[:start] + text[end:]
+                  start = text.index('function StatCard(')
+                  end = text.index('function RuleCard(', start)
+                  text = text[:start] + text[end:]
+                  start = text.index('function SummaryMetric(')
+                  end = text.index('export function StrategyControlTab()', start)
+                  text = text[:start] + text[end:]
+                  text = text.replace(', type ReactNode', '').replace('RuleInstance, RuleStatus, StrategyProfile', 'RuleInstance, StrategyProfile')
+                  field = 'mt-2 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary/40 focus:ring-2 focus:ring-primary/15'
+                  assert field in text
+                  text = text.replace('className="' + field + '"', 'className="mt-2"')
+                  field = 'min-w-[240px] rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary/40 focus:ring-2 focus:ring-primary/15'
+                  assert field in text
+                  text = text.replace('className="' + field + '"', 'className="min-w-[240px]"')
+                  actions = [
+                      ('rounded-full border border-border bg-card p-2 text-muted-foreground transition hover:bg-accent hover:text-foreground', 'ghost', 'icon'),
+                      ('mt-4 rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-500/15 dark:text-blue-300', 'secondary', 'md'),
+                      ('shrink-0 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-accent', 'secondary', 'sm'),
+                      ('rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-500/15 disabled:cursor-not-allowed disabled:opacity-50 dark:text-emerald-300', 'primary', 'md'),
+                      ('rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-500/15 disabled:cursor-not-allowed disabled:opacity-50 dark:text-blue-300', 'secondary', 'md'),
+                      ('rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-50 dark:text-rose-300', 'destructive', 'md'),
+                  ]
+                  for classname, variant, size in actions:
+                      text = action(text, classname, variant, size)
+              for tag, component in [('input', 'Input'), ('textarea', 'Textarea'), ('select', 'Select')]:
+                  text = re.sub(r'<' + tag + r'(?=\s)', '<' + component, text)
+                  text = text.replace('</' + tag + '>', '</' + component + '>')
+              text = text.replace('className="rounded-2xl border border-border bg-card p-5 shadow-sm"', 'className={STRATEGY_SURFACE}').replace('className="rounded-2xl border border-border bg-card p-5"', 'className={STRATEGY_SURFACE}')
+              for base, semantic in [('emerald', 'green'), ('rose', 'red'), ('amber', 'gold'), ('blue', 'primary')]:
+                  text = text.replace('text-' + base + '-700/80 dark:text-' + base + '-300/80', 'text-' + semantic + '/80')
+                  text = text.replace('text-' + base + '-700 dark:text-' + base + '-300', 'text-' + semantic)
+                  text = text.replace('border-' + base + '-500/20', 'border-' + semantic + '/20').replace('bg-' + base + '-500/10', 'bg-' + semantic + '/10')
+              for token in ['analyzeTrades(', 'toStrategyControlTrade', 'isInKyivPeriod(', 'onChange=', 'onClick=', 'disabled=', 'router.push(', 'focusTradeIds=', 'aria-label=', 'useModalEscape(']:
+                  assert old.count(token) == text.count(token), 'Behavior constraint changed: ' + token
+              if builder:
+                  assert old[old.index('  function handleSave()'):old.index('  return <div className="w-full')] == text[text.index('  function handleSave()'):text.index('  return <div className="w-full')], 'Builder save changed'
+              else:
+                  a = '  const { visibleTrades, loading:'
+                  b = '  if (builderOpen)'
+                  assert old[old.index(a):old.index(b)] == text[text.index(a):text.index(b)], 'Strategy analysis or CRUD changed'
+              path.write_text('\n'.join(line.rstrip() for line in text.splitlines()) + '\n')
+          path = Path('docs/ROADMAP.md')
+          roadmap = path.read_text()
+          assert roadmap.startswith('# Roadmap mqvault')
+          path.write_text(roadmap + '\n## Strategy UI shared controls package — 2026-10-31\n\n- [x] Code: Strategy Control and builder use shared fields/selects/textarea/checkbox and primary actions. Local metric renderers/status palettes extracted to strategy-ui; repeated surfaces share style definition.\n- [x] Guards: source SHAs, analysis/CRUD and builder-save blocks, callbacks/navigation counts checked unchanged. Engine, rule definitions, API and database are not modified.\n- [ ] Verify lint/TypeScript/final push/Vercel build.\n- [ ] Browser: create/cancel, numeric/list parameters, sessions, toggles, dates, strategy selection, duplicate/delete/Undo on safe test data, modal/evidence navigation and both themes.\n- [ ] Rule/evidence clickable-card shells, complete modal keyboard behavior, remaining layout typography and other screen adoption still need review. Native date fields are not a custom DateTime picker.\n- [ ] Full site centralization, localization and production release remain incomplete.\n')
+      - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - name: Commit application and docs only
+        run: |
+          git diff --check
+          git diff --exit-code -- .github/workflows
+          git add src/components/strategy-control/strategy-builder.tsx src/components/tabs/strategy-control-tab.tsx docs/ROADMAP.md
+          if git diff --cached --name-only | grep -q '^.github/workflows/'; then exit 1; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "refactor(ui): unify strategy controls and metric styling"
+          git push origin HEAD:feat/journal-layout-filters
