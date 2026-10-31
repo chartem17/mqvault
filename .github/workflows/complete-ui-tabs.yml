@@ -115,7 +115,7 @@ jobs:
               text = re.sub(r'className="([^"\n]*\bbg-card(?:/\d+)?[^"\n]*)"', shared_surface, text)
               for token in ['onClick=', 'onChange=', 'fetch(', 'useMarketQuotes(', 'setSelectedId(', 'EXPOSURE_WINDOW_MS']:
                   assert old.count(token) == text.count(token), 'Unexpected behavior change: ' + token
-              Path(filename).write_text('\n'.join(line.rstrip() for line in text.splitlines()) + '\n')
+              Path(filename).write_text(text.rstrip() + '\n')
           path = Path('docs/ROADMAP.md')
           roadmap = path.read_text()
           assert roadmap.startswith('# Roadmap mqvault')
