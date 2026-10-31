@@ -1,5 +1,7 @@
 "use client";
 import { cn } from "@/lib/utils";
+import { Panel } from "./primitives";
+import { CardHint, CardLabel, CardValue } from "./card-content";
 
 export function StatCard({
   label, value, sub, colorClass, className,
@@ -12,10 +14,10 @@ export function StatCard({
   className?: string;
 }) {
   return (
-    <div className={cn("rounded-2xl border border-white/10 bg-panel p-4 flex flex-col gap-1.5", className)}>
-      <p className="text-xs text-white/55 font-medium uppercase tracking-wider">{label}</p>
-      <p className={cn("text-2xl font-bold tabular-nums", colorClass)}>{value}</p>
-      {sub && <p className="text-xs text-white/50">{sub}</p>}
-    </div>
+    <Panel className={cn("flex flex-col gap-1.5 p-4", className)}>
+      <CardLabel>{label}</CardLabel>
+      <CardValue className={colorClass}>{value}</CardValue>
+      {sub && <CardHint>{sub}</CardHint>}
+    </Panel>
   );
 }
