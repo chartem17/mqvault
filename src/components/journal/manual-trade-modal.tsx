@@ -249,6 +249,7 @@ export function ManualTradeModal({
   const [marketFilter, setMarketFilter] = useState<string>("All");
   const [imageFailed, setImageFailed] = useState(false);
   const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { instruments } = useInstruments();
   const marketOptions = useMemo(
@@ -275,6 +276,7 @@ export function ManualTradeModal({
     setShakeSubmit(false);
     setImageFailed(false);
     setLocalPreviewUrl(null);
+    setLightboxOpen(false);
   }, [open, initialTrade, accounts, defaultAccountId]);
 
   const matchingAssets = useMemo(() => {
@@ -535,12 +537,19 @@ export function ManualTradeModal({
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 bg-card">
           <div className="space-y-2">
             {previewSource && !imageFailed ? (
-              <img
-                src={previewSource}
-                alt="Trade chart snapshot"
-                className="w-full max-h-[420px] object-contain rounded-xl border border-border bg-secondary/40"
-                onError={() => setImageFailed(true)}
-              />
+              <button
+                type="button"
+                onClick={() => setLightboxOpen(true)}
+                className="block w-full cursor-zoom-in"
+                aria-label="Open chart preview fullscreen"
+              >
+                <img
+                  src={previewSource}
+                  alt="Trade chart snapshot"
+                  className="w-full max-h-[420px] object-contain rounded-xl border border-border bg-secondary/40"
+                  onError={() => setImageFailed(true)}
+                />
+              </button>
             ) : (
               <div className="flex items-center justify-center rounded-xl border border-dashed border-border bg-secondary/40 p-6 text-sm text-muted-foreground">
                 Add a TradingView snapshot URL to preview the chart
@@ -822,6 +831,31 @@ export function ManualTradeModal({
           </Button>
         </footer>
       </aside>
+
+      {lightboxOpen && previewSource ? (
+        <div
+          className="fixed inset-0 z-[60] bg-black/85 flex items-center justify-center p-4"
+          onClick={() => setLightboxOpen(false)}
+        >
+          <button
+            type="button"
+            className="absolute right-4 top-4 text-white/80 hover:text-white"
+            aria-label="Close chart preview"
+            onClick={(event) => {
+              event.stopPropagation();
+              setLightboxOpen(false);
+            }}
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img
+            src={previewSource}
+            alt="Trade chart snapshot"
+            className="max-h-[92vh] max-w-[96vw] object-contain rounded-xl"
+            onClick={(event) => event.stopPropagation()}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
