@@ -228,3 +228,12 @@ Field adoption recovery: normalize helper indentation before comparing unchanged
 - [ ] Confirm checks, final push, Vercel and visual acceptance; compatible APIs do not imply pixel-perfect output.
 - [ ] Next: classify and remove confirmed-unused CSS/temporary workflows after completed-run/reference checks; do not delete compatibility modules still imported by screens.
 - [ ] Remaining screen adoption, full localization and production release are not complete.
+
+## Agreed completion plan: steps 1–2 — 2026-11-01
+
+- [x] Code: News/Screenshots removed from tab registry, rendering and navigation; their two component files deleted after reference check. Retired ?tab values fall back to Overview through the existing registry fallback.
+- [x] Code: Market/Calendar retain data, providers, event/exposure logic and callbacks while adopting shared surfaces, MetricCard variants and common refresh/select controls. Unique calendar/event interactions remain.
+- [ ] Confirm checks/final push/Vercel and browser acceptance for five remaining tabs, calendar filters/details and market refresh.
+- [ ] Next combined steps 3–4: unified Select/DateTime/Checkbox public controls, remove consumer overrides, verify adoption then cleanup unused files/completed workflows.
+
+Screenshot URLs, attachments, journal data, database, API and production settings are not deleted or modified. This UI removal is not a storage purge. Other data-source work must be rebased/reconciled rather than blindly merged over these UI changes.

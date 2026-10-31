@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { useTheme } from "next-themes";
-import { LayoutDashboard, BookOpen, Globe2, CalendarDays, Newspaper, Camera, TrendingUp, Sun, Moon, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, BookOpen, Globe2, CalendarDays, TrendingUp, Sun, Moon, ShieldCheck } from "lucide-react";
 import type { TabId } from "@/app/page";
 import AccountSwitcher from "@/components/account-switcher";
 import { Button } from "@/components/ui/primitives";
@@ -14,8 +14,6 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "strategy-control", label: "Контроль стратегії", icon: ShieldCheck },
   { id: "market", label: "Ринок", icon: Globe2 },
   { id: "calendar", label: "Календар", icon: CalendarDays },
-  { id: "news", label: "Новини", icon: Newspaper },
-  { id: "screenshots", label: "Скріни", icon: Camera },
 ];
 
 export default function AppShellLayout({ children, activeTab, setActiveTab }: { children: ReactNode; activeTab: TabId; setActiveTab: (tab: TabId) => void }) {

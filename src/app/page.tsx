@@ -7,12 +7,10 @@ import { OverviewTab } from "@/components/tabs/overview-tab";
 import { JournalTab } from "@/components/tabs/journal-tab";
 import { MarketTab } from "@/components/tabs/market-tab";
 import { CalendarTab } from "@/components/tabs/calendar-tab";
-import { NewsTab } from "@/components/tabs/news-tab";
-import { ScreenshotsTab } from "@/components/tabs/screenshots-tab";
 import { StrategyControlTab } from "@/components/tabs/strategy-control-tab";
 import { parseJournalFocus } from "@/lib/journal-focus";
 
-const TABS = ["overview", "journal", "strategy-control", "market", "calendar", "news", "screenshots"] as const;
+const TABS = ["overview", "journal", "strategy-control", "market", "calendar"] as const;
 export type TabId = typeof TABS[number];
 function HomeContent() {
   const router = useRouter();
@@ -38,8 +36,6 @@ function HomeContent() {
       case "strategy-control": return <StrategyControlTab />;
       case "market": return <MarketTab />;
       case "calendar": return <CalendarTab />;
-      case "news": return <NewsTab />;
-      case "screenshots": return <ScreenshotsTab />;
     }
   }
   return <AppShellLayout activeTab={activeTab} setActiveTab={setActiveTab}>{renderTab()}</AppShellLayout>;
