@@ -16,17 +16,20 @@ export const JOURNAL_COLUMNS = [
   { id: 'id', label: 'ID угоди' },
 ] as const;
 export type JournalColumnId = typeof JOURNAL_COLUMNS[number]['id'];
-export type JournalLayout = { version: 1; order: JournalColumnId[]; hidden: JournalColumnId[] };
+export type JournalViewMode = 'table' | 'cards';
+export type JournalLayout = { version: 1; order: JournalColumnId[]; hidden: JournalColumnId[]; view: JournalViewMode };
 export function defaultJournalLayout(): JournalLayout {
-  return { version: 1, order: JOURNAL_COLUMNS.map(column => column.id), hidden: [] };
+  return { version: 1, order: JOURNAL_COLUMNS.map(column => column.id), hidden: [], view: 'table' };
 }
 export function parseJournalLayout(value: unknown): JournalLayout {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid journal layout');
   const row = value as Record<string, unknown>;
   const allowed = new Set<string>(JOURNAL_COLUMNS.map(column => column.id));
   const validList = (items: unknown): items is JournalColumnId[] => Array.isArray(items) && items.every(item => typeof item === 'string' && allowed.has(item)) && new Set(items).size === items.length;
-  if (Object.keys(row).some(key => !['version', 'order', 'hidden'].includes(key)) || row.version !== 1 || !validList(row.order) || row.order.length !== JOURNAL_COLUMNS.length || !validList(row.hidden) || row.hidden.length >= JOURNAL_COLUMNS.length) throw new Error('Invalid journal layout');
-  return { version: 1, order: [...row.order], hidden: [...row.hidden] };
+  const view = row.view === undefined ? 'table' : row.view;
+  if (view !== 'table' && view !== 'cards') throw new Error('Invalid journal layout');
+  if (Object.keys(row).some(key => !['version', 'order', 'hidden', 'view'].includes(key)) || row.version !== 1 || !validList(row.order) || row.order.length !== JOURNAL_COLUMNS.length || !validList(row.hidden) || row.hidden.length >= JOURNAL_COLUMNS.length) throw new Error('Invalid journal layout');
+  return { version: 1, order: [...row.order], hidden: [...row.hidden], view };
 }
 export function visibleJournalColumns(layout: JournalLayout): JournalColumnId[] {
   const hidden = new Set(layout.hidden);

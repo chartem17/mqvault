@@ -30,9 +30,9 @@ export function useJournalLayout() {
   const dirty = saved !== null && JSON.stringify(layout) !== JSON.stringify(saved.layout);
   function change(next: JournalLayout) { if (canEdit && !busy.current) setLayout(parseJournalLayout(next)); }
   function cancel() { if (saved && !busy.current) { setLayout(saved.layout); if (!conflict) setError(null); } }
-  async function save(): Promise<boolean> {
-    if (!saved || !canEdit || busy.current) return false;
-    if (!dirty) return true;
+  const save = useCallback(async (): Promise<boolean> => {
+    if (!saved || busy.current) return false;
+    if (JSON.stringify(layout) === JSON.stringify(saved.layout)) return true;
     busy.current = true; setSaving(true); setError(null);
     try {
       const value = await responseValue(await fetch('/api/preferences/journal-layout', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ layout, expectedRevision: saved.revision }) }));
@@ -41,6 +41,13 @@ export function useJournalLayout() {
       if (cause && typeof cause === 'object' && 'status' in cause && cause.status === 409) setConflict(true);
       setError(cause instanceof Error ? cause.message : 'Помилка збереження'); return false;
     } finally { busy.current = false; setSaving(false); }
-  }
+  }, [layout, saved]);
+  const saveRef = useRef(save);
+  useEffect(() => { saveRef.current = save; }, [save]);
+  useEffect(() => {
+    if (!canEdit || !dirty) return;
+    const timer = window.setTimeout(() => { void saveRef.current(); }, 500);
+    return () => window.clearTimeout(timer);
+  }, [layout, canEdit, dirty]);
   return { layout, loading, saving, error, conflict, dirty, canEdit, change, cancel, save, reload };
 }
