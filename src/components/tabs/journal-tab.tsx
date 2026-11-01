@@ -1,7 +1,7 @@
 "use client";
 import { Checkbox } from "@/components/ui/checkbox";
 import { EmptyState } from "@/components/ui/empty-state";
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Pencil, Plus, Search, Trash2, SlidersHorizontal, GripVertical, LayoutGrid, Table as TableIcon } from 'lucide-react';
 import { Button, Input, Select } from '@/components/ui/primitives';
 import { ManualTradeModal } from '@/components/journal/manual-trade-modal';
@@ -21,19 +21,27 @@ export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus }: { focus?:
   const prefs = useJournalLayout();
   const [search, setSearch] = useState('');
   const [panel, setPanel] = useState(false);
-  const [fieldSearch, setFieldSearch] = useState('');
   const [editing, setEditing] = useState(false);
   const [dragging, setDragging] = useState<JournalColumnId | null>(null);
   const [filters, setFilters] = useState<Partial<Record<JournalColumnId, string>>>({});
   const [filterSession, setFilterSession] = useState('All');
+  const [filterMarket, setFilterMarket] = useState('All');
   const [sort, setSort] = useState<JournalColumnId>('opened_at');
   const [ascending, setAscending] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingTrade, setEditingTrade] = useState<JournalTrade | null>(null);
   const [copyStatus, setCopyStatus] = useState('');
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const columns = visibleJournalColumns(prefs.layout);
   const view = prefs.layout.view;
   function setView(next: JournalViewMode) { if (prefs.canEdit) prefs.change({ ...prefs.layout, view: next }); }
+  const marketOptions = useMemo(() => Array.from(new Set(visibleTrades.map(trade => trade.market).filter((value): value is string => Boolean(value)))), [visibleTrades]);
+  useEffect(() => {
+    if (!panel) return;
+    function onPointerDown(event: MouseEvent) { if (panelRef.current && !panelRef.current.contains(event.target as Node)) setPanel(false); }
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
+  }, [panel]);
   const focusedTrades = useMemo(() => applyJournalFocus(visibleTrades, focus), [visibleTrades, focus]);
   function accountName(id: string) { return accounts.find(account => account.id === id)?.name ?? 'Unknown'; }
   function raw(trade: JournalTrade, id: JournalColumnId): string | number | null {
@@ -53,6 +61,7 @@ export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus }: { focus?:
     if (filterSession !== 'All') {
       try { if (!matchesSessionSelection({ sessionKey: getSessionKey(trade.opened_at), sessionGroup: getSessionGroup(trade.opened_at) }, [filterSession])) return false; } catch { return false; }
     }
+    if (filterMarket !== 'All' && trade.market !== filterMarket) return false;
     return true;
   }).sort((a, b) => {
     let left = raw(a, sort), right = raw(b, sort);
@@ -82,33 +91,31 @@ export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus }: { focus?:
   return <div className="space-y-4 p-6">
     <div className="flex flex-wrap items-center gap-2">
       <div className="relative min-w-[200px] flex-1"><Search aria-hidden="true" className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input aria-label="Пошук угод" value={search} onChange={e => setSearch(e.target.value)} placeholder="Пошук угод, ID…" style={{ paddingLeft: '2.25rem' }} /></div>
-      <div className="relative"><Button variant="secondary" size="sm" aria-expanded={panel} onClick={() => setPanel(!panel)}><SlidersHorizontal className="h-4 w-4" />Фільтри й колонки</Button>
-        {panel && <section aria-label="Фільтри й колонки" onKeyDown={e => { if (e.key === 'Escape') setPanel(false); }} className="absolute right-0 top-full z-30 mt-2 w-[min(360px,85vw)] rounded-2xl border border-border bg-card p-3 shadow-2xl">
-          <div className="mb-2 flex items-center gap-2"><Input aria-label="Пошук поля" placeholder="Знайти поле…" value={fieldSearch} onChange={e => setFieldSearch(e.target.value)} className="min-w-0 flex-1" /><Button variant="ghost" size="icon" aria-label="Закрити панель" onClick={() => setPanel(false)}>×</Button></div>
-          <p className="mb-2 text-xs text-muted-foreground">Перемикач — видимість. Поле нижче — фільтр «містить». Приховування не скидає фільтр.</p>
-          <div className="max-h-[50vh] space-y-2 overflow-y-auto">{prefs.layout.order.filter(id => labelFor(id).toLowerCase().includes(fieldSearch.toLowerCase())).map(id => <div key={id} className="rounded-xl border border-border p-2"><label className="flex items-center gap-2 text-sm"><Checkbox checked={!prefs.layout.hidden.includes(id)} disabled={!prefs.canEdit || (!prefs.layout.hidden.includes(id) && columns.length === 1)} onChange={() => prefs.change(toggleJournalColumn(prefs.layout, id))} />{labelFor(id)}</label><Input aria-label={`Фільтр ${labelFor(id)}`} value={filters[id] ?? ''} onChange={e => filter(id, e.target.value)} placeholder="Містить…" className="mt-2" /></div>)}</div>
-          <label className="mt-3 block text-xs">Група / підсесія<Select aria-label="Фільтр сесії" value={filterSession} onChange={e => setFilterSession(e.target.value)} className="mt-1"><option value="All">Усі сесії</option>{SESSION_RULE_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</Select></label>
-          <Button variant="secondary" size="sm" className="mt-3 w-full" onClick={() => { setSearch(''); setFilters({}); setFilterSession('All'); }}>Скинути фільтри</Button>
+      <div className="relative" ref={panelRef}><Button variant="secondary" size="sm" aria-expanded={panel} onClick={() => setPanel(!panel)}><SlidersHorizontal className="h-4 w-4" />Колонки</Button>
+        {panel && <section aria-label="Видимість колонок" className="absolute right-0 top-full z-30 mt-2 w-[min(320px,85vw)] rounded-2xl border border-border bg-card p-3 shadow-2xl">
+          <p className="mb-2 text-xs text-muted-foreground">Перемикач — видимість колонки.</p>
+          <div className="max-h-[50vh] space-y-2 overflow-y-auto">{prefs.layout.order.map(id => <div key={id} className="rounded-xl border border-border p-2"><label className="flex items-center gap-2 text-sm"><Checkbox checked={!prefs.layout.hidden.includes(id)} disabled={!prefs.canEdit || (!prefs.layout.hidden.includes(id) && columns.length === 1)} onChange={() => prefs.change(toggleJournalColumn(prefs.layout, id))} />{labelFor(id)}</label></div>)}</div>
         </section>}
       </div>
+      <Select aria-label="Фільтр ринку" value={filterMarket} onChange={e => setFilterMarket(e.target.value)} className="w-auto rounded-full"><option value="All">Усі ринки</option>{marketOptions.map(option => <option key={option} value={option}>{option}</option>)}</Select>
+      <Select aria-label="Фільтр сесії" value={filterSession} onChange={e => setFilterSession(e.target.value)} className="w-auto rounded-full"><option value="All">Усі сесії</option>{SESSION_RULE_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</Select>
       <div className="relative grid grid-cols-2 items-center rounded-full border border-border bg-secondary/60 p-1 text-xs" role="tablist" aria-label="Вигляд журналу">
         <span aria-hidden="true" className={`absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-primary shadow transition-transform duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${view === 'cards' ? 'translate-x-full' : 'translate-x-0'}`} />
         <button type="button" role="tab" aria-selected={view === 'table'} onClick={() => setView('table')} className={`relative z-10 flex items-center justify-center gap-1.5 rounded-full px-3 py-1.5 transition-colors ${view === 'table' ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}><TableIcon className="h-3.5 w-3.5" />Таблиця</button>
         <button type="button" role="tab" aria-selected={view === 'cards'} onClick={() => setView('cards')} className={`relative z-10 flex items-center justify-center gap-1.5 rounded-full px-3 py-1.5 transition-colors ${view === 'cards' ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}><LayoutGrid className="h-3.5 w-3.5" />Картки</button>
       </div>
-      {!editing && <Button variant="secondary" size="sm" disabled={!prefs.canEdit} onClick={() => setEditing(true)}>Впорядкувати колонки</Button>}
+      {view !== 'cards' && !editing && <Button variant="secondary" size="sm" disabled={!prefs.canEdit} onClick={() => setEditing(true)}>Впорядкувати колонки</Button>}
       <Button size="sm" onClick={() => { setEditingTrade(null); setShowModal(true); }}><Plus className="h-4 w-4" />Додати угоду</Button>
     </div>
-    <div className="flex flex-wrap items-center gap-2 text-xs"><span className="text-muted-foreground">Сортування:</span><div><Select aria-label="Поле сортування" value={sort} onChange={e => setSort(e.target.value as JournalColumnId)}>{JOURNAL_COLUMNS.map(column => <option key={column.id} value={column.id}>{column.label}</option>)}</Select></div><Button variant="secondary" size="sm" onClick={() => setAscending(!ascending)}>{ascending ? 'За зростанням ↑' : 'За спаданням ↓'}</Button>{activeFilters.map(([id, value]) => <Button variant="secondary" size="sm" key={id} onClick={() => filter(id, '')}>{labelFor(id)}: {value} ×</Button>)}{filterSession !== 'All' && <Button variant="secondary" size="sm" onClick={() => setFilterSession('All')}>{filterSession} ×</Button>}</div>
-    {(editing || prefs.dirty) && <div className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 p-3"><p className="mr-auto text-xs">{editing ? 'Перетягніть заголовок або скористайтеся ← / →. Зміни ще не збережені.' : 'Вигляд журналу змінено, але ще не збережений.'}</p><Button variant="secondary" size="sm" disabled={!prefs.canEdit} onClick={() => prefs.change(defaultJournalLayout())}>Стандартний вигляд</Button><Button variant="secondary" size="sm" disabled={prefs.saving} onClick={() => { prefs.cancel(); setEditing(false); setDragging(null); }}>Скасувати</Button><Button size="sm" disabled={!prefs.canEdit} onClick={async () => { if (await prefs.save()) { setEditing(false); setDragging(null); } }}>{prefs.saving ? 'Збереження…' : 'Підтвердити зміни'}</Button></div>}
+    <div className="flex flex-wrap items-center gap-2 text-xs"><span className="text-muted-foreground">Сортування:</span><div><Select aria-label="Поле сортування" value={sort} onChange={e => setSort(e.target.value as JournalColumnId)}>{JOURNAL_COLUMNS.map(column => <option key={column.id} value={column.id}>{column.label}</option>)}</Select></div><Button variant="secondary" size="sm" onClick={() => setAscending(!ascending)}>{ascending ? 'За зростанням ↑' : 'За спаданням ↓'}</Button>{activeFilters.map(([id, value]) => <Button variant="secondary" size="sm" key={id} onClick={() => filter(id, '')}>{labelFor(id)}: {value} ×</Button>)}{filterSession !== 'All' && <Button variant="secondary" size="sm" onClick={() => setFilterSession('All')}>{filterSession} ×</Button>}{filterMarket !== 'All' && <Button variant="secondary" size="sm" onClick={() => setFilterMarket('All')}>{filterMarket} ×</Button>}</div>
     {prefs.loading && <p role="status" className="text-xs text-muted-foreground">Завантаження вигляду журналу…</p>}
     {prefs.error && <div role="alert" className="rounded-lg border border-border p-3 text-sm">{prefs.error}<Button variant="secondary" size="sm" className="ml-2" disabled={prefs.saving || prefs.loading} onClick={() => { setEditing(false); void prefs.reload(); }}>Перечитати й відкинути локальні зміни</Button></div>}
     {focus.kind !== 'none' && <div role={focus.kind === 'invalid' ? 'alert' : 'status'} className="rounded-xl border border-primary/20 bg-primary/5 p-4"><p>Доказові угоди зі Strategy Control</p>{focus.kind === 'invalid' ? <p>{focus.message}</p> : <p className="mt-1 text-xs">ID у посиланні: {focus.ids.length}. В активній вибірці: {focusedTrades.length}. Після фільтрів: {filtered.length}. Частина ID може бути недоступна в обраних рахунках.</p>}<p className="mt-1 text-xs text-muted-foreground">Фіксований перелік ID, без копіювання угод і розширення вибірки рахунків.</p>{onClearFocus && <Button variant="secondary" size="sm" onClick={onClearFocus} className="mt-2">Зняти фільтр доказових угод</Button>}</div>}
     {error && <div role="alert" className="rounded-lg border border-destructive/30 p-3 text-sm text-destructive">{error}</div>}
     <p role="status" className="text-xs text-muted-foreground">{copyStatus}</p>
     {view === 'cards' ? (
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {loading ? <EmptyState title="Завантаження угод…" role="status" className="sm:col-span-2 lg:col-span-3" /> : !filtered.length ? <EmptyState title="Угод за цими фільтрами немає." className="sm:col-span-2 lg:col-span-3" /> : filtered.map(trade => (
+      <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(230px,1fr))]">
+        {loading ? <EmptyState title="Завантаження угод…" role="status" className="col-span-full" /> : !filtered.length ? <EmptyState title="Угод за цими фільтрами немає." className="col-span-full" /> : filtered.map(trade => (
           <button key={trade.id} type="button" onClick={() => { setEditingTrade(trade); setShowModal(true); }} className="group overflow-hidden rounded-2xl border border-border bg-card text-left transition hover:border-primary/40 hover:shadow-lg">
             {trade.screenshot_url ? <img src={trade.screenshot_url} alt="" className="h-40 w-full object-cover" /> : <div className="flex h-40 items-center justify-center bg-secondary/40 text-xs text-muted-foreground">Немає скріншоту</div>}
             <div className="space-y-1 p-3">
