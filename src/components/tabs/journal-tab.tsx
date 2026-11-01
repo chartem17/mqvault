@@ -114,7 +114,7 @@ export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus }: { focus?:
     {error && <div role="alert" className="rounded-lg border border-destructive/30 p-3 text-sm text-destructive">{error}</div>}
     <p role="status" className="text-xs text-muted-foreground">{copyStatus}</p>
     {view === 'cards' ? (
-      <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(280px,1fr))]">
+      <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(320px,1fr))]">
         {loading ? <EmptyState title="Завантаження угод…" role="status" className="col-span-full" /> : !filtered.length ? <EmptyState title="Угод за цими фільтрами немає." className="col-span-full" /> : filtered.map(trade => (
           <button key={trade.id} type="button" onClick={() => { setEditingTrade(trade); setShowModal(true); }} className="group overflow-hidden rounded-2xl border border-border bg-card text-left transition hover:border-primary/40 hover:shadow-lg">
             {trade.screenshot_url ? <img src={trade.screenshot_url} alt="" className="h-40 w-full object-cover" /> : <div className="flex h-40 items-center justify-center bg-secondary/40 text-xs text-muted-foreground">Немає скріншоту</div>}
