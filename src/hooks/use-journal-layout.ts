@@ -31,7 +31,7 @@ export function useJournalLayout() {
   function change(next: JournalLayout) { if (canEdit && !busy.current) setLayout(parseJournalLayout(next)); }
   function cancel() { if (saved && !busy.current) { setLayout(saved.layout); if (!conflict) setError(null); } }
   async function save(): Promise<boolean> {
-    if (!saved || !canEdit || busy.current) return false;
+    if (!saved || busy.current) return false;
     if (!dirty) return true;
     busy.current = true; setSaving(true); setError(null);
     try {
@@ -42,5 +42,10 @@ export function useJournalLayout() {
       setError(cause instanceof Error ? cause.message : 'Помилка збереження'); return false;
     } finally { busy.current = false; setSaving(false); }
   }
+  useEffect(() => {
+    if (!canEdit || !dirty || busy.current) return;
+    const timer = window.setTimeout(() => { void save(); }, 500);
+    return () => window.clearTimeout(timer);
+  });
   return { layout, loading, saving, error, conflict, dirty, canEdit, change, cancel, save, reload };
 }
