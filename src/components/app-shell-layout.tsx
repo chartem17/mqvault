@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { useTheme } from "next-themes";
-import { LayoutDashboard, BookOpen, Globe2, CalendarDays, TrendingUp, Sun, Moon, ShieldCheck } from "lucide-react";
+import { House, LayoutDashboard, BookOpen, Globe2, CalendarDays, TrendingUp, Sun, Moon, ShieldCheck } from "lucide-react";
 import type { TabId } from "@/app/page";
 import AccountSwitcher from "@/components/account-switcher";
 import { Button } from "@/components/ui/primitives";
@@ -10,6 +10,7 @@ import { NavigationButton } from "@/components/ui/navigation-button";
 import { TimezoneControl } from "@/components/settings/timezone-control";
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
+  { id: "home", label: "Головна", icon: House },
   { id: "overview", label: "Огляд", icon: LayoutDashboard },
   { id: "journal", label: "Журнал", icon: BookOpen },
   { id: "strategy-control", label: "Контроль стратегії", icon: ShieldCheck },

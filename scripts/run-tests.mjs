@@ -14,6 +14,7 @@ const dom = ["--lib", "ES2020,DOM"];
 const builds = [
   [["src/hooks/use-mt5.ts", "src/lib/mt5-retirement.ts"], ".tmp-local-bridge-tests", [...dom, "--strict"]],
   [["src/lib/account-chain.ts"], ".tmp-account-chain-tests", [...dom, "--strict"]],
+  [["src/lib/home-summary.ts"], ".tmp-home-summary-tests", [...dom, "--strict"]],
   [["src/lib/account-overview.ts"], ".tmp-account-overview-tests", [...dom, "--strict"]],
   [["src/lib/account-payload.ts"], ".tmp-account-payload-tests", [...dom, "--strict"]],
   [["src/lib/account-setup.ts"], ".tmp-account-tests", [...dom, "--strict"]],
