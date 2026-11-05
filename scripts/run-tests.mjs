@@ -21,6 +21,7 @@ const builds = [
   [["src/lib/journal-filters.ts"], ".tmp-journal-filters-tests", ["--strict"]],
   [["src/lib/timezone.ts"], ".tmp-timezone-tests", [...dom, "--strict"]],
   [["src/lib/prop-rule-settings.ts", "src/lib/prop-rule-record.ts"], ".tmp-prop-rule-tests", [...dom, "--strict"]],
+  [["src/lib/session-token.ts"], ".tmp-session-token-tests", [...dom, "--strict"]],
   [["src/lib/session-selection.ts"], ".tmp-session-selection-tests", [...dom, "--strict"]],
   [["src/lib/sessions.ts"], ".tmp-session-tests", dom],
   [["src/lib/supabase/deletion-result.ts"], ".tmp-deletion-tests", [...dom, "--strict"]],
