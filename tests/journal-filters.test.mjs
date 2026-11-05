@@ -14,43 +14,45 @@ test('column kinds', () => {
 
 test('number range is inclusive and accepts comma decimals', () => {
   const filter = { min: '-10,5', max: '50' };
-  assert.equal(f.matchesJournalFilter('net_pnl', filter, { numeric: -10.5 }), true);
-  assert.equal(f.matchesJournalFilter('net_pnl', filter, { numeric: 50 }), true);
-  assert.equal(f.matchesJournalFilter('net_pnl', filter, { numeric: 50.01 }), false);
-  assert.equal(f.matchesJournalFilter('net_pnl', filter, { numeric: -11 }), false);
+  assert.equal(f.matchesJournalFilter('net_pnl', filter, { numeric: -10.5 }, 'UTC'), true);
+  assert.equal(f.matchesJournalFilter('net_pnl', filter, { numeric: 50 }, 'UTC'), true);
+  assert.equal(f.matchesJournalFilter('net_pnl', filter, { numeric: 50.01 }, 'UTC'), false);
+  assert.equal(f.matchesJournalFilter('net_pnl', filter, { numeric: -11 }, 'UTC'), false);
 });
 
 test('one-sided number bounds', () => {
-  assert.equal(f.matchesJournalFilter('result_r', { min: '1' }, { numeric: 3 }), true);
-  assert.equal(f.matchesJournalFilter('result_r', { min: '1' }, { numeric: 0.5 }), false);
-  assert.equal(f.matchesJournalFilter('result_r', { max: '0' }, { numeric: -1 }), true);
+  assert.equal(f.matchesJournalFilter('result_r', { min: '1' }, { numeric: 3 }, 'UTC'), true);
+  assert.equal(f.matchesJournalFilter('result_r', { min: '1' }, { numeric: 0.5 }, 'UTC'), false);
+  assert.equal(f.matchesJournalFilter('result_r', { max: '0' }, { numeric: -1 }, 'UTC'), true);
 });
 
 test('missing value never matches an active range', () => {
-  assert.equal(f.matchesJournalFilter('result_r', { min: '0' }, { numeric: null }), false);
-  assert.equal(f.matchesJournalFilter('opened_at', { from: '2026-06-01' }, { dateMs: null }), false);
+  assert.equal(f.matchesJournalFilter('result_r', { min: '0' }, { numeric: null }, 'UTC'), false);
+  assert.equal(f.matchesJournalFilter('opened_at', { from: '2026-06-01' }, { dateMs: null }, 'UTC'), false);
 });
 
 test('invalid or empty input is not an active filter', () => {
   assert.equal(f.isFilterActive('net_pnl', { min: 'abc', max: '' }), false);
   assert.equal(f.isFilterActive('opened_at', { from: '2026-02-30' }), false);
   assert.equal(f.isFilterActive('symbol', { value: '   ' }), false);
-  assert.equal(f.matchesJournalFilter('net_pnl', { min: 'abc' }, { numeric: null }), true);
+  assert.equal(f.matchesJournalFilter('net_pnl', { min: 'abc' }, { numeric: null }, 'UTC'), true);
 });
 
-test('date range covers whole local days inclusively', () => {
+test('date range covers whole days of the user zone inclusively', () => {
   const filter = { from: '2026-06-08', to: '2026-06-08' };
-  const start = new Date(2026, 5, 8, 0, 0, 0).getTime();
-  const end = new Date(2026, 5, 8, 23, 59, 59, 999).getTime();
-  assert.equal(f.matchesJournalFilter('opened_at', filter, { dateMs: start }), true);
-  assert.equal(f.matchesJournalFilter('opened_at', filter, { dateMs: end }), true);
-  assert.equal(f.matchesJournalFilter('opened_at', filter, { dateMs: end + 1 }), false);
-  assert.equal(f.matchesJournalFilter('opened_at', filter, { dateMs: start - 1 }), false);
+  // Kyiv summer (UTC+3): 2026-06-08 is 2026-06-07T21:00Z .. 2026-06-08T21:00Z
+  const start = Date.parse('2026-06-07T21:00:00Z'), next = Date.parse('2026-06-08T21:00:00Z');
+  assert.equal(f.matchesJournalFilter('opened_at', filter, { dateMs: start }, 'Europe/Kyiv'), true);
+  assert.equal(f.matchesJournalFilter('opened_at', filter, { dateMs: next - 1 }, 'Europe/Kyiv'), true);
+  assert.equal(f.matchesJournalFilter('opened_at', filter, { dateMs: next }, 'Europe/Kyiv'), false);
+  assert.equal(f.matchesJournalFilter('opened_at', filter, { dateMs: start - 1 }, 'Europe/Kyiv'), false);
+  // Same instant, different user zone → different day
+  assert.equal(f.matchesJournalFilter('opened_at', filter, { dateMs: start }, 'America/New_York'), false);
 });
 
 test('text filter is case-insensitive contains', () => {
-  assert.equal(f.matchesJournalFilter('symbol', { value: 'xag' }, { text: 'XAGUSD' }), true);
-  assert.equal(f.matchesJournalFilter('symbol', { value: 'eur' }, { text: 'XAGUSD' }), false);
+  assert.equal(f.matchesJournalFilter('symbol', { value: 'xag' }, { text: 'XAGUSD' }, 'UTC'), true);
+  assert.equal(f.matchesJournalFilter('symbol', { value: 'eur' }, { text: 'XAGUSD' }, 'UTC'), false);
 });
 
 test('active filters keep column order and labels describe bounds', () => {

@@ -42,9 +42,19 @@ test("initial month follows Kyiv rather than browser day", () => {
 test("both components use the tested date helpers", () => {
   const strategy = readFileSync("src/components/tabs/strategy-control-tab.tsx", "utf8");
   const overview = readFileSync("src/components/tabs/overview-tab.tsx", "utf8");
-  assert.match(strategy, /isInKyivPeriod\(trade.opened_at, period\)/);
+  assert.match(strategy, /isInZonedPeriod\(trade.opened_at, period, timezone\)/);
   assert.doesNotMatch(strategy, /trade.opened_at.slice\(0, 10\)/);
   assert.match(overview, /calendarCellKey\(date\)/);
-  assert.match(overview, /kyivDayOrNull\(trade.opened_at\)/);
+  assert.match(overview, /zonedDayOrNull\(trade.opened_at, timezone\)/);
   assert.doesNotMatch(overview, /key: date.toISOString\(\).slice\(0, 10\)/);
+});
+
+test("zoned helpers take the user's zone instead of Kyiv", () => {
+  const { zonedDayOrNull, isInZonedPeriod, defaultZonedPeriod } = require("../.tmp-date-tests/trading-calendar.js");
+  // 2026-07-16T02:00Z is 16 July in Kyiv but still 15 July in New York.
+  assert.equal(zonedDayOrNull("2026-07-16T02:00:00Z", "Europe/Kyiv"), "2026-07-16");
+  assert.equal(zonedDayOrNull("2026-07-16T02:00:00Z", "America/New_York"), "2026-07-15");
+  assert.equal(isInZonedPeriod("2026-07-16T02:00:00Z", { start: "2026-07-15", end: "2026-07-15" }, "America/New_York"), true);
+  assert.equal(isInZonedPeriod("2026-07-16T02:00:00Z", { start: "2026-07-15", end: "2026-07-15" }, "Europe/Kyiv"), false);
+  assert.deepEqual(defaultZonedPeriod(1, new Date("2026-03-01T03:00:00Z"), "America/Los_Angeles"), { start: "2026-01-28", end: "2026-02-28" });
 });

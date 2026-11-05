@@ -7,6 +7,7 @@ import type { TabId } from "@/app/page";
 import AccountSwitcher from "@/components/account-switcher";
 import { Button } from "@/components/ui/primitives";
 import { NavigationButton } from "@/components/ui/navigation-button";
+import { TimezoneControl } from "@/components/settings/timezone-control";
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "overview", label: "Огляд", icon: LayoutDashboard },
@@ -44,6 +45,7 @@ export default function AppShellLayout({ children, activeTab, setActiveTab }: { 
             <div />
             <div className="flex items-center gap-3">
               <AccountSwitcher />
+              <TimezoneControl />
               <Button variant="secondary" aria-label={themeLabel} title={themeLabel} disabled={!mounted} onClick={() => mounted && setTheme(resolvedTheme === "light" ? "dark" : "light")}>
                 {light ? <Moon aria-hidden="true" className="h-4 w-4 shrink-0" /> : <Sun aria-hidden="true" className="h-4 w-4 shrink-0" />}
                 <span className="hidden sm:inline">{themeLabel}</span>

@@ -1,4 +1,5 @@
 import type { JournalTrade } from "@/hooks/use-trades";
+import { DEFAULT_TIMEZONE, dayKeyOrNull } from "@/lib/timezone";
 
 export type DrawdownPoint = {
   date: string;
@@ -9,7 +10,8 @@ export type DrawdownPoint = {
 
 export type RBucket = { range: string; count: number };
 
-export function computeAdvancedStats(trades: JournalTrade[]) {
+/** @param tz zone that decides which calendar day a trade belongs to (the user's zone). */
+export function computeAdvancedStats(trades: JournalTrade[], tz: string = DEFAULT_TIMEZONE) {
   const wins = trades.filter((t) => (t.net_pnl ?? 0) > 0);
   const losses = trades.filter((t) => (t.net_pnl ?? 0) < 0);
 
@@ -42,7 +44,7 @@ export function computeAdvancedStats(trades: JournalTrade[]) {
     peak = Math.max(peak, equity);
     const drawdownPct = peak > 0 ? ((equity - peak) / peak) * 100 : 0;
     maxDrawdownPct = Math.min(maxDrawdownPct, drawdownPct);
-    drawdownCurve.push({ date: t.opened_at.slice(0, 10), equity, peak, drawdownPct: +drawdownPct.toFixed(2) });
+    drawdownCurve.push({ date: dayKeyOrNull(t.opened_at, tz) ?? t.opened_at.slice(0, 10), equity, peak, drawdownPct: +drawdownPct.toFixed(2) });
   }
 
   const edges = [-Infinity, -2, -1, 0, 1, 2, 3, Infinity];
@@ -61,7 +63,7 @@ export function computeAdvancedStats(trades: JournalTrade[]) {
 
   const dailyPnl: Record<string, number> = {};
   for (const t of trades) {
-    const day = t.opened_at.slice(0, 10);
+    const day = dayKeyOrNull(t.opened_at, tz) ?? t.opened_at.slice(0, 10);
     dailyPnl[day] = +((dailyPnl[day] || 0) + (t.net_pnl ?? 0)).toFixed(2);
   }
 

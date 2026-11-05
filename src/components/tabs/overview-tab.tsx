@@ -13,8 +13,10 @@ import { StreakStatCard } from "@/components/ui/streak-stat-card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { RiskSummary } from "@/components/ui/risk-summary";
 import { CARD_SURFACE as CARD, CARD_TITLE, LIST_ROW, CHART_THEME } from "@/components/ui/overview-styles";
-import { SESSION_DEFINITIONS, SESSION_GROUPS, getSessionKey, getSessionLabel, getKyivDate } from "@/lib/sessions";
-import { calendarCellKey, kyivDayOrNull, kyivMonthCursor } from "@/lib/trading-calendar";
+import { SESSION_DEFINITIONS, SESSION_GROUPS, getSessionKey, getSessionLabel } from "@/lib/sessions";
+import { dayKey } from "@/lib/timezone";
+import { useTimezone } from "@/components/providers/timezone-provider";
+import { calendarCellKey, zonedDayOrNull, zonedMonthCursor } from "@/lib/trading-calendar";
 
 type EqPoint = { date: string; time?: string; symbol?: string; session?: string; emotion?: string; tradePnl?: number; resultR?: number; pnl: number };
 type CalendarTrade = { date: string; symbol?: string; direction?: "Long" | "Short" | string; net_pnl?: number; result_r?: number };
@@ -83,8 +85,8 @@ function EquityChart({ points, totalPnl }: { points: EqPoint[]; totalPnl: number
     </div>
   </div>;
 }
-function TradesCalendar({ trades }: { trades: CalendarTrade[] }) {
-  const [cursor, setCursor] = useState(() => kyivMonthCursor());
+function TradesCalendar({ trades, timezone }: { trades: CalendarTrade[]; timezone: string }) {
+  const [cursor, setCursor] = useState(() => zonedMonthCursor(timezone));
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const monthLabel = cursor.toLocaleString("uk-UA", { month: "long", year: "numeric" });
   const weekDays = ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
@@ -92,7 +94,7 @@ function TradesCalendar({ trades }: { trades: CalendarTrade[] }) {
   const dayMap = useMemo(() => { const map: Record<string, { pnl: number; trades: CalendarTrade[] }> = {}; for (const trade of Array.isArray(trades) ? trades : []) { const key = trade.date; if (!key) continue; if (!map[key]) map[key] = { pnl: 0, trades: [] }; map[key].pnl += trade.net_pnl ?? 0; map[key].trades.push(trade); } return map; }, [trades]);
   const firstOfMonth = new Date(year, month, 1), startDate = new Date(firstOfMonth); startDate.setDate(firstOfMonth.getDate() - firstOfMonth.getDay());
   const days = Array.from({ length: 42 }, (_, index) => { const date = new Date(startDate); date.setDate(startDate.getDate() + index); return { date, inMonth: date.getMonth() === month, key: calendarCellKey(date) }; });
-  const todayKey = getKyivDate(new Date());
+  const todayKey = dayKey(new Date(), timezone);
   const isToday = (date: Date) => calendarCellKey(date) === todayKey;
   const selectedDay = selectedKey ? dayMap[selectedKey] : null;
   return <div className={`${CARD} p-5`}>
@@ -114,10 +116,11 @@ function RDistributionChart({ buckets }: { buckets: RBucket[] }) {
 }
 export function OverviewTab() {
   const { visibleTrades, activeAccount, activeAccountId } = useTrades();
+  const { timezone } = useTimezone();
   const stats = useMemo(() => computeStats(visibleTrades), [visibleTrades]);
-  const advanced = useMemo(() => computeAdvancedStats(visibleTrades), [visibleTrades]);
-  const equity = useMemo(() => computeEquity(visibleTrades) as EqPoint[], [visibleTrades]);
-  const monthly = useMemo(() => computeMonthly(visibleTrades), [visibleTrades]);
+  const advanced = useMemo(() => computeAdvancedStats(visibleTrades, timezone), [visibleTrades, timezone]);
+  const equity = useMemo(() => computeEquity(visibleTrades, timezone) as EqPoint[], [visibleTrades, timezone]);
+  const monthly = useMemo(() => computeMonthly(visibleTrades, timezone), [visibleTrades, timezone]);
   const byPair = useMemo(() => groupByKey(visibleTrades, "symbol").sort((a, b) => b.pnl - a.pnl), [visibleTrades]);
   const bySession = useMemo(() => {
     const groups = new Map<string, { label: string; pnl: number; trades: number; wins: number }>();
@@ -144,7 +147,7 @@ export function OverviewTab() {
     return [...groups.entries()].map(([key, value]) => ({ key, ...value })).sort((a, b) => b.pnl - a.pnl);
   }, [visibleTrades]);
   const byEmotion = useMemo(() => groupByKey(visibleTrades, "emotion").sort((a, b) => b.trades - a.trades), [visibleTrades]);
-  const calendarTrades = useMemo<CalendarTrade[]>(() => visibleTrades.flatMap(trade => { const date = kyivDayOrNull(trade.opened_at); return date ? [{ date, symbol: trade.symbol, direction: trade.direction, net_pnl: trade.net_pnl ?? 0, result_r: trade.result_r ?? undefined }] : []; }), [visibleTrades]);
+  const calendarTrades = useMemo<CalendarTrade[]>(() => visibleTrades.flatMap(trade => { const date = zonedDayOrNull(trade.opened_at, timezone); return date ? [{ date, symbol: trade.symbol, direction: trade.direction, net_pnl: trade.net_pnl ?? 0, result_r: trade.result_r ?? undefined }] : []; }), [visibleTrades, timezone]);
   let overviewSubtitle = `${visibleTrades.length} угод · Combined view`;
   if (activeAccountId !== "all") overviewSubtitle = `${visibleTrades.length} угод · ${activeAccount ? activeAccount.name : "Account"} · ${activeAccount ? accountOverviewLabel(activeAccount) : "Рахунок не вибрано"}`;
   const monthlyAbsMax = Math.max(...monthly.map(item => Math.abs(item.pnl)), 1);
@@ -154,7 +157,7 @@ export function OverviewTab() {
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"><StatCard label="Net P&L" value={fmt.usd(stats.totalPnl)} colorClass={stats.totalPnl >= 0 ? "text-green" : "text-red"} /><StatCard label="Winrate" value={fmt.pct(stats.winRate)} colorClass={stats.winRate >= 50 ? "text-green" : "text-red"} /><StatCard label="Avg R" value={fmt.r(stats.avgR)} colorClass={stats.avgR >= 0 ? "text-green" : "text-red"} /><StatCard label="Profit factor" value={fmt.num(stats.profitFactor, 2)} colorClass={stats.profitFactor >= 1 ? "text-green" : "text-red"} /></div>
     <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
       <EquityChart points={equity} totalPnl={stats.totalPnl} />
-      <TradesCalendar trades={calendarTrades} />
+      <TradesCalendar trades={calendarTrades} timezone={timezone} />
     </div>
     <div className="grid items-stretch gap-6 xl:h-[560px] xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] xl:grid-rows-[minmax(0,1fr)]">
       <DrawdownPanel />

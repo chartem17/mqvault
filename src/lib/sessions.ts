@@ -1,38 +1,96 @@
-export const SESSION_TIMEZONE = "Europe/Kyiv";
+/**
+ * Trading sessions anchored to each market's own local time.
+ *
+ * Every session STARTS at a wall-clock time in its market's time zone and
+ * lasts until the next session starts. Classification therefore does not
+ * depend on the viewer's time zone and stays correct across DST changes,
+ * including the weeks when the US and Europe switch on different dates.
+ *
+ * Outside those mismatch weeks the boundaries equal the previous
+ * Kyiv-clock definitions (Asia 01:00, Frankfurt 09:00, London 10:00,
+ * lunch 12:00, after lunch 14:00, New York 15:00, Off hours 23:00 Kyiv).
+ *
+ * When two sessions start at the same instant (mismatch weeks: New York
+ * 08:00 = London 12:00), the later one in the list wins, so New York
+ * takes over and London after lunch is skipped that day.
+ */
+import { shiftDay as shiftCalendarDay, zonedParts, zonedWallTime } from "./timezone";
+export { zonedWallTime } from "./timezone";
+export const SESSION_TIMEZONE = "Europe/Kyiv"; // legacy reference zone, kept for Kyiv helpers below
 export type SessionKey = "asia" | "frankfurt" | "london" | "london_lunch" | "london_pm" | "new_york" | "off_hours";
 export type SessionGroup = "asia" | "london" | "new_york" | "off";
-export const SESSIONS = [
-  { key: "asia", label: "Asia", start: "01:00", end: "09:00", group: "asia" },
-  { key: "frankfurt", label: "Frankfurt", start: "09:00", end: "10:00", group: "london" },
-  { key: "london", label: "London", start: "10:00", end: "12:00", group: "london" },
-  { key: "london_lunch", label: "London lunch", start: "12:00", end: "14:00", group: "london" },
-  { key: "london_pm", label: "London after lunch", start: "14:00", end: "15:00", group: "london" },
-  { key: "new_york", label: "New York", start: "15:00", end: "23:00", group: "new_york" },
+
+type SessionDefinition = {
+  key: SessionKey; label: string; group: SessionGroup;
+  /** Market time zone the start is anchored to. */
+  zone: string;
+  /** Start wall-clock time in `zone`. */
+  start: string;
+  /** Calendar-day offset of the anchor relative to the session's source date (Asia starts the previous New York evening). */
+  dayOffset: number;
+};
+
+// Ordered by start within a source day; on equal instants the later entry wins.
+export const SESSION_DEFINITIONS: readonly SessionDefinition[] = [
+  { key: "asia", label: "Asia", group: "asia", zone: "America/New_York", start: "18:00", dayOffset: -1 },
+  { key: "frankfurt", label: "Frankfurt", group: "london", zone: "Europe/Berlin", start: "08:00", dayOffset: 0 },
+  { key: "london", label: "London", group: "london", zone: "Europe/London", start: "08:00", dayOffset: 0 },
+  { key: "london_lunch", label: "London lunch", group: "london", zone: "Europe/London", start: "10:00", dayOffset: 0 },
+  { key: "london_pm", label: "London after lunch", group: "london", zone: "Europe/London", start: "12:00", dayOffset: 0 },
+  { key: "new_york", label: "New York", group: "new_york", zone: "America/New_York", start: "08:00", dayOffset: 0 },
+  { key: "off_hours", label: "Off hours", group: "off", zone: "America/New_York", start: "16:00", dayOffset: 0 },
 ] as const;
-export const SESSION_DEFINITIONS = [...SESSIONS, { key: "off_hours", label: "Off hours", start: "23:00", end: "01:00", group: "off" }] as const;
+export const SESSIONS = SESSION_DEFINITIONS.filter(session => session.key !== "off_hours");
 export const SESSION_GROUPS = [{ key: "asia", label: "Asia" }, { key: "london", label: "London" }, { key: "new_york", label: "New York" }, { key: "off", label: "Off hours" }] as const;
-const formatters = new Map<string, Intl.DateTimeFormat>();
-const minutes = (value: string) => { const [hour, minute] = value.split(":").map(Number); return hour * 60 + minute; };
+
 function dateOf(input: string | Date) {
   const date = input instanceof Date ? new Date(input.getTime()) : new Date(input);
   if (!Number.isFinite(date.getTime())) throw new RangeError("Invalid session timestamp");
   return date;
 }
-function partsIn(input: string | Date, timezone: string) {
-  let formatter = formatters.get(timezone);
-  if (!formatter) {
-    formatter = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
-    formatters.set(timezone, formatter);
-  }
-  const parts = Object.fromEntries(formatter.formatToParts(dateOf(input)).map(part => [part.type, part.value]));
-  return { date: `${parts.year.padStart(4, "0")}-${parts.month}-${parts.day}`, hour: Number(parts.hour), minute: Number(parts.minute) };
+function partsIn(input: string | Date, timezone: string) { return zonedParts(dateOf(input), timezone); }
+function calendarDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new RangeError("Invalid session date");
+  const date = new Date(`${value}T00:00:00.000Z`);
+  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== value) throw new RangeError("Invalid session date");
+  return date;
 }
+function shiftDay(day: string, difference: number) { calendarDate(day); return shiftCalendarDay(day, difference); }
+
+type Boundary = { key: SessionKey; sourceDate: string; at: number; rank: number };
+const boundaryCache = new Map<string, Boundary[]>();
+function boundariesAround(at: number): Boundary[] {
+  const utcDay = new Date(at).toISOString().slice(0, 10);
+  const cached = boundaryCache.get(utcDay);
+  if (cached) return cached;
+  const list: Boundary[] = [];
+  for (let offset = -2; offset <= 2; offset++) {
+    const sourceDate = shiftDay(utcDay, offset);
+    SESSION_DEFINITIONS.forEach((session, index) => {
+      list.push({ key: session.key, sourceDate, at: zonedWallTime(shiftDay(sourceDate, session.dayOffset), session.start, session.zone), rank: offset * 100 + index });
+    });
+  }
+  list.sort((a, b) => a.at - b.at || a.rank - b.rank);
+  if (boundaryCache.size > 2000) boundaryCache.clear();
+  boundaryCache.set(utcDay, list);
+  return list;
+}
+/** The session boundary in force at `at`: the latest start ≤ at (ties → later definition). */
+function boundaryAt(at: number): { current: Boundary; next: Boundary } {
+  const list = boundariesAround(at);
+  let index = -1;
+  for (let i = 0; i < list.length; i++) if (list[i].at <= at) index = i;
+  if (index < 0 || index >= list.length - 1) throw new RangeError("Session boundary cannot be resolved");
+  let next = index + 1;
+  while (next < list.length && list[next].at === list[index].at) next++;
+  return { current: list[index], next: list[next] };
+}
+
 export function getKyivParts(input: string | Date) { return partsIn(input, SESSION_TIMEZONE); }
 export function getKyivDate(input: string | Date): string { return getKyivParts(input).date; }
+
 export function getSessionKey(input: string | Date): SessionKey {
-  const { hour, minute } = getKyivParts(input);
-  const time = hour * 60 + minute;
-  return SESSIONS.find(session => time >= minutes(session.start) && time < minutes(session.end))?.key ?? "off_hours";
+  return boundaryAt(dateOf(input).getTime()).current.key;
 }
 function definitionFor(key: SessionKey) {
   const definition = SESSION_DEFINITIONS.find(session => session.key === key);
@@ -41,41 +99,38 @@ function definitionFor(key: SessionKey) {
 }
 export function getSessionGroup(input: string | Date): SessionGroup { return definitionFor(getSessionKey(input)).group; }
 export function getSessionLabel(input: string | Date) { return definitionFor(getSessionKey(input)).label; }
-function calendarDate(value: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new RangeError("Invalid session date");
-  const date = new Date(`${value}T00:00:00.000Z`);
-  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== value) throw new RangeError("Invalid session date");
-  return date;
-}
-function shiftDay(day: string, difference: number) { const date = calendarDate(day); date.setUTCDate(date.getUTCDate() + difference); return date.toISOString().slice(0, 10); }
-function kyivWallTime(day: string, time: string) {
-  calendarDate(day);
-  const target = Date.parse(`${day}T${time}:00.000Z`);
-  let candidate = target;
-  for (let attempt = 0; attempt < 6; attempt++) {
-    const parts = getKyivParts(new Date(candidate));
-    const wall = Date.parse(`${parts.date}T${String(parts.hour).padStart(2, "0")}:${String(parts.minute).padStart(2, "0")}:00.000Z`);
-    if (wall === target) return new Date(candidate).toISOString();
-    candidate += target - wall;
-  }
-  throw new RangeError("Session boundary cannot be resolved in Europe/Kyiv");
-}
+
+/**
+ * Bounds of a session for a source date. In DST-mismatch weeks a session can
+ * be fully overtaken by the next one; then startAt === endAt.
+ */
 export function getSessionBounds(key: SessionKey, sourceDate: string) {
   const session = definitionFor(key);
-  const endDate = minutes(session.end) <= minutes(session.start) ? shiftDay(sourceDate, 1) : sourceDate;
-  return { ...session, sourceDate, startAt: kyivWallTime(sourceDate, session.start), endAt: kyivWallTime(endDate, session.end) };
+  const start = zonedWallTime(shiftDay(sourceDate, session.dayOffset), session.start, session.zone);
+  const list = boundariesAround(start);
+  const own = list.findIndex(item => item.key === key && item.sourceDate === sourceDate);
+  let next = own + 1;
+  while (next < list.length && list[next].at <= start) next++;
+  const end = list[next].at;
+  // Overtaken: a later boundary with the same instant wins over this one.
+  const overtaken = list.some((item, index) => index > own && item.at === start);
+  return { ...session, sourceDate, startAt: new Date(start).toISOString(), endAt: new Date(overtaken ? start : end).toISOString() };
 }
+
 export function getSessionDisplay(input: string | Date, displayTimezone = SESSION_TIMEZONE) {
-  const date = dateOf(input);
-  const key = getSessionKey(date);
-  const source = getKyivParts(date);
-  const sourceDate = key === "off_hours" && source.hour < 1 ? shiftDay(source.date, -1) : source.date;
-  const bounds = getSessionBounds(key, sourceDate);
-  const start = partsIn(bounds.startAt, displayTimezone);
-  const end = partsIn(bounds.endAt, displayTimezone);
+  const at = dateOf(input).getTime();
+  partsIn(new Date(at), displayTimezone); // validates the zone (throws RangeError)
+  const { current, next } = boundaryAt(at);
+  const session = definitionFor(current.key);
+  const start = partsIn(new Date(current.at), displayTimezone);
+  const end = partsIn(new Date(next.at), displayTimezone);
   const clock = (parts: { hour: number; minute: number }) => `${String(parts.hour).padStart(2, "0")}:${String(parts.minute).padStart(2, "0")}`;
   const dayOffset = (calendarDate(end.date).getTime() - calendarDate(start.date).getTime()) / 86400000;
-  return { ...bounds, timezone: displayTimezone, start: clock(start), end: clock(end), startDate: start.date, endDate: end.date, dayOffset };
+  return {
+    ...session, sourceDate: current.sourceDate,
+    startAt: new Date(current.at).toISOString(), endAt: new Date(next.at).toISOString(),
+    timezone: displayTimezone, start: clock(start), end: clock(end), startDate: start.date, endDate: end.date, dayOffset,
+  };
 }
 export function getDefaultKyivRange(monthsBack = 3) {
   const end = getKyivDate(new Date());

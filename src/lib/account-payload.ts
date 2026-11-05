@@ -1,4 +1,5 @@
 import { parseAccountSetup, AccountSetupError } from "./account-setup";
+import { isValidTimeZone } from "./timezone";
 export type AccountRecord = Record<string, unknown>;
 const own = (value: AccountRecord, key: string) => Object.prototype.hasOwnProperty.call(value, key);
 const pairs = [["accountType", "account_type"], ["initialBalance", "initial_balance"], ["targetPercent", "target_percent"], ["maxLossPercent", "max_loss_percent"], ["dailyLossPercent", "daily_loss_percent"], ["minTradingDays", "min_trading_days"]] as const;
@@ -26,6 +27,11 @@ export function buildAccountPayload(body: AccountRecord, current?: AccountRecord
     if (own(body, camel) || own(body, snake)) payload[snake] = text(read(body, camel, snake), camel);
   }
   if (payload.color !== undefined && payload.color !== null && !/^#[0-9a-f]{6}$/i.test(String(payload.color))) throw new AccountSetupError("Invalid color");
+  if (own(body, "brokerTimezone") || own(body, "broker_timezone")) {
+    const zone = read(body, "brokerTimezone", "broker_timezone");
+    if (typeof zone !== "string" || zone.length > 64 || !isValidTimeZone(zone)) throw new AccountSetupError("Invalid broker timezone");
+    payload.broker_timezone = zone;
+  }
   if (payload.parent_account_id !== undefined && payload.parent_account_id !== null && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(payload.parent_account_id))) throw new AccountSetupError("Invalid parent account");
   if (!current || own(body, "currency")) {
     const currency = body.currency ?? "USD";

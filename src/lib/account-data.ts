@@ -25,6 +25,8 @@ export type TradingAccount = {
   mt5Login?: string;
   mt5Server?: string;
   color: string;
+  /** IANA zone of the broker/terminal clock; manually typed trade times are read in it. */
+  brokerTimezone?: string;
 };
 
 export const phaseLabel: Record<AccountPhase, string> = {
