@@ -1,7 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
 import { Select } from "@/components/ui/primitives";
-import { FORM_SURFACE as CARD } from "@/components/ui/form-styles";
 import { useTimezone } from "@/components/providers/timezone-provider";
 import { useTrades } from "@/hooks/use-trades";
 import { phaseLabel, type TradingAccount } from "@/lib/account-data";
@@ -31,10 +30,10 @@ export function AccountChainCard({ account }: { account: TradingAccount }) {
     finally { setSaving(false); }
   }
 
-  return <section className={CARD} aria-label="Гілка рахунку">
-    <div className="flex flex-wrap items-end justify-between gap-3">
-      <div><h3 className="font-semibold text-foreground">Гілка рахунку</h3><p className="mt-1 text-xs text-muted-foreground">Звʼяжіть Phase 1, Phase 2 і Funded, щоб бачити спільний прогрес. Це лише привʼязка: угоди й умови рахунків не змінюються.</p></div>
-      <label className="space-y-1 text-xs text-muted-foreground"><span>Попередній етап цього рахунку</span>
+  return <section aria-label="Гілка рахунку" className="min-w-0 border-t border-border pt-5 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+    <div className="space-y-3">
+      <div><p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Гілка</p><h3 className="mt-1 font-semibold text-foreground">Phase 1 → Phase 2 → Funded</h3></div>
+      <label className="block space-y-1 text-xs text-muted-foreground"><span>Попередній етап цього рахунку</span>
         <Select aria-label="Попередній етап" value={account.parentAccountId ?? ""} disabled={saving} onChange={event => void changeParent(event.target.value)}>
           <option value="">Немає (початок гілки)</option>
           {candidates.map(item => <option key={item.id} value={item.id}>{item.name} · {phaseLabel[item.phase]}</option>)}
@@ -43,17 +42,18 @@ export function AccountChainCard({ account }: { account: TradingAccount }) {
     </div>
     {error && <p role="alert" className="mt-2 text-sm text-destructive">{error}</p>}
     {chain.length > 1 ? <>
-      <ol className="mt-4 space-y-2">{chain.map((stage, index) => {
+      <ol className="mt-4 space-y-0 border-l border-border pl-4">{chain.map(stage => {
         const own = buildAccountOverview(stage, trades);
         const current = stage.id === account.id;
-        return <li key={stage.id} className={`rounded-xl border p-3 ${current ? "border-foreground/40" : "border-border"}`}>
-          <div className="flex flex-wrap items-center justify-between gap-2 text-sm"><span className="text-foreground">{index + 1}. {stage.name} · {phaseLabel[stage.phase]}{current ? " (цей рахунок)" : ""}</span><span className="text-muted-foreground">Net P&L: {money(own.netPnl)} · угод: {own.tradeCount}</span></div>
+        return <li key={stage.id} className="relative pb-3 last:pb-0">
+          <span aria-hidden="true" className={`absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full border ${current ? "border-foreground bg-foreground" : "border-muted-foreground bg-background"}`} />
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm"><span className={current ? "font-medium text-foreground" : "text-foreground"}>{phaseLabel[stage.phase]} · {stage.name}</span><span className="text-xs text-muted-foreground">{money(own.netPnl)} · {own.tradeCount} угод</span></div>
           {own.progressPercent !== null && <div className="mt-2"><p className="text-xs text-muted-foreground">До цілі {stage.targetPercent}%: {fmt.pct(own.progressPercent)}</p><div role="progressbar" aria-label={`Прогрес до цілі: ${stage.name}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={own.progressPercent} className="mt-1 h-1.5 overflow-hidden rounded-full bg-secondary"><div className="h-full bg-[var(--color-green)]" style={{ width: `${own.progressPercent}%` }} /></div></div>}
         </li>;
       })}</ol>
-      <p className="mt-3 text-sm text-foreground">Разом по гілці: {money(total.netPnl)} · угод: {total.tradeCount} · торгових днів: {total.tradingDays}</p>
+      <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-secondary/40 p-3 text-center"><div><p className="text-[11px] text-muted-foreground">Разом net P&L</p><p className="mt-0.5 text-sm font-semibold text-foreground">{money(total.netPnl)}</p></div><div><p className="text-[11px] text-muted-foreground">Угод</p><p className="mt-0.5 text-sm font-semibold text-foreground">{total.tradeCount}</p></div><div><p className="text-[11px] text-muted-foreground">Торг. днів</p><p className="mt-0.5 text-sm font-semibold text-foreground">{total.tradingDays}</p></div></div>
       {total.netPnl === null && <p className="mt-1 text-xs text-gold">У частині угод немає net P&L, тому сума недоступна.</p>}
-      <p className="mt-1 text-xs text-muted-foreground">Торгові дні рахуються у вашому часовому поясі. Статусів «пройдено» чи «провалено» немає — лише дані журналу.</p>
-    </> : <p className="mt-3 text-xs text-muted-foreground">Поки це окремий рахунок. Відкрийте наступний етап (наприклад Phase 2) і виберіть цей рахунок у полі «Попередній етап».</p>}
+      <p className="mt-2 text-xs text-muted-foreground">Дні — у вашому часовому поясі. Лише дані журналу, без статусів pass/fail.</p>
+    </> : <p className="mt-3 text-xs text-muted-foreground">Поки окремий рахунок. Створіть наступний етап і виберіть цей рахунок у полі «Попередній етап» — тут зʼявиться спільний прогрес.</p>}
   </section>;
 }
