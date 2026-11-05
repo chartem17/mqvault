@@ -25,6 +25,10 @@ screenshots/
 private-data/
 reports/private/
 
+# Build / test artifacts
+*.tsbuildinfo
+.tmp-*/
+
 # Logs
 *.log
 npm-debug.log*
