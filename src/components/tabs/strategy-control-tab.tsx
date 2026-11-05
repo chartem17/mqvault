@@ -6,7 +6,8 @@ import { statusTone, impactTone, STRATEGY_SURFACE, StrategyMetricCard as StatCar
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { defaultKyivPeriod, isInKyivPeriod } from "@/lib/trading-calendar";
+import { defaultZonedPeriod, isInZonedPeriod } from "@/lib/trading-calendar";
+import { useTimezone } from "@/components/providers/timezone-provider";
 import { ShieldCheck, AlertTriangle, TrendingUp, Target, Scale, X } from "lucide-react";
 import { useTrades } from "@/hooks/use-trades";
 import { useStrategies } from "@/hooks/use-strategies";
@@ -19,7 +20,7 @@ import { StrategyBuilder } from "@/components/strategy-control/strategy-builder"
 function formatPct(value: number | null | undefined) { return typeof value === "number" && Number.isFinite(value) ? `${value}%` : "—"; }
 function formatR(value: number | null | undefined) { return typeof value === "number" && Number.isFinite(value) ? `${value >= 0 ? "+" : ""}${value.toFixed(2)}R` : "—"; }
 function dateLabel(value: string) { const [year, month, day] = value.split("-"); return `${day}.${month}.${year}`; }
-function getDefaultRange() { return defaultKyivPeriod(); }
+
 function metricTone(value: number | null | undefined) { return typeof value !== "number" || value === 0 ? "text-foreground" : value > 0 ? "text-green" : "text-red"; }
 function shortId(id: string) { return id.slice(0, 8); }
 function formatRuleParams(rule: RuleInstance) {
@@ -76,11 +77,12 @@ export function StrategyControlTab() {
   const [selectedFinding, setSelectedFinding] = useState<RuleFinding | null>(null);
   const [strategyDetailsOpen, setStrategyDetailsOpen] = useState(false);
   const [builderOpen, setBuilderOpen] = useState(false);
-  const [period, setPeriod] = useState(getDefaultRange);
+  const { timezone } = useTimezone();
+  const [period, setPeriod] = useState(() => defaultZonedPeriod(3, new Date(), timezone));
   const accountRef = useRef(activeAccountId);
   useEffect(() => { accountRef.current = activeAccountId; setSelectedFinding(null); setStrategyDetailsOpen(false); setBuilderOpen(false); }, [activeAccountId]);
-  const filteredTrades = useMemo(() => visibleTrades.filter(trade => isInKyivPeriod(trade.opened_at, period)), [visibleTrades, period]);
-  const strategyTrades = useMemo(() => filteredTrades.map(toStrategyControlTrade), [filteredTrades]);
+  const filteredTrades = useMemo(() => visibleTrades.filter(trade => isInZonedPeriod(trade.opened_at, period, timezone)), [visibleTrades, period, timezone]);
+  const strategyTrades = useMemo(() => filteredTrades.map(trade => toStrategyControlTrade(trade, timezone)), [filteredTrades, timezone]);
   const analysis = useMemo(() => activeStrategy ? analyzeTrades(strategyTrades, activeStrategy, period) : null, [activeStrategy, strategyTrades, period]);
   const sortedFindings = useMemo(() => { if (!analysis) return []; const rank = { critical: 0, warning: 1, insufficient: 2, ok: 3 }; return [...analysis.findings].sort((a, b) => rank[a.status] - rank[b.status]); }, [analysis]);
   const focusFindings = useMemo(() => sortedFindings.filter(finding => finding.status !== "ok"), [sortedFindings]);

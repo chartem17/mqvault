@@ -7,6 +7,8 @@ import { Button, Input, Select } from '@/components/ui/primitives';
 import { ManualTradeModal } from '@/components/journal/manual-trade-modal';
 import { useTrades, type JournalTrade, type TradeInput, type UpdateTradeInput } from '@/hooks/use-trades';
 import { useJournalLayout } from '@/hooks/use-journal-layout';
+import { useTimezone } from '@/components/providers/timezone-provider';
+import { formatDateTimeOrDash } from '@/lib/timezone';
 import { JOURNAL_COLUMNS, defaultJournalLayout, visibleJournalColumns, moveJournalColumn, toggleJournalColumn, type JournalColumnId, type JournalLayout, type JournalViewMode } from '@/lib/journal-layout';
 import { fmt } from '@/lib/utils-trade';
 import { getSessionKey, getSessionGroup, getSessionLabel } from '@/lib/sessions';
@@ -14,12 +16,13 @@ import { matchesSessionSelection, SESSION_RULE_OPTIONS } from '@/lib/session-sel
 import { applyJournalFocus, NO_JOURNAL_FOCUS, type JournalFocus } from '@/lib/journal-focus';
 import { activeJournalFilters, describeJournalFilter, journalFilterKind, matchesJournalFilter, type JournalColumnFilter, type JournalFilters } from '@/lib/journal-filters';
 const positive = 'var(--color-green)', negative = 'var(--color-red)';
-function date(value?: string | null) { if (!value) return '—'; const d = new Date(value); return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString(); }
 function session(trade: JournalTrade) { try { return getSessionLabel(trade.opened_at); } catch { return trade.session || '—'; } }
 const labelFor = (id: JournalColumnId) => JOURNAL_COLUMNS.find(c => c.id === id)!.label;
 export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus }: { focus?: JournalFocus; onClearFocus?: () => void } = {}) {
   const { visibleTrades, accounts, activeAccountId, loading, saving, error, createTrade, updateTrade, deleteTrade } = useTrades();
   const prefs = useJournalLayout();
+  const { timezone } = useTimezone();
+  const date = (value?: string | null) => formatDateTimeOrDash(value, timezone);
   const [search, setSearch] = useState('');
   const [panel, setPanel] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -92,7 +95,7 @@ export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus }: { focus?:
   const filtered = focusedTrades.filter(trade => {
     const q = search.trim().toLowerCase();
     if (q && ![...JOURNAL_COLUMNS.map(column => searchable(trade, column.id)), trade.notes, trade.entry_reason, trade.exit_reason].filter(Boolean).join(' ').toLowerCase().includes(q)) return false;
-    if (activeFilters.some(([id, value]) => !matchesJournalFilter(id, value, filterCell(trade, id)))) return false;
+    if (activeFilters.some(([id, value]) => !matchesJournalFilter(id, value, filterCell(trade, id), timezone))) return false;
     if (filterSession !== 'All') {
       try { if (!matchesSessionSelection({ sessionKey: getSessionKey(trade.opened_at), sessionGroup: getSessionGroup(trade.opened_at) }, [filterSession])) return false; } catch { return false; }
     }

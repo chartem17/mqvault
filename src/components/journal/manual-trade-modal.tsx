@@ -15,6 +15,9 @@ import {
   type Instrument,
 } from "@/lib/instruments";
 import { marketsFrom, sortBySymbol } from "@/lib/markets";
+import { useTimezone } from "@/components/providers/timezone-provider";
+import { TimezoneSelect, zoneOptionLabel } from "@/components/settings/timezone-select";
+import { formatDateTimeOrDash, fromZonedInputValue, isValidTimeZone, toZonedInputValue } from "@/lib/timezone";
 
 const SESSIONS = ["Asia", "London", "NY", "Overlap"] as const;
 
@@ -100,20 +103,10 @@ function sessionForTime(time: string) {
   return "NY";
 }
 
-function toDateTimeLocal(value?: string | null) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const offset = date.getTimezoneOffset();
-  const local = new Date(date.getTime() - offset * 60_000);
-  return local.toISOString().slice(0, 16);
-}
-
-function toIsoString(value: string) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toISOString();
+/** Zone the typed trade times are read in: the account's broker zone, else the user's zone. */
+function accountZone(accounts: TradingAccount[], accountId: string, fallback: string) {
+  const zone = accounts.find(account => account.id === accountId)?.brokerTimezone;
+  return zone && isValidTimeZone(zone) ? zone : fallback;
 }
 
 function timeFromDateTimeLocal(value: string) {
@@ -194,12 +187,12 @@ function costToString(value: number | null | undefined) {
   return value == null ? "0" : String(Math.abs(value));
 }
 
-function formFromTrade(trade: JournalTrade): FormTrade {
+function formFromTrade(trade: JournalTrade, zone: string): FormTrade {
   return {
     account_id: trade.account_id ?? "",
     source: "manual",
-    opened_at: toDateTimeLocal(trade.opened_at),
-    closed_at: toDateTimeLocal(trade.closed_at),
+    opened_at: toZonedInputValue(trade.opened_at, zone),
+    closed_at: toZonedInputValue(trade.closed_at, zone),
     symbol: trade.symbol ?? "",
     market: trade.market ?? "",
     direction: trade.direction === "Short" ? "Short" : "Long",
@@ -252,6 +245,9 @@ export function ManualTradeModal({
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { instruments } = useInstruments();
+  const { timezone: userZone } = useTimezone();
+  const [entryZone, setEntryZone] = useState(userZone);
+  const [zoneTouched, setZoneTouched] = useState(false);
   const marketOptions = useMemo(
     () => marketsFrom(instruments.map((i) => i.market)),
     [instruments],
@@ -260,11 +256,15 @@ export function ManualTradeModal({
   useEffect(() => {
     if (!open) return;
 
+    const initialForm = buildInitialForm(accounts, defaultAccountId);
+    const zone = accountZone(accounts, initialTrade?.account_id ?? initialForm.account_id, userZone);
+    setEntryZone(zone);
+    setZoneTouched(false);
     if (initialTrade) {
-      setForm(formFromTrade(initialTrade));
+      setForm(formFromTrade(initialTrade, zone));
       setSymbolQuery(initialTrade.symbol ?? "");
     } else {
-      setForm(buildInitialForm(accounts, defaultAccountId));
+      setForm(initialForm);
       setSymbolQuery("");
     }
 
@@ -277,6 +277,8 @@ export function ManualTradeModal({
     setImageFailed(false);
     setLocalPreviewUrl(null);
     setLightboxOpen(false);
+    // userZone is read once per opening; changing it while the form is open must not reinterpret typed times.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialTrade, accounts, defaultAccountId]);
 
   const matchingAssets = useMemo(() => {
@@ -405,8 +407,8 @@ export function ManualTradeModal({
     const payloadBase: TradeInput = {
       account_id: form.account_id,
       source: "manual",
-      opened_at: toIsoString(form.opened_at),
-      closed_at: form.closed_at ? toIsoString(form.closed_at) : null,
+      opened_at: fromZonedInputValue(form.opened_at, entryZone),
+      closed_at: form.closed_at ? fromZonedInputValue(form.closed_at, entryZone) : null,
       symbol: form.symbol,
       market: form.market || marketForSymbol(instruments, form.symbol) || null,
       direction: form.direction as "Long" | "Short",
@@ -596,6 +598,22 @@ export function ManualTradeModal({
 
               {input("closed_at", "Closed at", "datetime-local")}
 
+              <div className="col-span-2 flex flex-col gap-1">
+                <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  Час введено в поясі
+                </span>
+                <TimezoneSelect
+                  aria-label="Часовий пояс введеного часу"
+                  value={entryZone}
+                  onChange={(zone) => { setEntryZone(zone); setZoneTouched(true); }}
+                  className="ui-field-control"
+                />
+                <span className="text-[11px] text-muted-foreground">
+                  {zoneTouched ? "Змінено вручну для цієї угоди." : "Пояс брокера рахунку — вводьте час як у терміналі чи на скріншоті."}
+                  {form.opened_at && entryZone !== userZone ? ` У вашому поясі (${zoneOptionLabel(userZone)}): відкрито ${formatDateTimeOrDash(fromZonedInputValue(form.opened_at, entryZone), userZone)}${form.closed_at ? `, закрито ${formatDateTimeOrDash(fromZonedInputValue(form.closed_at, entryZone), userZone)}` : ""}.` : ""}
+                </span>
+              </div>
+
               <label className="col-span-2 flex flex-col gap-1 relative">
                 <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
                   Symbol
@@ -677,9 +695,10 @@ export function ManualTradeModal({
                 </span>
                 <Select
                   value={form.account_id}
-                  onChange={(event) =>
-                    setField("account_id", event.target.value)
-                  }
+                  onChange={(event) => {
+                    setField("account_id", event.target.value);
+                    if (!zoneTouched) setEntryZone(accountZone(accounts, event.target.value, userZone));
+                  }}
                   className="ui-field-control"
                 >
                   {accounts.map((account) => (

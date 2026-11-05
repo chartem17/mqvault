@@ -4,7 +4,7 @@ import { permanentlyDeleteOwnedEntity } from "@/lib/supabase/permanent-delete";
 import { AccountSetupError } from "./account-setup";
 import { buildAccountPayload, type AccountRecord } from "./account-payload";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const FIELDS = "id,name,broker,platform,account_type,currency,mt5_login,mt5_server,initial_balance,phase,target_percent,max_loss_percent,daily_loss_percent,min_trading_days,is_active,status,color,parent_account_id";
+const FIELDS = "id,name,broker,platform,account_type,currency,mt5_login,mt5_server,initial_balance,phase,target_percent,max_loss_percent,daily_loss_percent,min_trading_days,is_active,status,color,parent_account_id,broker_timezone";
 function json(body: AccountRecord, status = 200) { return NextResponse.json(body, { status, headers: { "Cache-Control": "no-store" } }); }
 async function readBody(request: Request): Promise<AccountRecord> {
   const text = await request.text();

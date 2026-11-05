@@ -1,60 +1,60 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
-import {
-  getBrowserTimeZone,
-  getOffsetLabel,
-  getTimeZoneList,
-} from "@/lib/timezone";
-import { useTimezone } from "@/components/providers/timezone-provider";
-import { Button, Input, Select } from "@/components/ui/primitives";
+import { useMemo } from "react";
+import { getBrowserTimeZone, getOffsetLabel, getTimeZoneList, shortZoneName } from "@/lib/timezone";
+import { Select } from "@/components/ui/primitives";
 
-export function TimezoneSelect() {
-  const { timezone, setTimezone } = useTimezone();
-  const [query, setQuery] = useState("");
-  const id = useId();
+/** Zones traders use most; shown first. "Etc/GMT-2" means UTC+2 (POSIX sign is inverted). */
+const COMMON_ZONES = [
+  "UTC",
+  "Europe/Kyiv",
+  "Europe/London",
+  "Europe/Berlin",
+  "Europe/Warsaw",
+  "America/New_York",
+  "America/Chicago",
+  "Asia/Dubai",
+  "Asia/Tokyo",
+  "Australia/Sydney",
+  "Etc/GMT-2",
+  "Etc/GMT-3",
+] as const;
 
-  const options = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return getTimeZoneList()
-      .filter((tz) => !q || tz.toLowerCase().replace(/_/g, " ").includes(q))
-      .map((tz) => ({ tz, offset: getOffsetLabel(tz) }));
-  }, [query]);
+export function zoneOptionLabel(tz: string, at = new Date()): string {
+  const offset = getOffsetLabel(tz, at);
+  if (tz === "UTC" || tz === "Etc/UTC") return "UTC";
+  const fixed = /^Etc\/GMT([+-])(\d+)$/.exec(tz);
+  if (fixed) return `Фіксований ${offset} (без літнього часу)`;
+  return `${shortZoneName(tz)} (${offset})`;
+}
 
+/** Native select of IANA time zones; common trading zones first, then the full list. */
+export function TimezoneSelect({ value, onChange, disabled, id, "aria-label": ariaLabel, className }: {
+  value: string;
+  onChange: (zone: string) => void;
+  disabled?: boolean;
+  id?: string;
+  "aria-label"?: string;
+  className?: string;
+}) {
+  const { common, all } = useMemo(() => {
+    const now = new Date();
+    const browser = getBrowserTimeZone();
+    const commonSet = new Set<string>([value, browser, ...COMMON_ZONES].filter(Boolean));
+    const common = [...commonSet].map(tz => ({ tz, label: tz === browser && tz !== value ? `${zoneOptionLabel(tz, now)} · браузер` : zoneOptionLabel(tz, now) }));
+    const all = getTimeZoneList()
+      .filter(tz => !commonSet.has(tz))
+      .map(tz => ({ tz, label: `${tz.replace(/_/g, " ")} (${getOffsetLabel(tz, now)})` }));
+    return { common, all };
+  }, [value]);
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <label htmlFor={`${id}-zone`} className="text-sm font-medium text-foreground">
-          Часовий пояс
-        </label>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setTimezone(getBrowserTimeZone())}
-        >
-          Визначити автоматично ({getBrowserTimeZone()})
-        </Button>
-      </div>
-
-      <Input
-        aria-label="Пошук часового поясу"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Пошук: Kyiv, Warsaw, New York…"
-      />
-
-      <Select
-        id={`${id}-zone`}
-        size={8}
-        value={timezone}
-        onChange={(e) => setTimezone(e.target.value)}
-      >
-        {options.map(({ tz, offset }) => (
-          <option key={tz} value={tz}>
-            {tz.replace(/_/g, " ")} ({offset})
-          </option>
-        ))}
-      </Select>
-    </div>
+    <Select id={id} aria-label={ariaLabel} value={value} disabled={disabled} onChange={event => onChange(event.target.value)} className={className}>
+      <optgroup label="Часто вживані">
+        {common.map(({ tz, label }) => <option key={tz} value={tz}>{label}</option>)}
+      </optgroup>
+      <optgroup label="Усі пояси">
+        {all.map(({ tz, label }) => <option key={tz} value={tz}>{label}</option>)}
+      </optgroup>
+    </Select>
   );
 }

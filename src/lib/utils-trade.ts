@@ -1,4 +1,5 @@
 import type { JournalTrade } from "@/hooks/use-trades";
+import { DEFAULT_TIMEZONE, dayKey, monthKey, timeLabel } from "@/lib/timezone";
 
 function toNumber(value: unknown, fallback = 0) {
   if (typeof value === "number")
@@ -16,22 +17,22 @@ function toDate(value: string | null | undefined) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-function toMonthKey(value: string | null | undefined) {
+function toMonthKey(value: string | null | undefined, tz: string) {
   const d = toDate(value);
   if (!d) return null;
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  try { return monthKey(d, tz); } catch { return null; }
 }
 
-function toDateLabel(value: string | null | undefined) {
+function toDateLabel(value: string | null | undefined, tz: string) {
   const d = toDate(value);
   if (!d) return "";
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  try { return dayKey(d, tz); } catch { return ""; }
 }
 
-function toTimeLabel(value: string | null | undefined) {
+function toTimeLabel(value: string | null | undefined, tz: string) {
   const d = toDate(value);
   if (!d) return "";
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  try { return timeLabel(d, tz); } catch { return ""; }
 }
 
 function sortByOpenedAt(a: JournalTrade, b: JournalTrade) {
@@ -71,7 +72,8 @@ export function computeStats(trades: JournalTrade[]) {
   };
 }
 
-export function computeEquity(trades: JournalTrade[]) {
+/** @param tz zone used for the date/time labels of each point (the user's zone). */
+export function computeEquity(trades: JournalTrade[], tz: string = DEFAULT_TIMEZONE) {
   const sorted = [...trades].sort(sortByOpenedAt);
 
   let cum = 0;
@@ -82,8 +84,8 @@ export function computeEquity(trades: JournalTrade[]) {
 
     return {
       index,
-      date: toDateLabel(t.opened_at),
-      time: toTimeLabel(t.opened_at),
+      date: toDateLabel(t.opened_at, tz),
+      time: toTimeLabel(t.opened_at, tz),
       pair: t.symbol ?? "",
       session: t.session ?? "",
       emotion: t.emotion ?? "",
@@ -125,11 +127,12 @@ export function groupByKey<K extends keyof JournalTrade>(
   }));
 }
 
-export function computeMonthly(trades: JournalTrade[]) {
+/** Monthly net P&L; a trade belongs to the month of its open time in `tz` (the user's zone). */
+export function computeMonthly(trades: JournalTrade[], tz: string = DEFAULT_TIMEZONE) {
   const m: Record<string, number> = {};
 
   trades.forEach((t) => {
-    const mo = toMonthKey(t.opened_at);
+    const mo = toMonthKey(t.opened_at, tz);
     if (!mo) return;
     m[mo] = (m[mo] || 0) + toNumber(t.net_pnl);
   });
