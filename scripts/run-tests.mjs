@@ -18,6 +18,7 @@ const builds = [
   [["src/lib/account-setup.ts"], ".tmp-account-tests", [...dom, "--strict"]],
   [["src/lib/journal-focus.ts"], ".tmp-journal-focus-tests", [...dom, "--strict"]],
   [["src/lib/journal-layout.ts"], ".tmp-journal-layout-tests", ["--strict"]],
+  [["src/lib/journal-filters.ts"], ".tmp-journal-filters-tests", ["--strict"]],
   [["src/lib/prop-rule-settings.ts", "src/lib/prop-rule-record.ts"], ".tmp-prop-rule-tests", [...dom, "--strict"]],
   [["src/lib/session-selection.ts"], ".tmp-session-selection-tests", [...dom, "--strict"]],
   [["src/lib/sessions.ts"], ".tmp-session-tests", dom],
