@@ -95,14 +95,6 @@ body { margin: 0; min-height: 100dvh; background: var(--page-bg); color: var(--c
   background-color: var(--color-panel);
 }
 
-/* Light rays: when nested inside a card, stay inside it instead of covering the viewport */
-[class~="absolute"] > [data-light-rays] {
-  position: absolute;
-  background-color: transparent !important;
-}
-/* Light theme: no dark backdrop and no rays */
-.light [data-light-rays] { background-color: transparent !important; }
-.light [data-light-rays] canvas { display: none !important; }
 
 /* Dark: dashboard contrast tuning */
 .dark [class~="text-muted-foreground"] { color: rgb(255 255 255 / 0.62); }
