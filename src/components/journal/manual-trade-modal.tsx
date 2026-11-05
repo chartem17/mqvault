@@ -124,7 +124,7 @@ function absCost(value: string) {
   return Math.abs(toNullableNumber(value) ?? 0);
 }
 
-// net = gross - (commission + swap + fee); costs are always positive amounts.
+// net = gross - |commission| - |fee| + swap; commission/fee are positive costs, swap is signed (same rule as the API).
 function computeNetPnl(form: FormTrade) {
   const gross = toNullableNumber(form.gross_pnl) ?? 0;
   const swap = toNullableNumber(form.swap) ?? 0;
