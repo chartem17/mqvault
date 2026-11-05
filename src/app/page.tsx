@@ -3,6 +3,7 @@
 import { Suspense, useMemo, type Dispatch, type SetStateAction } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AppShellLayout from "@/components/app-shell-layout";
+import { HomeTab } from "@/components/tabs/home-tab";
 import { OverviewTab } from "@/components/tabs/overview-tab";
 import { JournalTab } from "@/components/tabs/journal-tab";
 import { MarketTab } from "@/components/tabs/market-tab";
@@ -10,13 +11,13 @@ import { CalendarTab } from "@/components/tabs/calendar-tab";
 import { StrategyControlTab } from "@/components/tabs/strategy-control-tab";
 import { parseJournalFocus } from "@/lib/journal-focus";
 
-const TABS = ["overview", "journal", "strategy-control", "market", "calendar"] as const;
+const TABS = ["home", "overview", "journal", "strategy-control", "market", "calendar"] as const;
 export type TabId = typeof TABS[number];
 function HomeContent() {
   const router = useRouter();
   const search = useSearchParams();
   const focus = useMemo(() => parseJournalFocus(search), [search]);
-  const activeTab: TabId = focus.kind !== "none" ? "journal" : TABS.find(tab => tab === search.get("tab")) ?? "overview";
+  const activeTab: TabId = focus.kind !== "none" ? "journal" : TABS.find(tab => tab === search.get("tab")) ?? "home";
   const setActiveTab: Dispatch<SetStateAction<TabId>> = value => {
     const next = typeof value === "function" ? value(activeTab) : value;
     if (next === activeTab && focus.kind === "none") return;
@@ -31,6 +32,7 @@ function HomeContent() {
   }
   function renderTab() {
     switch (activeTab) {
+      case "home": return <HomeTab />;
       case "overview": return <OverviewTab />;
       case "journal": return <JournalTab key={focus.kind === "ids" ? `ids:${focus.ids.join(",")}` : focus.kind} focus={focus} onClearFocus={clearFocus} />;
       case "strategy-control": return <StrategyControlTab />;
