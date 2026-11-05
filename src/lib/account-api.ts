@@ -3,8 +3,22 @@ import { resolvePrivateOwner } from "@/lib/supabase/private-owner";
 import { permanentlyDeleteOwnedEntity } from "@/lib/supabase/permanent-delete";
 import { AccountSetupError } from "./account-setup";
 import { buildAccountPayload, type AccountRecord } from "./account-payload";
+import { linkError } from "./account-chain";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const FIELDS = "id,name,broker,platform,account_type,currency,mt5_login,mt5_server,initial_balance,phase,target_percent,max_loss_percent,daily_loss_percent,min_trading_days,is_active,status,color,parent_account_id,broker_timezone";
+const FIELDS = "id,name,broker,platform,account_type,currency,mt5_login,mt5_server,initial_balance,phase,target_percent,max_loss_percent,daily_loss_percent,min_trading_days,is_active,status,color,parent_account_id,broker_timezone,prop_target_state";
+type OwnerContext = Exclude<Awaited<ReturnType<typeof resolvePrivateOwner>>, Response>;
+/** Checks a prop-branch link against the owner's accounts only (existence, prop type, no loops, one next stage per parent). */
+async function parentError(context: OwnerContext, accountId: string | null, parentId: string): Promise<string | null> {
+  const { data, error } = await context.db.from("accounts").select("id,account_type,parent_account_id").eq("user_id", context.ownerId).eq("is_active", true);
+  if (error) throw new Error(error.code);
+  const rows = (data ?? []).map(row => ({ id: row.id as string, accountType: row.account_type as string, parentAccountId: row.parent_account_id as string | null }));
+  if (!rows.some(row => row.id === parentId)) return "Попередній етап не знайдено";
+  if (accountId === null) {
+    if (rows.find(row => row.id === parentId)?.accountType !== "prop") return "Привʼязувати можна лише проп-рахунки";
+    return rows.some(row => row.parentAccountId === parentId) ? "У цього етапу вже є наступний рахунок" : null;
+  }
+  return linkError(accountId, parentId, rows);
+}
 function json(body: AccountRecord, status = 200) { return NextResponse.json(body, { status, headers: { "Cache-Control": "no-store" } }); }
 async function readBody(request: Request): Promise<AccountRecord> {
   const text = await request.text();
@@ -35,9 +49,9 @@ export async function POST(request: Request) {
     const body = await readBody(request);
     const payload = buildAccountPayload(body);
     if (payload.parent_account_id) {
-      const { data: parent, error } = await context.db.from("accounts").select("id").eq("id", payload.parent_account_id).eq("user_id", context.ownerId).maybeSingle();
-      if (error) throw new Error(error.code);
-      if (!parent) return json({ error: "Parent account not found" }, 404);
+      if (payload.account_type !== "prop") throw new AccountSetupError("Привʼязувати можна лише проп-рахунки");
+      const message = await parentError(context, null, String(payload.parent_account_id));
+      if (message) return json({ error: message }, 400);
     }
     const { data, error } = await context.db.from("accounts").insert({ ...payload, user_id: context.ownerId, is_active: true }).select(FIELDS).single();
     if (error) { if (error.code === "23505") return json({ error: "Такий рахунок уже існує" }, 409); throw new Error(error.code); }
@@ -55,11 +69,12 @@ export async function PATCH(request: Request) {
     if (!current) return json({ error: "Account not found" }, 404);
     const payload = buildAccountPayload(body, current);
     if (Object.keys(payload).length === 0) throw new AccountSetupError("No editable fields supplied");
-    if (payload.parent_account_id) {
-      if (payload.parent_account_id === body.id) throw new AccountSetupError("Account cannot be its own parent");
-      const { data: parent, error } = await context.db.from("accounts").select("id").eq("id", payload.parent_account_id).eq("user_id", context.ownerId).maybeSingle();
-      if (error) throw new Error(error.code);
-      if (!parent) return json({ error: "Parent account not found" }, 404);
+    if (payload.parent_account_id !== undefined || (payload.account_type !== undefined && payload.account_type !== "prop" && current.parent_account_id)) {
+      if (payload.account_type !== undefined && payload.account_type !== "prop") payload.parent_account_id = null;
+      else if (payload.parent_account_id) {
+        const message = await parentError(context, body.id, String(payload.parent_account_id));
+        if (message) return json({ error: message }, 400);
+      }
     }
     const { data, error } = await context.db.from("accounts").update(payload).eq("id", body.id).eq("user_id", context.ownerId).select(FIELDS).maybeSingle();
     if (error) throw new Error(error.code);

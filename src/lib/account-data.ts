@@ -10,6 +10,8 @@ export type TradingAccount = {
   id: string;
   accountType?: AccountType;
   minTradingDays?: number;
+  /** Previous stage of the same prop branch (Phase 1 → Phase 2 → Funded). */
+  parentAccountId?: string;
   name: string;
   broker: string;
   platform: AccountPlatform;

@@ -1,7 +1,6 @@
 "use client";
 import { dialogSurface, DIALOG_BACKDROP } from "@/components/ui/dialog-styles";
-import { Button, Input, Select, Textarea } from "@/components/ui/primitives";
-import { DateTimeField } from "@/components/ui/date-time-field";
+import { Button, Input, Select } from "@/components/ui/primitives";
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useTrades, type JournalTrade } from "@/hooks/use-trades";
@@ -11,6 +10,7 @@ import { parseRuleRecord, settingsFromColumns, type PropRuleRecord } from "@/lib
 import { parsePropRuleSettings, type ConditionState, type PropRuleSettings, type RuleCondition } from "@/lib/prop-rule-settings";
 import { fmt } from "@/lib/utils-trade";
 import { FORM_SURFACE as CARD } from "@/components/ui/form-styles";
+import { AccountChainCard } from "@/components/accounts/account-chain-card";
 const LABELS = { target: "Ціль прибутку, %", maxLoss: "Загальний ліміт збитку, %", dailyLoss: "Денний ліміт збитку, %", minTradingDays: "Мінімум торгових днів" } as const;
 const CONDITION_KEYS = Object.keys(LABELS) as (keyof typeof LABELS)[];
 class RuleHttpError extends Error { constructor(message: string, readonly status: number) { super(message); } }
@@ -66,7 +66,7 @@ export function AccountRulesCard({ account, accountId, trades }: { account: Trad
     if (open) { if (!saved) return; setDraft(saved); if (!conflict) setError(null); }
     setEditing(open);
   };
-  return <Dialog.Root open={editing} onOpenChange={changeOpen}>
+  return <><Dialog.Root open={editing} onOpenChange={changeOpen}>
     <section className={CARD}>
       <div className="flex flex-wrap justify-between gap-4"><div><h3 className="font-semibold text-foreground">{account.name}</h3><p className="mt-1 text-xs text-muted-foreground">{accountOverviewLabel(effective)} · {account.broker || "—"} · {account.platform.toUpperCase()}</p><p className="mt-1 text-xs text-muted-foreground">Початковий капітал: {money(summary.initialBalance)}</p></div><div className="text-right"><p className="text-xs text-muted-foreground">Оцінка за журналом</p><p className="mt-1 text-lg font-semibold text-foreground">{money(summary.journalBalance)}</p><p className="mt-1 text-xs text-muted-foreground">Net P&L: {money(summary.netPnl)}</p></div></div>
       <p className="mt-3 text-xs text-muted-foreground">Початковий капітал + net P&L журналу. Це не брокерський баланс і не live equity.</p>
@@ -75,11 +75,9 @@ export function AccountRulesCard({ account, accountId, trades }: { account: Trad
         <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm text-foreground">Умови проп-рахунку</p><Dialog.Trigger asChild><Button variant="secondary" size="sm" type="button" disabled={!saved || loading || saving} >Редагувати умови</Button></Dialog.Trigger></div>
         {loading && <p className="text-xs text-muted-foreground">Завантаження умов…</p>}
         {CONDITION_KEYS.some(key => settings[key].state === "unknown") && <p className="text-xs text-muted-foreground">Не всі умови налаштовані. Це не означає відсутність вимог.</p>}
-        <div className="grid gap-3 md:grid-cols-2">{CONDITION_KEYS.filter(key => settings[key].state === "configured").map(key => <div key={key} className="rounded-xl border border-border p-3"><p className="text-xs text-muted-foreground">{LABELS[key]}</p><p className="mt-1 text-sm text-foreground">{settings[key].value}</p>{key === "maxLoss" && <p className="mt-1 text-xs text-muted-foreground">{settings.maxLossMode === "eod_trailing_percent" ? "Trailing від максимуму балансу на кінець дня" : settings.maxLossMode === "static" ? "Статичний від початкового капіталу" : "Режим розрахунку не налаштовано"}</p>}</div>)}</div>
+        <div className="grid gap-3 md:grid-cols-2">{CONDITION_KEYS.filter(key => settings[key].state === "configured").map(key => <div key={key} className="rounded-xl border border-border p-3"><p className="text-xs text-muted-foreground">{LABELS[key]}</p><p className="mt-1 text-sm text-foreground">{settings[key].value}</p></div>)}</div>
         {settings.target.state === "configured" && summary.progressPercent !== null && <div><p className="text-xs text-muted-foreground">Прогрес за журналом: {fmt.pct(summary.pnlPercent ?? 0)} · ціль {money(summary.targetAmount)}</p><div role="progressbar" aria-label="Прогрес за журналом" aria-valuemin={0} aria-valuemax={100} aria-valuenow={summary.progressPercent} className="mt-2 h-2 overflow-hidden rounded-full bg-secondary"><div className="h-full bg-[var(--color-green)]" style={{ width: `${summary.progressPercent}%` }} /></div></div>}
-        {settings.maxLoss.state === "configured" && settings.maxLossMode === "eod_trailing_percent" && <p className="text-xs text-gold">Trailing-правило збережено. Розрахунок межі ще недоступний: потрібна повна історія балансів на кінець дня.</p>}
         <p className="text-xs text-muted-foreground">Використання лімітів і виконання мінімуму днів не підтверджуються. Автоматичних статусів проходження або провалу немає.</p>
-        {settings.notes && <p className="whitespace-pre-wrap text-xs text-muted-foreground">{settings.notes}</p>}
         {error && !editing && <p role="alert" className="text-sm text-destructive">{error}</p>}
         <Button variant="ghost" size="sm" type="button" disabled={loading || saving} onClick={() => void load()} >Оновити умови</Button>
       </div>}
@@ -92,9 +90,7 @@ export function AccountRulesCard({ account, accountId, trades }: { account: Trad
           <fieldset disabled={saving || loading || conflict} className="space-y-5">
             <label className="block space-y-2 text-xs text-muted-foreground"><span>Етап рахунку — необов’язкова позначка</span><Select  value={draft.phase ?? ""} onChange={event => setDraft({ ...draft, phase: event.target.value ? event.target.value as PropRuleRecord["phase"] : null })}><option value="">Не задано</option><option value="phase-1">Phase 1</option><option value="phase-2">Phase 2</option><option value="phase-3">Phase 3</option><option value="funded">Funded</option></Select></label>
             <div className="grid gap-4 md:grid-cols-2">{CONDITION_KEYS.map(key => <ConditionField key={key} label={LABELS[key]} value={draft.settings[key]} days={key === "minTradingDays"} onChange={value => setSetting(key, value)} />)}</div>
-            {draft.settings.maxLoss.state === "configured" && <div className="space-y-2"><label className="block space-y-2 text-xs text-muted-foreground"><span>Як визначається загальний ліміт збитку?</span><Select  value={draft.settings.maxLossMode ?? ""} onChange={event => setSetting("maxLossMode", event.target.value ? event.target.value as PropRuleSettings["maxLossMode"] : null)}><option value="">Ще не налаштовано</option><option value="static">Статичний — від початкового капіталу</option><option value="eod_trailing_percent">Trailing — від максимуму балансу на кінець дня</option></Select></label>{draft.settings.maxLossMode === "eod_trailing_percent" && <p className="text-xs leading-5 text-muted-foreground">Беремо найбільший баланс серед завершених торгових днів, без відкритого P&L. Приклад для ліміту 5%: максимум 10 400 дає межу 9 880. Зараз зберігається правило; розрахунок за брокерською історією ще недоступний.</p>}</div>}
-            <details className="rounded-xl border border-border p-3"><summary className="cursor-pointer text-sm text-foreground">Додаткові параметри правил</summary><div className="mt-4 space-y-4"><p className="text-xs leading-5 text-muted-foreground">Можна залишити неналаштованими. Ці параметри потрібні для подальшого контролю лімітів; ми не вгадуємо їх за назвою фази або часовим поясом пристрою.</p><div className="grid gap-4 md:grid-cols-2"><label className="space-y-2 text-xs text-muted-foreground"><span>Часовий пояс правила, IANA</span><Input  value={draft.settings.dayTimezone ?? ""} onChange={event => setSetting("dayTimezone", event.target.value || null)} placeholder="Не налаштовано" /></label><label className="space-y-2 text-xs text-muted-foreground"><span>Коли завершується торговий день</span><DateTimeField type="time" step={60} value={draft.settings.dayClose ?? ""} onChange={event => setSetting("dayClose", event.target.value || null)} /></label></div><label className="block space-y-2 text-xs text-muted-foreground"><span>Що порівнювати з межею збитку?</span><Select  value={draft.settings.lossControlBasis ?? ""} onChange={event => setSetting("lossControlBasis", event.target.value ? event.target.value as PropRuleSettings["lossControlBasis"] : null)}><option value="">Ще не налаштовано</option><option value="balance">Balance — баланс</option><option value="equity">Equity — з урахуванням відкритих позицій</option></Select></label><p className="text-xs leading-5 text-muted-foreground">Це окреме правило контролю, а не спосіб визначення EOD-максимуму.</p><label className="block space-y-2 text-xs text-muted-foreground"><span>Інші умови — примітка, без автоматичної перевірки</span><Textarea  maxLength={2000} value={draft.settings.notes ?? ""} onChange={event => setSetting("notes", event.target.value || null)} /></label></div></details>
-            <p className="text-xs leading-5 text-muted-foreground">Funded не підставляє правила автоматично. Вибір «Такої вимоги немає» прибирає її з картки, але не стирає раніше задане значення.</p>
+            <p className="text-xs leading-5 text-muted-foreground">Funded не підставляє правила автоматично. Вибір «Такої вимоги немає» прибирає її з картки, але не стирає раніше задане значення. Ліміти збитку тут лише зберігаються як ваші умови: програма їх не перевіряє.</p>
           </fieldset>
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           {conflict && <p className="text-xs text-muted-foreground">Збереження заблоковано, щоб не перезаписати новіші умови. Перечитайте їх кнопкою нижче.</p>}
@@ -102,5 +98,5 @@ export function AccountRulesCard({ account, accountId, trades }: { account: Trad
         </form>
       </Dialog.Content>
     </Dialog.Portal>}
-  </Dialog.Root>;
+  </Dialog.Root>{isProp && <AccountChainCard account={account} />}</>;
 }

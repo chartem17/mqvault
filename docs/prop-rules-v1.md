@@ -1,25 +1,22 @@
-# Prop rules v1: foundation, not a completed feature
+# Умови проп-рахунку
 
-This commit adds a settings contract, pure reference calculation, tests and an unapplied additive migration. Existing form, account API, Overview and data are not changed. CI does not apply or execute the SQL migration.
+Рішення (2026-11-05): **EOD/trailing і будь-які правила, специфічні для фірми, не підтримуються.** У різних фірм різні умови, і заповнювати їх надто довго. Лишилося:
 
-## Semantics
-- Each condition has unknown, not_applicable or configured state. Inactive values can be retained without activating the rule.
-- Legacy non-null values remain configured; legacy null means unknown, not absence of a requirement. Zero legacy minimum days is preserved as an explicit numeric value.
-- Funded is a stage label, not a rule template and not proof of live capital.
-- EOD trailing formula: max(initial capital, finalized EOD balances) * (1 - percent / 100). Example: 10400 * 0.95 = 9880.
-- Percentage uses the EOD peak, never the initial balance as the deductible base. Static mode is a separate configuration.
-- Rule timezone, day close and balance/equity control basis remain explicit nullable settings. Missing parameters must not receive guessed defaults.
+- ціль прибутку, %
+- загальний ліміт збитку, %
+- денний ліміт збитку, %
+- мінімум торгових днів
+- необов'язкова фаза (Phase 1 / 2 / 3 / Funded) — позначка рахунку
 
-## Reference calculation boundary
-The pure function accepts finalized snapshots prepared by a trusted server adapter. It does not aggregate journal trades, determine EOD boundaries, prove provenance or coverage, reconcile cash flows, infer payout/reset behavior, apply a trailing cap, or decide breach/pass status. Historical setup changes and payout/reset events need an explicit supported policy before integrating historical results.
+## Семантика
+- Кожна умова має стан: `unknown` (не налаштовано), `not_applicable` (вимоги немає), `configured` (є значення).
+- `legacy` значення без стану вважається налаштованим; порожнє — `unknown`, а не «вимоги немає».
+- `not_applicable` ховає умову, але не стирає значення.
+- Ліміти збитку зберігаються як ваші умови; застосунок їх не перевіряє й не виносить вердикт «пройдено/провалено».
+- Funded — лише позначка етапу, а не шаблон правил.
 
-Completeness and source flags are trusted adapter assertions, not claims accepted from request JSON. Manual snapshots and journal estimates do not produce a broker reference. The function rejects mixed accounts, duplicate cutoff timestamps, future cutoff data and invalid decimals. Initial balance participates in the high-water mark. Monetary input supports up to 8 decimal places; percentage supports up to 6. BigInt arithmetic returns the exact unrounded decimal threshold. Broker tick/currency rounding is not selected here.
+## Редактор
+GET/PATCH `/api/accounts/:id/prop-rules`; PATCH приймає `expectedRevision`, частковий `settings` і/або `phase`. Невідповідна ревізія дає 409. Невідомі поля відхиляються.
 
-## Next integration steps
-1. Test and separately approve/apply the migration to mqvault-dev; reconcile migration history before any blanket CLI migration push.
-2. Extend owner-scoped account reads and sparse edits; enforce expected revision with a conditional update and return 409 for stale rule edits.
-3. Add editing with explicit condition states and existing values preserved; integrate Overview visibility with those states.
-4. Define and implement trusted finalized EOD data capture/coverage and cash-flow handling. Until available, display unavailable rather than a fabricated threshold.
-5. Run API/database and browser acceptance tests. No automatic pass/fail or public launch is authorized by this foundation commit.
-
-Do not drop old financial fields, rewrite existing accounts, disable RLS, expose service credentials or merge main as part of this step. SQL constraints and trigger require database testing separately; a green TypeScript run is not database validation.
+## Колонки в БД, які більше не використовуються
+`prop_max_loss_mode`, `prop_day_timezone`, `prop_day_close`, `prop_loss_control_basis`, `prop_rules_notes` лишаються в таблиці `accounts` (порожні), але код їх не читає й не пише. Їх не видаляли: міграція адитивна, і видалення потребує окремого затвердження.

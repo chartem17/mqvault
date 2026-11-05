@@ -4,8 +4,8 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const { settingsFromColumns, ruleRecordFromColumns, preparePropRuleUpdate, RuleRevisionConflict, parseRuleRecord } = require("../.tmp-prop-rule-tests/prop-rule-record.js");
 const row = { id: "a", account_type: "prop", phase: "funded", prop_rules_revision: 2, target_percent: 8, max_loss_percent: 5, daily_loss_percent: null, min_trading_days: null };
-test("legacy settings keep values and unknown absence without guessing mode", () => {
-  const value = settingsFromColumns(row); assert.equal(value.target.state, "configured"); assert.equal(value.dailyLoss.state, "unknown"); assert.equal(value.maxLossMode, null);
+test("legacy settings keep values and unknown absence", () => {
+  const value = settingsFromColumns(row); assert.equal(value.target.state, "configured"); assert.equal(value.dailyLoss.state, "unknown"); assert.equal(value.minTradingDays.state, "unknown");
 });
 test("phase-only update never resets conditions", () => { assert.deepEqual(preparePropRuleUpdate({ expectedRevision: 2, phase: "phase-3" }, row).payload, { phase: "phase-3" }); });
 test("state-only update retains stored condition value", () => {
@@ -23,6 +23,14 @@ test("personal accounts and wrong-account responses are rejected", () => {
   assert.throws(() => ruleRecordFromColumns({ ...row, account_type: "personal" }));
   assert.throws(() => parseRuleRecord(ruleRecordFromColumns(row), "other"));
 });
-test("database time format is normalized without inventing timezone", () => {
-  const value = settingsFromColumns({ ...row, prop_day_close: "23:00:00" }); assert.equal(value.dayClose, "23:00"); assert.equal(value.dayTimezone, null);
+test("stored trailing columns are ignored and cannot be updated through the editor", () => {
+  const value = settingsFromColumns({ ...row, prop_max_loss_mode: "eod_trailing_percent", prop_day_close: "23:00:00", prop_rules_notes: "x" });
+  assert.deepEqual(Object.keys(value).sort(), ["dailyLoss", "maxLoss", "minTradingDays", "target"]);
+  for (const settings of [{ maxLossMode: "static" }, { dayTimezone: "Europe/Kyiv" }, { notes: "x" }]) assert.throws(() => preparePropRuleUpdate({ expectedRevision: 2, settings }, row));
+});
+test("explicit not_applicable then value update keeps both fields independent", () => {
+  assert.deepEqual(preparePropRuleUpdate({ expectedRevision: 2, settings: { dailyLoss: { state: "configured", value: 4 }, minTradingDays: { state: "configured", value: 5 } } }, row).payload, { prop_daily_loss_state: "configured", daily_loss_percent: 4, prop_min_days_state: "configured", min_trading_days: 5 });
+});
+test("configured state without a value is rejected even when the stored value is empty", () => {
+  assert.throws(() => preparePropRuleUpdate({ expectedRevision: 2, settings: { dailyLoss: { state: "configured" } } }, row));
 });
