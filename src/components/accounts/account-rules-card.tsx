@@ -66,8 +66,8 @@ export function AccountRulesCard({ account, accountId, trades }: { account: Trad
     if (open) { if (!saved) return; setDraft(saved); if (!conflict) setError(null); }
     setEditing(open);
   };
-  return <><Dialog.Root open={editing} onOpenChange={changeOpen}>
-    <section className={CARD}>
+  return <div className={`${CARD} grid gap-6 ${isProp ? "lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:gap-0" : ""}`}><Dialog.Root open={editing} onOpenChange={changeOpen}>
+    <section className="min-w-0 lg:pr-6">
       <div className="flex flex-wrap justify-between gap-4"><div><h3 className="font-semibold text-foreground">{account.name}</h3><p className="mt-1 text-xs text-muted-foreground">{accountOverviewLabel(effective)} · {account.broker || "—"} · {account.platform.toUpperCase()}</p><p className="mt-1 text-xs text-muted-foreground">Початковий капітал: {money(summary.initialBalance)}</p></div><div className="text-right"><p className="text-xs text-muted-foreground">Оцінка за журналом</p><p className="mt-1 text-lg font-semibold text-foreground">{money(summary.journalBalance)}</p><p className="mt-1 text-xs text-muted-foreground">Net P&L: {money(summary.netPnl)}</p></div></div>
       <p className="mt-3 text-xs text-muted-foreground">Початковий капітал + net P&L журналу. Це не брокерський баланс і не live equity.</p>
       {summary.netPnl === null && <p className="mt-2 text-xs text-gold">P&L неповний; прогрес недоступний.</p>}
@@ -98,5 +98,5 @@ export function AccountRulesCard({ account, accountId, trades }: { account: Trad
         </form>
       </Dialog.Content>
     </Dialog.Portal>}
-  </Dialog.Root>{isProp && <AccountChainCard account={account} />}</>;
+  </Dialog.Root>{isProp && <AccountChainCard account={account} />}</div>;
 }
