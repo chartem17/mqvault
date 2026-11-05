@@ -58,3 +58,18 @@ export function lastDays(trades: readonly HomeTrade[], timezone: string, days: n
 export function unmarkedTrades<T extends HomeTrade>(trades: readonly T[]): T[] {
   return trades.filter(trade => !trade.setup?.trim() || !trade.emotion?.trim());
 }
+
+/** Ukrainian plural form: one / few / many. */
+export function pluralUk(count: number, one: string, few: string, many: string): string {
+  const n = Math.abs(Math.trunc(count)), last = n % 10, tens = n % 100;
+  if (last === 1 && tens !== 11) return one;
+  if (last >= 2 && last <= 4 && (tens < 12 || tens > 14)) return few;
+  return many;
+}
+
+export function greetingFor(hour: number): string {
+  if (hour < 5) return "Доброї ночі";
+  if (hour < 12) return "Доброго ранку";
+  if (hour < 18) return "Доброго дня";
+  return "Доброго вечора";
+}
