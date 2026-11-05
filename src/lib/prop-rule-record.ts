@@ -3,8 +3,7 @@ import { legacyRuleCondition, parsePropRuleSettings, type PropRuleSettings } fro
 type Row = Record<string, unknown>;
 const own = (row: Row, key: string) => Object.prototype.hasOwnProperty.call(row, key);
 const conditions = { target: ["prop_target_state", "target_percent"], maxLoss: ["prop_max_loss_state", "max_loss_percent"], dailyLoss: ["prop_daily_loss_state", "daily_loss_percent"], minTradingDays: ["prop_min_days_state", "min_trading_days"] } as const;
-const fields = { maxLossMode: "prop_max_loss_mode", dayTimezone: "prop_day_timezone", dayClose: "prop_day_close", lossControlBasis: "prop_loss_control_basis", notes: "prop_rules_notes" } as const;
-export const PROP_RULE_SELECT = "id,account_type,phase,target_percent,max_loss_percent,daily_loss_percent,min_trading_days,prop_target_state,prop_max_loss_state,prop_daily_loss_state,prop_min_days_state,prop_max_loss_mode,prop_day_timezone,prop_day_close,prop_loss_control_basis,prop_rules_notes,prop_rules_revision";
+export const PROP_RULE_SELECT = "id,account_type,phase,target_percent,max_loss_percent,daily_loss_percent,min_trading_days,prop_target_state,prop_max_loss_state,prop_daily_loss_state,prop_min_days_state,prop_rules_revision";
 export type PropRuleRecord = { accountId: string; revision: number; phase: PropPhase | null; settings: PropRuleSettings };
 export class RuleRevisionConflict extends Error {}
 function record(value: unknown): Row { if (!value || typeof value !== "object" || Array.isArray(value)) throw new AccountSetupError("Invalid rule payload"); return value as Row; }
@@ -26,8 +25,6 @@ export function settingsFromColumns(row: Row): PropRuleSettings {
     const stored = number(row[valueColumn]);
     value[key] = row[stateColumn] === null || row[stateColumn] === undefined ? legacyRuleCondition(stored, key === "minTradingDays") : { state: row[stateColumn], value: stored };
   }
-  for (const [key, column] of Object.entries(fields)) value[key] = row[column] ?? null;
-  if (typeof value.dayClose === "string" && /^\d{2}:\d{2}:00$/.test(value.dayClose)) value.dayClose = value.dayClose.slice(0, 5);
   return parsePropRuleSettings(value);
 }
 export function ruleRecordFromColumns(row: Row): PropRuleRecord {
@@ -57,7 +54,6 @@ export function preparePropRuleUpdate(value: unknown, row: Row) {
     if (own(change, "state")) payload[stateColumn] = settings[key].state;
     if (own(change, "value")) payload[valueColumn] = settings[key].value;
   }
-  for (const [name, column] of Object.entries(fields)) { const key = name as keyof typeof fields; if (own(delta, key)) payload[column] = settings[key]; }
   if (own(body, "phase")) payload.phase = phase(body.phase);
   if (Object.keys(payload).length === 0) throw new AccountSetupError("No rule changes supplied");
   return { expectedRevision, payload };

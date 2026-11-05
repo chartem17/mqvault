@@ -27,7 +27,7 @@ export async function GET(request: Request, context: Context) {
     if (error) return databaseError(error.code);
     if (!data) return json({ error: "Account not found" }, 404);
     if (data.account_type !== "prop") return json({ error: "Умови доступні лише для проп-рахунку" }, 400);
-    return json({ data: ruleRecordFromColumns(data), reference: { kind: "unavailable", reason: "no_finalized_eod_history" } });
+    return json({ data: ruleRecordFromColumns(data) });
   } catch (error) { return failure(error); }
 }
 export async function PATCH(request: Request, context: Context) {
@@ -47,6 +47,6 @@ export async function PATCH(request: Request, context: Context) {
     const { data, error } = await owner.db.from("accounts").update(payload).eq("id", id).eq("user_id", owner.ownerId).eq("is_active", true).eq("account_type", "prop").eq("prop_rules_revision", expectedRevision).select(PROP_RULE_SELECT).maybeSingle();
     if (error) return databaseError(error.code);
     if (!data) return json({ error: "Рахунок або його умови змінилися. Перечитайте дані перед збереженням." }, 409);
-    return json({ data: ruleRecordFromColumns(data), reference: { kind: "unavailable", reason: "no_finalized_eod_history" } });
+    return json({ data: ruleRecordFromColumns(data) });
   } catch (error) { return failure(error); }
 }

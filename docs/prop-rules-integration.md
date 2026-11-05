@@ -1,11 +1,12 @@
-# Editable prop rules integration
+# Інтеграція умов і гілок проп-рахунків
 
-The prop account card in Overview loads owner-scoped settings from GET /api/accounts/:id/prop-rules and exposes an inline editor. PATCH accepts expectedRevision plus sparse settings and/or phase. Conditional database update enforces the expected revision. A conflict does not automatically retry or overwrite changes.
+## Умови
+Картка рахунку в Overview читає умови з `GET /api/accounts/:id/prop-rules` і редагує їх у діалозі. Деталі — `docs/prop-rules-v1.md`. Міграція `prop_rule_settings_v1` застосована раніше; без неї endpoint повертає 503 `schema_pending`.
 
-Apply the separately approved prop_rule_settings_v1 migration before enabling editing. Until then the new endpoint returns 503 schema_pending and the card retains a read-only legacy summary. No migration runs from CI or application startup.
+## Гілки: Phase 1 → Phase 2 → Funded
+Рахунки різні, але можуть бути звʼязані в одну лінійну гілку через наявну колонку `accounts.parent_account_id` («попередній етап»). Нової міграції немає.
 
-Configured conditions are visible, not_applicable conditions are hidden without erasing values, and unknown conditions produce a neutral configuration notice. Funded does not imply live capital or alter conditions. New accounts still use the existing create form; advanced states and EOD parameters are edited after creation.
-
-The EOD arithmetic remains isolated and unit-tested. The endpoint deliberately reports unavailable because trusted finalized balance history and cash-flow reconciliation are not integrated. No broker threshold, pass/fail, remaining-risk guarantee or automatic phase transition is fabricated. Payout/reset/cap policies and historical rule versions remain unsupported for calculations.
-
-Revision protection applies to this dedicated editor endpoint. Legacy /api/accounts PATCH remains a compatibility path and is not advertised as revision-safe. Private single-owner authentication is unchanged; public multi-user launch is not part of this commit. SQL CI uses a disposable database and does not replace testing against actual Supabase policies and triggers. Browser acceptance is still required before merging main.
+- Привʼязка: поле «Попередній етап» у формі створення рахунку або в картці «Гілка рахунку».
+- Серверні правила (`src/lib/account-api.ts`, `src/lib/account-chain.ts`): лише власні активні проп-рахунки; рахунок не може бути попереднім етапом сам для себе; без кіл; у етапу не більше одного наступного; зміна типу на особистий скидає привʼязку; видалення рахунку лише від'єднує сусідів (`permanent_entity_deletion`).
+- Картка «Гілка рахунку»: етапи по порядку, у кожного net P&L, кількість угод і прогрес до власної цілі; внизу разом по гілці — net P&L, угод, торгових днів (у поясі користувача). Якщо в частині угод немає net P&L, сума показується як недоступна.
+- Угоди й умови рахунків привʼязка не змінює. Автоматичних переходів між фазами й статусів pass/fail немає.
