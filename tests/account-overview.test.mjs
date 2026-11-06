@@ -14,7 +14,7 @@ test("personal accounts never expose legacy prop settings", () => {
   const result = buildAccountOverview({ ...account, accountType: "personal" }, [trade(50)]);
   assert.equal(result.isProp, false);
   for (const key of ["targetPercent", "targetAmount", "progressPercent", "maxLossPercent", "dailyLossPercent", "minTradingDays"]) assert.equal(result[key], null);
-  assert.equal(accountOverviewLabel({ ...account, accountType: "personal" }), "Особистий рахунок");
+  assert.equal(accountOverviewLabel({ ...account, accountType: "personal" }), "Personal account");
 });
 test("empty journal is zero PnL, not completed target", () => {
   const result = buildAccountOverview(account, []);
@@ -50,7 +50,7 @@ test("configured limits are metadata rather than a fabricated used limit", () =>
   assert.equal(Object.hasOwn(result, "dailyLossUsed"), false); assert.equal(Object.hasOwn(result, "maxLossUsed"), false);
 });
 test("phase and account type are never inferred from manual or MT5", () => {
-  assert.equal(accountOverviewLabel(account), "Проп · Phase 3");
-  assert.equal(accountOverviewLabel({ ...account, phase: "manual" }), "Проп · Не задано");
-  assert.equal(accountOverviewLabel({ ...account, accountType: undefined }), "Тип рахунку не задано");
+  assert.equal(accountOverviewLabel(account), "Prop · Phase 3");
+  assert.equal(accountOverviewLabel({ ...account, phase: "manual" }), "Prop · Not set");
+  assert.equal(accountOverviewLabel({ ...account, accountType: undefined }), "Account type not set");
 });

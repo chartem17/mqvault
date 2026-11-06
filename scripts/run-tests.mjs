@@ -30,6 +30,7 @@ const builds = [
   [["src/lib/sessions.ts"], ".tmp-session-tests", dom],
   [["src/lib/supabase/deletion-result.ts"], ".tmp-deletion-tests", [...dom, "--strict"]],
   [["src/lib/trading-calendar.ts"], ".tmp-date-tests", [...dom, "--strict"]],
+  [["src/lib/i18n/core.ts", "src/lib/i18n/uk.ts"], ".tmp-i18n-tests", ["--strict"]],
 ];
 
 const tsc = join("node_modules", "typescript", "bin", "tsc");

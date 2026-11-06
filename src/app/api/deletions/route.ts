@@ -27,6 +27,6 @@ export async function DELETE(request: NextRequest) {
     return json({ success: true, ...result });
   } catch (error) {
     console.error("DELETE /api/deletions failed", error instanceof Error ? error.message : "Unknown error");
-    return json({ error: "Не вдалося підтвердити остаточне видалення. Оновіть дані для перевірки стану." }, 500);
+    return json({ error: "Could not confirm the permanent deletion. Reload to check the state." }, 500);
   }
 }

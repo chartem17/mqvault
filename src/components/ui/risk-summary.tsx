@@ -2,9 +2,11 @@
 
 import { useMemo } from "react";
 import { useTrades } from "@/hooks/use-trades";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export function RiskSummary() {
   const { visibleTrades } = useTrades();
+  const { t, tn } = useI18n();
 
   const risk = useMemo(() => {
     const values = visibleTrades
@@ -22,16 +24,16 @@ export function RiskSummary() {
   }, [visibleTrades]);
 
   if (!risk) {
-    return <span className="text-[11px] text-muted-foreground">Risk data unavailable</span>;
+    return <span className="text-[11px] text-muted-foreground">{t("Risk data unavailable")}</span>;
   }
 
   return (
     <span className="text-[11px] text-muted-foreground">
-      Avg risk/trade: <span className="font-medium text-muted-foreground">{risk.average.toFixed(2)}%</span>
+      {t("Avg risk/trade:")} <span className="font-medium text-muted-foreground">{risk.average.toFixed(2)}%</span>
       <span className="mx-1.5 text-muted-foreground">·</span>
-      Max risk: <span className="font-medium text-muted-foreground">{risk.max.toFixed(2)}%</span>
+      {t("Max risk:")} <span className="font-medium text-muted-foreground">{risk.max.toFixed(2)}%</span>
       <span className="mx-1.5 text-muted-foreground">·</span>
-      <span>{risk.covered}/{risk.total} trades tracked</span>
+      <span>{tn(risk.total, "{covered}/{count} trade tracked", "{covered}/{count} trades tracked", { covered: risk.covered })}</span>
     </span>
   );
 }

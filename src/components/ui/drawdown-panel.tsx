@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, TrendingDown } from "lucide-react";
@@ -125,41 +126,42 @@ function mostFrequent(values: string[]) {
 }
 
 function EpisodeDetails({ episode, accountNames }: { episode: Episode; accountNames: Record<string, string> }) {
+  const { t, tn } = useI18n();
   const trades = episode.trades;
   const wins = trades.filter((trade) => (trade.net_pnl ?? 0) > 0).length;
   const losses = trades.filter((trade) => (trade.net_pnl ?? 0) < 0).length;
   const totalPnl = trades.reduce((sum, trade) => sum + (trade.net_pnl ?? 0), 0);
   const averageRisk = trades.filter((trade) => (trade.risk_percent ?? 0) > 0).reduce((sum, trade, _, list) => sum + (trade.risk_percent ?? 0) / list.length, 0);
   const largestLoss = Math.min(0, ...trades.map((trade) => trade.net_pnl ?? 0));
-  const involvedAccounts = [...new Set(trades.map((trade) => accountNames[trade.account_id] || "Unknown account"))];
+  const involvedAccounts = [...new Set(trades.map((trade) => accountNames[trade.account_id] || t("Unknown account")))];
   const durationEnd = episode.recoverDate ?? episode.troughDate;
 
   return (
     <div className="grid gap-3 border-t border-border px-4 py-4 text-xs sm:grid-cols-2 xl:grid-cols-4">
       <div className="space-y-1">
-        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Timeline</div>
-        <div className="text-foreground">Peak → trough: {episode.peakDate} → {episode.troughDate}</div>
-        <div className="text-muted-foreground">{daysBetween(episode.peakDate, durationEnd)} days · {trades.length} trades</div>
+        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("Timeline")}</div>
+        <div className="text-foreground">{t("Peak → trough: {peak} → {trough}", { peak: episode.peakDate, trough: episode.troughDate })}</div>
+        <div className="text-muted-foreground">{tn(daysBetween(episode.peakDate, durationEnd), "{count} day", "{count} days")} · {tn(trades.length, "{count} trade", "{count} trades")}</div>
       </div>
 
       <div className="space-y-1">
-        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Execution</div>
-        <div className="text-foreground">{wins} wins · {losses} losses</div>
-        <div className="text-muted-foreground">Largest loss: <span style={{ color: RED }}>{fmt.usd(largestLoss)}</span></div>
-        <div className="text-muted-foreground">Average risk: {averageRisk > 0 ? fmt.pct(averageRisk) : "—"}</div>
+        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("Execution")}</div>
+        <div className="text-foreground">{tn(wins, "{count} win", "{count} wins")} · {tn(losses, "{count} loss", "{count} losses")}</div>
+        <div className="text-muted-foreground">{t("Largest loss:")} <span style={{ color: RED }}>{fmt.usd(largestLoss)}</span></div>
+        <div className="text-muted-foreground">{t("Average risk: {risk}", { risk: averageRisk > 0 ? fmt.pct(averageRisk) : "—" })}</div>
       </div>
 
       <div className="space-y-1">
-        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Pattern</div>
-        <div className="text-foreground">Worst pair: {mostFrequent(trades.map((trade) => trade.symbol || ""))}</div>
-        <div className="text-muted-foreground">Main session: {mostFrequent(trades.map((trade) => trade.session || ""))}</div>
-        <div className="text-muted-foreground">Episode P&L: <span style={{ color: totalPnl < 0 ? RED : GREEN }}>{fmt.usd(totalPnl)}</span></div>
+        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("Pattern")}</div>
+        <div className="text-foreground">{t("Most frequent symbol: {symbol}", { symbol: mostFrequent(trades.map((trade) => trade.symbol || "")) })}</div>
+        <div className="text-muted-foreground">{t("Main session: {session}", { session: t(mostFrequent(trades.map((trade) => trade.session || ""))) })}</div>
+        <div className="text-muted-foreground">{t("Episode P&L:")} <span style={{ color: totalPnl < 0 ? RED : GREEN }}>{fmt.usd(totalPnl)}</span></div>
       </div>
 
       <div className="space-y-1">
-        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">Context</div>
-        <div className="text-foreground">{episode.recoverDate ? `Recovered ${episode.recoverDate}` : "Recovery in progress"}</div>
-        <div className="text-muted-foreground">Accounts: {involvedAccounts.join(" · ")}</div>
+        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("Context")}</div>
+        <div className="text-foreground">{episode.recoverDate ? t("Recovered {date}", { date: episode.recoverDate }) : t("Recovery in progress")}</div>
+        <div className="text-muted-foreground">{t("Accounts: {names}", { names: involvedAccounts.join(" · ") })}</div>
       </div>
     </div>
   );
@@ -168,6 +170,7 @@ function EpisodeDetails({ episode, accountNames }: { episode: Episode; accountNa
 export function DrawdownPanel() {
   const { visibleTrades, accounts, includedAccountIds, activeAccountId, activeAccount } = useTrades();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const { t, tn } = useI18n();
 
   const baseBalance = useMemo(() => {
     if (activeAccountId !== "all" && activeAccount) return activeAccount.initialBalance || 0;
@@ -207,8 +210,8 @@ export function DrawdownPanel() {
   if (!points.length) {
     return (
       <section className={`${CARD} h-full min-h-0 min-w-0 overflow-auto p-5`}>
-        <div className={CARD_TITLE}>Drawdown episodes</div>
-        <p className="mt-2 text-sm text-muted-foreground">Недостатньо угод для аналізу просадок.</p>
+        <div className={CARD_TITLE}>{t("Drawdown episodes")}</div>
+        <p className="mt-2 text-sm text-muted-foreground">{t("Not enough trades to analyse drawdowns.")}</p>
       </section>
     );
   }
@@ -217,27 +220,27 @@ export function DrawdownPanel() {
     <section className="flex h-full min-h-0 min-w-0 flex-col gap-3">
       <div className="grid shrink-0 grid-cols-2 gap-3 md:grid-cols-4">
         <MetricTile
-          label="MAX DD"
+          label={t("Max DD")}
           value={`${(worstEpisode?.ddPct ?? 0).toFixed(2)}%`}
           sub={fmt.usd(worstEpisode?.ddAmount ?? 0)}
           color={RED}
         />
         <MetricTile
-          label="CURRENT DD"
+          label={t("Current DD")}
           value={activeEpisode ? `${latestPoint.ddPct.toFixed(2)}%` : "0%"}
-          sub={activeEpisode ? fmt.usd(latestPoint.ddAmount) : "At equity high"}
+          sub={activeEpisode ? fmt.usd(latestPoint.ddAmount) : t("At equity high")}
           color={activeEpisode ? RED : GREEN}
         />
         <MetricTile
-          label="RECOVERY"
-          value={activeEpisode ? `${recoveryTrades} trades` : recoveryTrades ? `${recoveryTrades} trades` : "—"}
-          sub={activeEpisode ? `${recoveryDays} days underwater` : recoveryDays ? `${recoveryDays} days to recover` : "No completed cycles"}
+          label={t("Recovery")}
+          value={activeEpisode || recoveryTrades ? tn(recoveryTrades, "{count} trade", "{count} trades") : "—"}
+          sub={activeEpisode ? tn(recoveryDays, "{count} day underwater", "{count} days underwater") : recoveryDays ? tn(recoveryDays, "{count} day to recover", "{count} days to recover") : t("No completed cycles")}
           color={activeEpisode ? RED : GREEN}
         />
         <MetricTile
-          label="LONGEST UNDERWATER"
-          value={`${longestUnderwaterDays} days`}
-          sub={`${episodes.length} episodes in period`}
+          label={t("Longest underwater")}
+          value={tn(longestUnderwaterDays, "{count} day", "{count} days")}
+          sub={tn(episodes.length, "{count} episode in period", "{count} episodes in period")}
         />
       </div>
 
@@ -246,16 +249,16 @@ export function DrawdownPanel() {
           <div className="flex items-center gap-2">
             <TrendingDown className="h-4 w-4" style={{ color: RED }} />
             <div>
-              <div className={CARD_TITLE}>Drawdown episodes</div>
-              <div className="text-[11px] text-muted-foreground">Peak → trough → recovery across all included trades</div>
+              <div className={CARD_TITLE}>{t("Drawdown episodes")}</div>
+              <div className="text-[11px] text-muted-foreground">{t("Peak → trough → recovery across all included trades")}</div>
             </div>
           </div>
-          <div className="text-xs text-muted-foreground">{episodes.length} total</div>
+          <div className="text-xs text-muted-foreground">{t("{count} total", { count: episodes.length })}</div>
         </div>
 
-        <div role="region" aria-label="Drawdown episodes list" tabIndex={0} className="min-h-0 flex-1 overflow-auto overscroll-contain focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" style={{ scrollbarGutter: "stable" }}>
+        <div role="region" aria-label={t("Drawdown episodes list")} tabIndex={0} className="min-h-0 flex-1 overflow-auto overscroll-contain focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary" style={{ scrollbarGutter: "stable" }}>
         {displayedEpisodes.length === 0 ? (
-          <div className="p-5 text-sm text-muted-foreground">No drawdown episodes detected.</div>
+          <div className="p-5 text-sm text-muted-foreground">{t("No drawdown episodes detected.")}</div>
         ) : (
           <div className="divide-y divide-border">
             {displayedEpisodes.map((episode, index) => {
@@ -274,14 +277,14 @@ export function DrawdownPanel() {
                     onClick={() => setExpandedId((current) => current === episode.id ? null : episode.id)}
                   >
                     <div>
-                      <div className={CARD_TITLE}>{index === 0 ? "Worst episode" : `Episode #${index + 1}`}</div>
+                      <div className={CARD_TITLE}>{index === 0 ? t("Worst episode") : t("Episode #{number}", { number: index + 1 })}</div>
                       <div className="mt-0.5 text-[11px] text-muted-foreground">{episode.peakDate} → {episode.troughDate}</div>
                     </div>
 
                     <div>
                       <div className="mb-1 flex justify-between gap-3 text-xs">
                         <span style={{ color: RED }}>{episode.ddPct.toFixed(2)}% · {fmt.usd(episode.ddAmount)}</span>
-                        <span className="text-muted-foreground">{episode.trades.length} trades</span>
+                        <span className="text-muted-foreground">{tn(episode.trades.length, "{count} trade", "{count} trades")}</span>
                       </div>
                       <div className="h-1.5 overflow-hidden rounded-full bg-secondary/50">
                         <div className="h-full rounded-full" style={{ width: `${normalizedDepth}%`, backgroundColor: RED }} />
@@ -290,10 +293,10 @@ export function DrawdownPanel() {
 
                     <div className="text-xs">
                       <div className="font-medium" style={{ color: recovered ? GREEN : RED }}>
-                        {recovered ? "Recovered" : "In progress"}
+                        {recovered ? t("Recovered") : t("In progress")}
                       </div>
                       <div className="mt-0.5 text-muted-foreground">
-                        {durationDays} days · {recovered ? `${episode.trades.length} trades` : "still underwater"}
+                        {tn(durationDays, "{count} day", "{count} days")} · {recovered ? tn(episode.trades.length, "{count} trade", "{count} trades") : t("still underwater")}
                       </div>
                     </div>
 

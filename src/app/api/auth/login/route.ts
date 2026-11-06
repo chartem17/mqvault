@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   const password = process.env.VAULT_ACCESS_PASSWORD;
-  if (!password || password.length < 20) return NextResponse.json({ error: "Доступ не налаштовано" }, { status: 503 });
+  if (!password || password.length < 20) return NextResponse.json({ error: "Access is not configured" }, { status: 503 });
   let submitted = "";
   try {
     const body = await request.json() as { password?: unknown };
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   } catch { /* treated as wrong password */ }
   if (!(await safeEqual(submitted, password))) {
     await new Promise(resolve => setTimeout(resolve, 800));
-    return NextResponse.json({ error: "Невірний пароль" }, { status: 401, headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ error: "Wrong password" }, { status: 401, headers: { "Cache-Control": "no-store" } });
   }
   const response = NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
   response.cookies.set(SESSION_COOKIE, await createSessionToken(password), {

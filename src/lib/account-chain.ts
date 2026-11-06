@@ -1,4 +1,5 @@
 import { dayKeyOrNull } from "./timezone";
+import { msg } from "./i18n/core";
 
 /** Prop stages are linked into one linear branch through `parentAccountId` (Phase 1 → Phase 2 → Funded). */
 export type ChainAccount = { id: string; accountType?: string; parentAccountId?: string | null };
@@ -30,16 +31,16 @@ export function chainOf<T extends ChainAccount>(accountId: string, accounts: rea
 /** Would making `parentId` the parent of `accountId` be valid? Returns an error message or null. */
 export function linkError(accountId: string, parentId: string | null, accounts: readonly ChainAccount[]): string | null {
   if (parentId === null) return null;
-  if (parentId === accountId) return "Рахунок не може бути попереднім етапом самого себе";
+  if (parentId === accountId) return msg("An account cannot be its own previous stage");
   const byId = new Map(accounts.map(account => [account.id, account]));
   const parent = byId.get(parentId), child = byId.get(accountId);
-  if (!parent || !child) return "Рахунок не знайдено";
-  if (parent.accountType !== "prop" || child.accountType !== "prop") return "Привʼязувати можна лише проп-рахунки";
+  if (!parent || !child) return msg("Account not found");
+  if (parent.accountType !== "prop" || child.accountType !== "prop") return msg("Only prop accounts can be linked");
   for (let current: ChainAccount | undefined = parent, steps = 0; current && steps <= MAX_CHAIN; steps++) {
-    if (current.id === accountId) return "Так утворилося б коло: цей рахунок уже є попереднім етапом вибраного";
+    if (current.id === accountId) return msg("That would create a loop: this account is already a previous stage of the selected one");
     current = current.parentAccountId ? byId.get(current.parentAccountId) : undefined;
   }
-  if (accounts.some(account => account.parentAccountId === parentId && account.id !== accountId)) return "У цього етапу вже є наступний рахунок";
+  if (accounts.some(account => account.parentAccountId === parentId && account.id !== accountId)) return msg("This stage already has a next account");
   return null;
 }
 

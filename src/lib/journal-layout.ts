@@ -1,19 +1,22 @@
+import { msg } from './i18n/core';
+
+/** Column labels are English source text; the UI translates them with `t()`. */
 export const JOURNAL_COLUMNS = [
-  { id: 'opened_at', label: 'Дата відкриття' },
-  { id: 'closed_at', label: 'Дата закриття' },
-  { id: 'account_id', label: 'Рахунок' },
-  { id: 'symbol', label: 'Інструмент' },
-  { id: 'market', label: 'Ринок' },
-  { id: 'direction', label: 'Напрям' },
-  { id: 'entry_price', label: 'Вхід' },
-  { id: 'exit_price', label: 'Вихід' },
-  { id: 'risk_percent', label: 'Ризик' },
+  { id: 'opened_at', label: msg('Opened') },
+  { id: 'closed_at', label: msg('Closed') },
+  { id: 'account_id', label: msg('Account') },
+  { id: 'symbol', label: msg('Symbol') },
+  { id: 'market', label: msg('Market') },
+  { id: 'direction', label: msg('Direction') },
+  { id: 'entry_price', label: msg('Entry') },
+  { id: 'exit_price', label: msg('Exit') },
+  { id: 'risk_percent', label: msg('Risk') },
   { id: 'net_pnl', label: 'P/L' },
   { id: 'result_r', label: 'R' },
-  { id: 'session', label: 'Сесія' },
-  { id: 'setup', label: 'Сетап' },
-  { id: 'emotion', label: 'Емоція' },
-  { id: 'id', label: 'ID угоди' },
+  { id: 'session', label: msg('Session') },
+  { id: 'setup', label: msg('Setup') },
+  { id: 'emotion', label: msg('Emotion') },
+  { id: 'id', label: msg('Trade ID') },
 ] as const;
 export type JournalColumnId = typeof JOURNAL_COLUMNS[number]['id'];
 export type JournalViewMode = 'table' | 'cards';

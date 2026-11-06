@@ -1,4 +1,5 @@
 import type { AccountType, PropPhase } from "./account-setup";
+import { msg } from "./i18n/core";
 export type { AccountType } from "./account-setup";
 export type AccountPhase = PropPhase | "manual";
 export type AccountStatus = "active" | "passed" | "failed" | "archived";
@@ -32,15 +33,15 @@ export type TradingAccount = {
 };
 
 export const phaseLabel: Record<AccountPhase, string> = {
-  manual: "Manual",
+  manual: msg("Manual"),
   "phase-1": "Phase 1",
   "phase-2": "Phase 2",
   "phase-3": "Phase 3",
-  funded: "Funded",
+  funded: msg("Funded"),
 };
 
 export const kindLabel: Record<AccountKind, string> = {
-  manual: "Manual journal",
-  mt5_bridge: "MT5 profile · manual journal",
-  sync_api: "Sync via API",
+  manual: msg("Manual journal"),
+  mt5_bridge: msg("MT5 profile · manual journal"),
+  sync_api: msg("Sync via API"),
 };

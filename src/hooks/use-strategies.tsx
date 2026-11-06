@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTrades } from "@/hooks/use-trades";
 import { useUndo } from "@/components/ui/undo-toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useI18n } from "@/components/providers/i18n-provider";
+import { msg } from "@/lib/i18n/core";
 import { isRecord, STRATEGY_UUID, toStrategyProfile, type StoredStrategy } from "@/lib/strategy-control/strategy-storage";
 import type { StrategyProfile } from "@/lib/strategy-control/types";
 
@@ -23,6 +25,7 @@ function profileFromRow(row: StoredStrategy): AccountStrategy {
 export function useStrategies() {
   const { activeAccountId, accounts } = useTrades();
   const { notify } = useUndo();
+  const { t } = useI18n();
   const [records, setRecords] = useState<AccountStrategy[]>([]);
   const [selection, setSelection] = useState("");
   const [loading, setLoading] = useState(true);
@@ -55,7 +58,7 @@ export function useStrategies() {
       if (mounted.current && ticket === generation.current && accountId === currentAccount.current) setRecords(next);
     } catch (cause) {
       if (cause instanceof Error && cause.name === "AbortError") return;
-      if (mounted.current && ticket === generation.current) setError(cause instanceof Error ? cause.message : "Не вдалося завантажити стратегії");
+      if (mounted.current && ticket === generation.current) setError(cause instanceof Error ? cause.message : msg("Could not load strategies"));
     } finally { if (mounted.current && ticket === generation.current) setLoading(false); }
   }, []);
   useEffect(() => {
@@ -73,10 +76,10 @@ export function useStrategies() {
   async function createStrategy(profile: StrategyProfile, sourceId?: string): Promise<AccountStrategy> {
     const accountId = currentAccount.current;
     if (accountId === "all" || !STRATEGY_UUID.test(accountId) || !accounts.some(account => account.id === accountId)) {
-      const message = "Виберіть конкретний рахунок перед збереженням стратегії";
+      const message = msg("Pick a specific account before saving a strategy");
       setError(message); throw new Error(message);
     }
-    if (writeBusy.current) throw new Error("Збереження стратегії вже виконується");
+    if (writeBusy.current) throw new Error(msg("A strategy is already being saved"));
     writeBusy.current = true;
     setSaving(true); setError(null);
     try {
@@ -88,7 +91,7 @@ export function useStrategies() {
       }
       return saved;
     } catch (cause) {
-      if (mounted.current) setError(cause instanceof Error ? cause.message : "Не вдалося зберегти стратегію");
+      if (mounted.current) setError(cause instanceof Error ? cause.message : msg("Could not save the strategy"));
       throw cause;
     } finally { writeBusy.current = false; if (mounted.current) setSaving(false); }
   }
@@ -106,7 +109,7 @@ export function useStrategies() {
     deletionIds.current.add(removed.id);
     const accepted = notify({
       key: `strategy:${removed.id}`,
-      message: `Стратегію «${removed.name}» видалено`,
+      message: t("Strategy “{name}” deleted", { name: removed.name }),
       duration: 10000,
       onUndo: () => {
         deletionIds.current.delete(removed.id);
@@ -127,6 +130,6 @@ export function useStrategies() {
     setHidden(current => new Set(current).add(removed.id));
     setSelection(current => current === removed.id ? fallback : current);
   }
-  const confirmation = <ConfirmDialog open={pending !== null} title={`Видалити стратегію «${pending?.name ?? ""}»?`} description="Угоди не видалятимуться. Після підтвердження буде 10 секунд, щоб скасувати; потім стратегія видалиться з бази даних." onCancel={() => setPending(null)} onConfirm={confirmDelete} />;
+  const confirmation = <ConfirmDialog open={pending !== null} title={t("Delete strategy “{name}”?", { name: pending?.name ?? "" })} description={t("Trades are not deleted. After you confirm you have 10 seconds to undo; then the strategy is removed from the database.")} onCancel={() => setPending(null)} onConfirm={confirmDelete} />;
   return { strategies, activeStrategy, selectedStrategyId, setSelectedStrategyId: setSelection, loading, saving, error, canCreate, createStrategy, duplicateStrategy, requestDelete, confirmation, reload };
 }

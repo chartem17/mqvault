@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { msg } from "@/lib/i18n/core";
 import { DEFAULT_TIMEZONE, getBrowserTimeZone, isValidTimeZone } from "@/lib/timezone";
 
 /**
@@ -37,12 +38,12 @@ export function TimezoneProvider({ children }: { children: ReactNode }) {
     (async () => {
       try {
         const response = await fetch("/api/preferences/timezone", { cache: "no-store", signal: controller.signal });
-        if (!response.ok) throw new Error((await readError(response)) ?? "Не вдалося завантажити часовий пояс");
+        if (!response.ok) throw new Error((await readError(response)) ?? msg("Could not load the time zone"));
         const body = await response.json();
         if (controller.signal.aborted || latest.current > 0) return;
         if (typeof body?.timezone === "string" && isValidTimeZone(body.timezone)) { setCurrent(body.timezone); setSaved(true); }
       } catch (cause) {
-        if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Не вдалося завантажити часовий пояс");
+        if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : msg("Could not load the time zone"));
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
@@ -51,17 +52,17 @@ export function TimezoneProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setTimezone = useCallback(async (value: string) => {
-    if (!isValidTimeZone(value)) { setError("Некоректний часовий пояс"); return false; }
+    if (!isValidTimeZone(value)) { setError(msg("Invalid time zone")); return false; }
     const request = ++latest.current;
     const previous = { timezone, saved };
     setCurrent(value); setSaving(true); setError(null);
     try {
       const response = await fetch("/api/preferences/timezone", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ timezone: value }) });
-      if (!response.ok) throw new Error((await readError(response)) ?? "Не вдалося зберегти часовий пояс");
+      if (!response.ok) throw new Error((await readError(response)) ?? msg("Could not save the time zone"));
       if (request === latest.current) setSaved(true);
       return true;
     } catch (cause) {
-      if (request === latest.current) { setCurrent(previous.timezone); setSaved(previous.saved); setError(cause instanceof Error ? cause.message : "Не вдалося зберегти часовий пояс"); }
+      if (request === latest.current) { setCurrent(previous.timezone); setSaved(previous.saved); setError(cause instanceof Error ? cause.message : msg("Could not save the time zone")); }
       return false;
     } finally {
       if (request === latest.current) setSaving(false);

@@ -2,12 +2,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { defaultDashboardLayout, type DashboardLayout } from "@/lib/dashboard-widgets";
 import { readStoredDashboardLayout, sameLayout } from "@/lib/dashboard-layout";
+import { msg } from "@/lib/i18n/core";
 
 type Snapshot = { layout: DashboardLayout; revision: number };
 async function toSnapshot(response: Response): Promise<Snapshot> {
   const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw Object.assign(new Error(body.error || "Помилка розкладки"), { status: response.status });
-  if (!Number.isSafeInteger(body.revision) || body.revision < 0) throw new Error("Некоректна ревізія");
+  if (!response.ok) throw Object.assign(new Error(body.error || msg("Layout error")), { status: response.status });
+  if (!Number.isSafeInteger(body.revision) || body.revision < 0) throw new Error(msg("Invalid revision"));
   return { layout: readStoredDashboardLayout(body.layout), revision: body.revision };
 }
 
@@ -26,7 +27,7 @@ export function useDashboardLayout() {
     try {
       const snapshot = await toSnapshot(await fetch("/api/preferences/dashboard-layout", { cache: "no-store", signal }));
       if (!signal?.aborted) { setSaved(snapshot); setDraft(snapshot.layout); setConflict(false); setError(null); }
-    } catch (cause) { if (!signal?.aborted) setError(cause instanceof Error ? cause.message : "Помилка завантаження"); }
+    } catch (cause) { if (!signal?.aborted) setError(cause instanceof Error ? cause.message : msg("Loading failed")); }
     finally { if (!signal?.aborted) setLoading(false); }
   }, []);
   useEffect(() => { const controller = new AbortController(); void reload(controller.signal); return () => controller.abort(); }, [reload]);
@@ -42,7 +43,7 @@ export function useDashboardLayout() {
       setSaved(snapshot); setDraft(snapshot.layout); return true;
     } catch (cause) {
       if (cause && typeof cause === "object" && "status" in cause && cause.status === 409) setConflict(true);
-      setError(cause instanceof Error ? cause.message : "Помилка збереження"); return false;
+      setError(cause instanceof Error ? cause.message : msg("Saving failed")); return false;
     } finally { busy.current = false; setSaving(false); }
   }, [draft, saved]);
 

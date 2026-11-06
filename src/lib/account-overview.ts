@@ -1,13 +1,18 @@
 import { phaseLabel, type TradingAccount } from "./account-data";
+import { msg, translate, type Vars } from "./i18n/core";
+type T = (text: string, vars?: Vars) => string;
+const english: T = (text, vars) => translate(null, text, vars);
 type OverviewAccount = Pick<TradingAccount, "id" | "accountType" | "phase" | "initialBalance" | "targetPercent" | "maxLossPercent" | "dailyLossPercent" | "minTradingDays">;
 type OverviewTrade = { account_id: string; net_pnl?: number | null };
 function finite(value: unknown): value is number { return typeof value === "number" && Number.isFinite(value); }
 function checked(value: number): number | null { return finite(value) ? value : null; }
 function rate(value: unknown): number | null { return finite(value) && value > 0 && value <= 100 ? value : null; }
-export function accountOverviewLabel(account: Pick<OverviewAccount, "accountType" | "phase">): string {
-  if (account.accountType === "personal") return "Особистий рахунок";
-  if (account.accountType !== "prop") return "Тип рахунку не задано";
-  return `Проп · ${account.phase === "manual" ? "Не задано" : phaseLabel[account.phase] ?? "Не задано"}`;
+/** Short account kind label; pass the UI translator to localise it (English by default). */
+export function accountOverviewLabel(account: Pick<OverviewAccount, "accountType" | "phase">, t: T = english): string {
+  if (account.accountType === "personal") return t(msg("Personal account"));
+  if (account.accountType !== "prop") return t(msg("Account type not set"));
+  const phase = account.phase === "manual" ? msg("Not set") : phaseLabel[account.phase] ?? msg("Not set");
+  return t(msg("Prop · {phase}"), { phase: t(phase) });
 }
 export function buildAccountOverview(account: OverviewAccount, trades: readonly OverviewTrade[]) {
   const entries = trades.filter(trade => trade.account_id === account.id);

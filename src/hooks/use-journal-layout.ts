@@ -1,11 +1,12 @@
 "use client";
+import { msg } from '@/lib/i18n/core';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { defaultJournalLayout, parseJournalLayout, type JournalLayout } from '@/lib/journal-layout';
 type Snapshot = { layout: JournalLayout; revision: number };
 async function responseValue(response: Response): Promise<Snapshot> {
   const body = await response.json();
-  if (!response.ok) throw Object.assign(new Error(body.error || 'Помилка налаштувань журналу'), { status: response.status });
-  if (!Number.isSafeInteger(body.revision) || body.revision < 0) throw new Error('Некоректна ревізія');
+  if (!response.ok) throw Object.assign(new Error(body.error || msg('Journal settings error')), { status: response.status });
+  if (!Number.isSafeInteger(body.revision) || body.revision < 0) throw new Error(msg('Invalid revision'));
   return { layout: parseJournalLayout(body.layout), revision: body.revision };
 }
 export function useJournalLayout() {
@@ -22,7 +23,7 @@ export function useJournalLayout() {
     try {
       const value = await responseValue(await fetch('/api/preferences/journal-layout', { cache: 'no-store', signal }));
       if (!signal?.aborted) { setSaved(value); setLayout(value.layout); setConflict(false); setError(null); }
-    } catch (cause) { if (!signal?.aborted) setError(cause instanceof Error ? cause.message : 'Помилка завантаження'); }
+    } catch (cause) { if (!signal?.aborted) setError(cause instanceof Error ? cause.message : msg('Loading failed')); }
     finally { if (!signal?.aborted) setLoading(false); }
   }, []);
   useEffect(() => { const controller = new AbortController(); void reload(controller.signal); return () => controller.abort(); }, [reload]);
@@ -39,7 +40,7 @@ export function useJournalLayout() {
       setSaved(value); setLayout(value.layout); return true;
     } catch (cause) {
       if (cause && typeof cause === 'object' && 'status' in cause && cause.status === 409) setConflict(true);
-      setError(cause instanceof Error ? cause.message : 'Помилка збереження'); return false;
+      setError(cause instanceof Error ? cause.message : msg('Saving failed')); return false;
     } finally { busy.current = false; setSaving(false); }
   }, [layout, saved]);
   const saveRef = useRef(save);

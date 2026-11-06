@@ -6,7 +6,7 @@ import { parseDashboardLayout, readStoredDashboardLayout } from "@/lib/dashboard
 export const dynamic = "force-dynamic";
 const TABLE = "dashboard_layout_preferences";
 function json(body: unknown, status = 200) { return NextResponse.json(body, { status, headers: { "Cache-Control": "no-store" } }); }
-function failure(code?: string) { console.error("Dashboard layout database operation failed", { code }); return json({ error: "Не вдалося виконати операцію з розкладкою" }, 500); }
+function failure(code?: string) { console.error("Dashboard layout database operation failed", { code }); return json({ error: "Layout operation failed" }, 500); }
 
 export async function GET(request: Request) {
   try {
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const owner = await resolvePrivateOwner(request); if (owner instanceof Response) return owner;
-    const text = await request.text(); if (text.length > 8192) return json({ error: "Завеликий запит" }, 413);
+    const text = await request.text(); if (text.length > 8192) return json({ error: "Request too large" }, 413);
     let layout: ReturnType<typeof parseDashboardLayout>; let revision: number;
     try {
       const value: unknown = JSON.parse(text);
@@ -29,13 +29,13 @@ export async function PATCH(request: Request) {
       if (Object.keys(body).some(key => !["layout", "expectedRevision"].includes(key))) throw new Error();
       if (typeof body.expectedRevision !== "number" || !Number.isSafeInteger(body.expectedRevision) || body.expectedRevision < 0 || body.expectedRevision >= 2147483647) throw new Error();
       revision = body.expectedRevision; layout = parseDashboardLayout(body.layout);
-    } catch { return json({ error: "Некоректна розкладка" }, 400); }
+    } catch { return json({ error: "Invalid layout" }, 400); }
     const table = owner.db.from(TABLE);
     const result = revision === 0
       ? await table.insert({ user_id: owner.ownerId, layout, revision: 1 }).select("layout,revision").single()
       : await table.update({ layout, revision: revision + 1, updated_at: new Date().toISOString() }).eq("user_id", owner.ownerId).eq("revision", revision).select("layout,revision").maybeSingle();
     if (result.error && result.error.code !== "23505") return failure(result.error.code);
-    if (result.error || !result.data) return json({ error: "Розкладку змінено в іншій вкладці. Перечитайте її перед збереженням.", code: "revision_conflict" }, 409);
+    if (result.error || !result.data) return json({ error: "The layout was changed in another tab. Reload it before saving.", code: "revision_conflict" }, 409);
     return json({ layout: readStoredDashboardLayout(result.data.layout), revision: result.data.revision });
   } catch { return failure(); }
 }

@@ -30,7 +30,7 @@ function definitionOf(body: Record<string, unknown>) {
 function failure(error: unknown) {
   if (error instanceof StrategyInputError) return json({ error: error.message }, 400);
   console.error("Strategy API failed", error instanceof Error ? error.message : "Unknown error");
-  return json({ error: "Не вдалося виконати операцію зі стратегією" }, 500);
+  return json({ error: "Strategy operation failed" }, 500);
 }
 
 export async function GET(request: Request) {
@@ -42,9 +42,9 @@ export async function GET(request: Request) {
     let query = context.db.from("strategy_rules").select("*").eq("user_id", context.ownerId).order("created_at", { ascending: false }).limit(1000);
     if (accountId && accountId !== "all") query = query.eq("account_id", accountId);
     const { data, error } = await query;
-    if (error) return json({ error: "Не вдалося завантажити стратегії" }, 500);
+    if (error) return json({ error: "Could not load strategies" }, 500);
     try { return json({ strategies: data ?? [], profiles: (data ?? []).map(toStrategyProfile) }); }
-    catch { return json({ error: "Збережена стратегія має некоректний формат правил" }, 500); }
+    catch { return json({ error: "The saved strategy has an invalid rule format" }, 500); }
   } catch (error) { return failure(error); }
 }
 
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
       if (!original) return json({ error: "Source strategy not found" }, 404);
     }
     const { data, error } = await context.db.from("strategy_rules").insert({ user_id: context.ownerId, account_id: body.account_id, name, description, definition, source_strategy_id: source }).select("*").single();
-    if (error) return json({ error: "Не вдалося зберегти стратегію" }, error.code === "23505" ? 409 : 500);
+    if (error) return json({ error: "Could not save the strategy" }, error.code === "23505" ? 409 : 500);
     return json({ strategy: data, profile: toStrategyProfile(data) }, 201);
   } catch (error) { return failure(error); }
 }
@@ -85,7 +85,7 @@ export async function PATCH(request: Request) {
     if (body.definition !== undefined || body.rules !== undefined) fields.definition = definitionOf(body);
     if (Object.keys(fields).length === 1) return json({ error: "No editable fields supplied" }, 400);
     const { data, error } = await context.db.from("strategy_rules").update(fields).eq("id", body.id).eq("user_id", context.ownerId).select("*").maybeSingle();
-    if (error) return json({ error: "Не вдалося оновити стратегію" }, 500);
+    if (error) return json({ error: "Could not update the strategy" }, 500);
     if (!data) return json({ error: "Strategy not found" }, 404);
     return json({ strategy: data, profile: toStrategyProfile(data) });
   } catch (error) { return failure(error); }

@@ -137,7 +137,7 @@ export function startOfZonedDay(day: string | null | undefined, tz: string): num
 export function formatDateTime(
   iso: string,
   tz: string,
-  locale = "uk-UA",
+  locale = "en-GB",
 ): string {
   return new Intl.DateTimeFormat(locale, {
     timeZone: tz,
@@ -145,7 +145,7 @@ export function formatDateTime(
     timeStyle: "short",
   }).format(new Date(iso));
 }
-export function formatDateTimeOrDash(iso: string | null | undefined, tz: string, locale = "uk-UA"): string {
+export function formatDateTimeOrDash(iso: string | null | undefined, tz: string, locale = "en-GB"): string {
   if (!iso) return "—";
   const date = new Date(iso);
   if (!Number.isFinite(date.getTime())) return "—";
