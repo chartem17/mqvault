@@ -4,7 +4,7 @@ import { MetricCard } from "./metric-card";
 import { surfaceClass } from "./surface-styles";
 import { msg } from "@/lib/i18n/core";
 
-export const STRATEGY_SURFACE = surfaceClass("p-5 shadow-sm");
+export const STRATEGY_SURFACE = surfaceClass("p-4 shadow-sm sm:p-5");
 export const statusTone: Record<RuleStatus, { chip: string; card: string; label: string }> = {
   ok: { chip: "border-green/20 bg-green/10 text-green", card: "border-border bg-card", label: "OK" },
   warning: { chip: "border-gold/20 bg-gold/10 text-gold", card: "border-gold/20 bg-gold/10", label: msg("Needs attention") },

@@ -20,11 +20,13 @@ export function OverviewTab() {
   if (activeAccountId !== "all") subtitle = `${count} · ${activeAccount ? activeAccount.name : t("Account")} · ${activeAccount ? accountOverviewLabel(activeAccount, t) : t("No account selected")}`;
   const finish = () => { dashboard.cancel(); setEditing(false); };
   return <div className="space-y-5 sm:space-y-6 sm:p-6">
-    <SectionHeader title={t("Account overview")} sub={subtitle} />
-    <AccountRulesCard key={activeAccount?.id ?? "all"} account={activeAccount} accountId={activeAccountId} trades={visibleTrades} />
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <SectionHeader title={t("Account overview")} sub={subtitle} />
     <DashboardToolbar editing={editing} dirty={dashboard.dirty} saving={dashboard.saving} error={dashboard.error} conflict={dashboard.conflict}
       onEdit={() => setEditing(true)} onReset={dashboard.reset} onCancel={finish} onReload={dashboard.reload}
       onSave={async () => { if (await dashboard.save()) setEditing(false); }} />
+    </div>
+    <AccountRulesCard key={activeAccount?.id ?? "all"} account={activeAccount} accountId={activeAccountId} trades={visibleTrades} />
     <DashboardGrid layout={dashboard.layout} onChange={dashboard.setLayout} editing={editing && dashboard.ready} />
   </div>;
 }
