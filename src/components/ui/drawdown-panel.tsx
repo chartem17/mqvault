@@ -206,7 +206,7 @@ export function DrawdownPanel() {
 
   if (!points.length) {
     return (
-      <section className={`${CARD} h-[560px] min-h-0 min-w-0 overflow-auto p-5 xl:h-full`}>
+      <section className={`${CARD} h-full min-h-0 min-w-0 overflow-auto p-5`}>
         <div className={CARD_TITLE}>Drawdown episodes</div>
         <p className="mt-2 text-sm text-muted-foreground">Недостатньо угод для аналізу просадок.</p>
       </section>
@@ -214,7 +214,7 @@ export function DrawdownPanel() {
   }
 
   return (
-    <section className="flex h-[560px] min-h-0 min-w-0 flex-col gap-3 xl:h-full">
+    <section className="flex h-full min-h-0 min-w-0 flex-col gap-3">
       <div className="grid shrink-0 grid-cols-2 gap-3 md:grid-cols-4">
         <MetricTile
           label="MAX DD"
