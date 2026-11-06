@@ -41,7 +41,7 @@ test("initial month follows Kyiv rather than browser day", () => {
 });
 test("both components use the tested date helpers", () => {
   const strategy = readFileSync("src/components/tabs/strategy-control-tab.tsx", "utf8");
-  const overview = readFileSync("src/components/tabs/overview-tab.tsx", "utf8");
+  const overview = readFileSync("src/components/overview/calendar-widget.tsx", "utf8");
   assert.match(strategy, /isInZonedPeriod\(trade.opened_at, period, timezone\)/);
   assert.doesNotMatch(strategy, /trade.opened_at.slice\(0, 10\)/);
   assert.match(overview, /calendarCellKey\(date\)/);
