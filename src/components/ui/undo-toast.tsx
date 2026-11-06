@@ -45,7 +45,7 @@ export function UndoProvider({ children }: { children: ReactNode }) {
   }
   return <Context.Provider value={{ notify }}>
     {children}
-    {items.length > 0 && typeof document !== "undefined" ? createPortal(<aside aria-label="Скасування видалення" className="fixed bottom-4 right-4 z-[90] flex max-h-[70dvh] w-[min(400px,calc(100vw-2rem))] flex-col gap-2 overflow-y-auto">
+    {items.length > 0 && typeof document !== "undefined" ? createPortal(<aside aria-label="Скасування видалення" className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-3 z-[90] flex max-h-[70dvh] w-[min(400px,calc(100vw-1.5rem))] md:bottom-4 md:right-4 flex-col gap-2 overflow-y-auto">
       <style>{`@keyframes undoCountdown { from { stroke-dashoffset: 0; } to { stroke-dashoffset: 100; } } @keyframes undoAppear { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } } @media (prefers-reduced-motion: reduce) { .undo-notice, .undo-countdown { animation: none !important; } }`}</style>
       {items.map(item => <div key={item.id} className="undo-notice flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-foreground shadow-xl" style={{ animation: "undoAppear 180ms ease-out" }}>
         <p role="status" className="min-w-0 flex-1 break-words text-sm">{item.state === "error" ? "Не вдалося підтвердити видалення. Перевірте стан даних після оновлення." : item.message}{item.state === "saving" ? " · Зберігаємо…" : null}</p>

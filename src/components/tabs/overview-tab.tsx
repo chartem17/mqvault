@@ -16,7 +16,7 @@ export function OverviewTab() {
   let subtitle = `${visibleTrades.length} угод · Combined view`;
   if (activeAccountId !== "all") subtitle = `${visibleTrades.length} угод · ${activeAccount ? activeAccount.name : "Account"} · ${activeAccount ? accountOverviewLabel(activeAccount) : "Рахунок не вибрано"}`;
   const finish = () => { dashboard.cancel(); setEditing(false); };
-  return <div className="space-y-6 p-6">
+  return <div className="space-y-5 sm:space-y-6 sm:p-6">
     <SectionHeader title="Огляд рахунку" sub={subtitle} />
     <AccountRulesCard key={activeAccount?.id ?? "all"} account={activeAccount} accountId={activeAccountId} trades={visibleTrades} />
     <DashboardToolbar editing={editing} dirty={dashboard.dirty} saving={dashboard.saving} error={dashboard.error} conflict={dashboard.conflict}

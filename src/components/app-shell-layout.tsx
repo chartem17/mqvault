@@ -9,11 +9,11 @@ import { Button } from "@/components/ui/primitives";
 import { NavigationButton } from "@/components/ui/navigation-button";
 import { TimezoneControl } from "@/components/settings/timezone-control";
 
-const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
+const TABS: { id: TabId; label: string; short?: string; icon: React.ElementType }[] = [
   { id: "home", label: "Головна", icon: House },
   { id: "overview", label: "Огляд", icon: LayoutDashboard },
   { id: "journal", label: "Журнал", icon: BookOpen },
-  { id: "strategy-control", label: "Контроль стратегії", icon: ShieldCheck },
+  { id: "strategy-control", label: "Контроль стратегії", short: "Стратегія", icon: ShieldCheck },
   { id: "market", label: "Ринок", icon: Globe2 },
   { id: "calendar", label: "Календар", icon: CalendarDays },
 ];
@@ -24,38 +24,47 @@ export default function AppShellLayout({ children, activeTab, setActiveTab }: { 
   useEffect(() => { setMounted(true); }, []);
   const light = mounted && resolvedTheme === "light";
   const themeLabel = light ? "Темна тема" : "Світла тема";
+  const brand = <div className="flex items-center gap-3">
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-primary/10"><TrendingUp className="h-4.5 w-4.5 text-primary" /></div>
+    <div className="hidden min-w-0 sm:block md:hidden lg:block"><div className="truncate text-base font-semibold tracking-tight text-foreground">Trade Vault</div><div className="truncate text-[11px] text-muted-foreground">Execution workspace</div></div>
+  </div>;
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="flex min-h-screen">
-        <aside className="app-sidebar flex w-[248px] shrink-0 flex-col border-r border-border bg-card/40 backdrop-blur">
-          <div className="border-b border-border px-4 py-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10"><TrendingUp className="h-4.5 w-4.5 text-primary" /></div>
-              <div><div className="text-base font-semibold tracking-tight text-foreground">Trade Vault</div><div className="text-[11px] text-muted-foreground">Execution workspace</div></div>
-            </div>
-          </div>
-          <nav aria-label="Основна навігація" className="flex-1 space-y-1 px-2 py-3">
+        {/* md: icon rail, lg+: full sidebar; phones use the bottom tab bar instead */}
+        <aside className="app-sidebar sticky top-0 hidden h-screen w-[72px] shrink-0 flex-col border-r border-border bg-card/40 backdrop-blur md:flex lg:w-[248px]">
+          <div className="flex justify-center border-b border-border px-4 py-4 lg:justify-start">{brand}</div>
+          <nav aria-label="Основна навігація" className="flex-1 space-y-1 overflow-y-auto px-2 py-3">
             {TABS.map((tab) => {
               const Icon = tab.icon;
-              return <NavigationButton key={tab.id} active={activeTab === tab.id} onClick={() => setActiveTab(tab.id)} icon={<Icon aria-hidden="true" className="h-4 w-4 shrink-0" />}>{tab.label}</NavigationButton>;
+              return <NavigationButton key={tab.id} active={activeTab === tab.id} title={tab.label} onClick={() => setActiveTab(tab.id)} icon={<Icon aria-hidden="true" className="h-4 w-4 shrink-0" />} className="nav-rail-button">{tab.label}</NavigationButton>;
             })}
           </nav>
         </aside>
-        <main className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-4 border-b border-border px-6 py-4 xl:px-8">
-            <div />
-            <div className="flex items-center gap-3">
+        <main className="min-w-0 flex-1 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0">
+          <div className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-border bg-background/85 px-3 py-2.5 backdrop-blur sm:gap-4 sm:px-6 sm:py-4 xl:px-8">
+            <div className="md:hidden">{brand}</div>
+            <div className="hidden md:block" />
+            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
               <AccountSwitcher />
               <TimezoneControl />
               <Button variant="secondary" aria-label={themeLabel} title={themeLabel} disabled={!mounted} onClick={() => mounted && setTheme(resolvedTheme === "light" ? "dark" : "light")}>
                 {light ? <Moon aria-hidden="true" className="h-4 w-4 shrink-0" /> : <Sun aria-hidden="true" className="h-4 w-4 shrink-0" />}
-                <span className="hidden sm:inline">{themeLabel}</span>
+                <span className="hidden xl:inline">{themeLabel}</span>
               </Button>
             </div>
           </div>
-          <div className="px-6 py-5 xl:px-8 xl:py-6">{children}</div>
+          <div className="px-3 py-4 sm:px-6 sm:py-5 xl:px-8 xl:py-6">{children}</div>
         </main>
       </div>
+      <nav aria-label="Основна навігація" className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+        {TABS.map((tab) => {
+          const Icon = tab.icon, active = activeTab === tab.id;
+          return <button key={tab.id} type="button" aria-current={active ? "page" : undefined} onClick={() => setActiveTab(tab.id)} className={`flex min-w-0 flex-col items-center gap-1 px-0.5 pb-2 pt-2.5 text-[10px] leading-tight focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary ${active ? "text-primary" : "text-muted-foreground"}`}>
+            <Icon aria-hidden="true" className="h-5 w-5 shrink-0" /><span className="w-full truncate text-center">{tab.short ?? tab.label}</span>
+          </button>;
+        })}
+      </nav>
     </div>
   );
 }

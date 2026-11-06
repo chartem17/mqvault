@@ -24,10 +24,10 @@ export function TimezoneControl() {
     <div className="relative" ref={ref}>
       <Button variant="secondary" aria-expanded={open} aria-label={`Часовий пояс: ${label}`} title="Часовий пояс" onClick={() => setOpen(value => !value)}>
         <Clock aria-hidden="true" className="h-4 w-4 shrink-0" />
-        <span className="hidden md:inline">{label}</span>
+        <span className="hidden xl:inline">{label}</span>
       </Button>
       {open && (
-        <section aria-label="Часовий пояс" className="absolute right-0 top-full z-40 mt-2 w-[min(340px,90vw)] space-y-3 rounded-2xl border border-border bg-card p-4 shadow-2xl">
+        <section aria-label="Часовий пояс" className="fixed inset-x-3 top-16 z-40 space-y-3 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[340px] rounded-2xl border border-border bg-card p-4 shadow-2xl">
           <div>
             <p className="text-sm font-medium">Ваш часовий пояс</p>
             <p className="mt-1 text-xs text-muted-foreground">У ньому показується час угод, рахуються дні календаря, денний і місячний P&amp;L та періоди Strategy Control. Сесії (Asia, London, New York) прив&apos;язані до часу самих ринків і від поясу не змінюються.</p>
