@@ -17,6 +17,8 @@ import {
 import { marketsFrom, sortBySymbol } from "@/lib/markets";
 import { useTimezone } from "@/components/providers/timezone-provider";
 import { TimezoneSelect, zoneOptionLabel } from "@/components/settings/timezone-select";
+import { useI18n } from "@/components/providers/i18n-provider";
+import { msg } from "@/lib/i18n/core";
 import { formatDateTimeOrDash, fromZonedInputValue, isValidTimeZone, toZonedInputValue } from "@/lib/timezone";
 
 const SESSIONS = ["Asia", "London", "NY", "Overlap"] as const;
@@ -75,11 +77,11 @@ type ManualTradeModalProps = {
 };
 
 const FIELD_NAMES: Record<RequiredField, string> = {
-  opened_at: "Opened at",
-  symbol: "Symbol",
-  direction: "Direction",
-  entry_price: "Entry price",
-  exit_price: "Exit price",
+  opened_at: msg("Opened at"),
+  symbol: msg("Symbol"),
+  direction: msg("Direction"),
+  entry_price: msg("Entry price"),
+  exit_price: msg("Exit price"),
 };
 
 const shakeStyle: CSSProperties = {
@@ -228,6 +230,7 @@ export function ManualTradeModal({
   onClose,
   onSubmit,
 }: ManualTradeModalProps) {
+  const { t, intl } = useI18n();
   const [form, setForm] = useState<FormTrade>(
     buildInitialForm(accounts, defaultAccountId),
   );
@@ -362,20 +365,20 @@ export function ManualTradeModal({
     const next: FormErrors = {};
 
     if (!form.account_id.trim()) {
-      setSubmitError("Account is required");
+      setSubmitError(t("Account is required"));
       return;
     }
 
-    if (!form.opened_at.trim()) next.opened_at = "Required";
-    if (!form.symbol.trim()) next.symbol = "Required";
+    if (!form.opened_at.trim()) next.opened_at = msg("Required");
+    if (!form.symbol.trim()) next.symbol = msg("Required");
     if (form.direction !== "Long" && form.direction !== "Short") {
       next.direction = "Long / Short";
     }
     if (!form.entry_price.trim() || Number(form.entry_price) <= 0) {
-      next.entry_price = "Required";
+      next.entry_price = msg("Required");
     }
     if (!form.exit_price.trim() || Number(form.exit_price) <= 0) {
-      next.exit_price = "Required";
+      next.exit_price = msg("Required");
     }
 
     const warnings = new Set<WarningField>();
@@ -389,7 +392,7 @@ export function ManualTradeModal({
       setErrors(next);
       setSubmitError(
         Object.keys(next)
-          .map((key) => FIELD_NAMES[key as RequiredField])
+          .map((key) => t(FIELD_NAMES[key as RequiredField]))
           .join(", "),
       );
       setShakeSubmit(true);
@@ -447,7 +450,7 @@ export function ManualTradeModal({
       onClose();
     } catch (err) {
       setSubmitError(
-        err instanceof Error ? err.message : "Failed to save trade",
+        err instanceof Error ? t(err.message) : t("Failed to save trade"),
       );
       setShakeSubmit(true);
       window.setTimeout(() => setShakeSubmit(false), 400);
@@ -457,10 +460,10 @@ export function ManualTradeModal({
   function input(key: keyof FormTrade, label: string, type = "text") {
   const error = errors[key as RequiredField];
   const warning = warningFields.has(key as WarningField);
-  return <Field label={label} error={error} warning={warning ? "Optional, but recommended." : undefined}>{control => <Input {...control} data-trade-field={key} type={type} value={String(form[key] ?? "")} onChange={event => setField(key, event.target.value as never)} className="ui-field-control" />}</Field>;
+  return <Field label={t(label)} error={error ? t(error) : undefined} warning={warning ? t("Optional, but recommended.") : undefined}>{control => <Input {...control} data-trade-field={key} type={type} value={String(form[key] ?? "")} onChange={event => setField(key, event.target.value as never)} className="ui-field-control" />}</Field>;
   }
   function readOnly(label: string, value: string) {
-  return <Field label={label}>{control => <Input {...control} value={value} readOnly tabIndex={-1} aria-readonly="true" className="ui-field-control" />}</Field>;
+  return <Field label={t(label)}>{control => <Input {...control} value={value} readOnly tabIndex={-1} aria-readonly="true" className="ui-field-control" />}</Field>;
   }
 
   function select(
@@ -473,18 +476,18 @@ export function ManualTradeModal({
     return (
       <label className="flex flex-col gap-1 min-w-0 relative">
         <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
-          {label}
+          {t(label)}
         </span>
         <Select
           className="ui-field-control"
           data-ui-state={error ? "error" : undefined}
           aria-invalid={Boolean(error)}
-          aria-label={label}
+          aria-label={t(label)}
           value={String(form[key] ?? "")}
           onChange={(event) => setField(key, event.target.value as never)}
         >
           <option value="" disabled>
-            {label}
+            {t(label)}
           </option>
           {values.map((value) => (
             <option key={value} value={value}>
@@ -493,7 +496,7 @@ export function ManualTradeModal({
           ))}
         </Select>
         {error ? (
-          <span className="text-[11px] text-destructive">{error}</span>
+          <span className="text-[11px] text-destructive">{t(error)}</span>
         ) : null}
       </label>
     );
@@ -518,20 +521,20 @@ export function ManualTradeModal({
       <aside
         role="dialog"
         aria-modal="true"
-        aria-label={initialTrade ? "Edit trade" : "Add trade"}
+        aria-label={initialTrade ? t("Edit trade") : t("Add trade")}
         className={dialogSurface("relative z-10 flex w-full max-w-4xl max-h-[calc(100dvh-1.5rem)] sm:max-h-[min(820px,calc(100dvh-3rem))] flex-col overflow-hidden")}
       >
         <header className="border-b border-border bg-panel px-5 py-4 flex justify-between">
           <div>
             <p className="text-[10px] uppercase tracking-[.18em] text-muted-foreground">
-              Trade ticket
+              {t("Trade ticket")}
             </p>
             <h2 className="font-semibold mt-1">
-              {initialTrade ? "Edit trade" : "Add trade"}
+              {initialTrade ? t("Edit trade") : t("Add trade")}
             </h2>
           </div>
 
-          <button type="button" onClick={onClose} aria-label="Close modal">
+          <button type="button" onClick={onClose} aria-label={t("Close")}>
             <X className="w-5 h-5" />
           </button>
         </header>
@@ -543,18 +546,18 @@ export function ManualTradeModal({
                 type="button"
                 onClick={() => setLightboxOpen(true)}
                 className="block w-full cursor-zoom-in"
-                aria-label="Open chart preview fullscreen"
+                aria-label={t("Open chart preview fullscreen")}
               >
                 <img
                   src={previewSource}
-                  alt="Trade chart snapshot"
+                  alt={t("Trade chart snapshot")}
                   className="w-full max-h-[420px] object-contain rounded-xl border border-border bg-secondary/40"
                   onError={() => setImageFailed(true)}
                 />
               </button>
             ) : (
               <div className="flex items-center justify-center rounded-xl border border-dashed border-border bg-secondary/40 p-6 text-sm text-muted-foreground">
-                Add a TradingView snapshot URL to preview the chart
+                {t("Add a TradingView snapshot URL to preview the chart")}
               </div>
             )}
             {imageFailed && form.screenshot_url ? (
@@ -564,24 +567,23 @@ export function ManualTradeModal({
                 rel="noreferrer"
                 className="text-xs text-primary underline"
               >
-                Open chart
+                {t("Open chart")}
               </a>
             ) : null}
           </div>
 
           <Panel className="p-4 space-y-4">
             <div>
-              <h3 className="text-sm font-semibold">Execution</h3>
+              <h3 className="text-sm font-semibold">{t("Execution")}</h3>
               <p className="text-xs text-muted-foreground mt-1">
-                Commission and fee are positive costs. Swap is signed: negative
-                = charge, positive = credit.
+                {t("Commission and fee are positive costs. Swap is signed: negative = charge, positive = credit.")}
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <label className="col-span-2 flex flex-col gap-1">
                 <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
-                  Opened at
+                  {t("Opened at")}
                 </span>
                 <Input
                   data-trade-field="opened_at"
@@ -591,32 +593,34 @@ export function ManualTradeModal({
                 />
                 {errors.opened_at ? (
                   <span className="text-[11px] text-destructive">
-                    {errors.opened_at}
+                    {t(errors.opened_at)}
                   </span>
                 ) : null}
               </label>
 
-              {input("closed_at", "Closed at", "datetime-local")}
+              {input("closed_at", msg("Closed at"), "datetime-local")}
 
               <div className="col-span-2 flex flex-col gap-1">
                 <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
-                  Час введено в поясі
+                  {t("Times are entered in")}
                 </span>
                 <TimezoneSelect
-                  aria-label="Часовий пояс введеного часу"
+                  aria-label={t("Time zone of the entered times")}
                   value={entryZone}
                   onChange={(zone) => { setEntryZone(zone); setZoneTouched(true); }}
                   className="ui-field-control"
                 />
                 <span className="text-[11px] text-muted-foreground">
-                  {zoneTouched ? "Змінено вручну для цієї угоди." : "Пояс брокера рахунку — вводьте час як у терміналі чи на скріншоті."}
-                  {form.opened_at && entryZone !== userZone ? ` У вашому поясі (${zoneOptionLabel(userZone)}): відкрито ${formatDateTimeOrDash(fromZonedInputValue(form.opened_at, entryZone), userZone)}${form.closed_at ? `, закрито ${formatDateTimeOrDash(fromZonedInputValue(form.closed_at, entryZone), userZone)}` : ""}.` : ""}
+                  {zoneTouched ? t("Changed manually for this trade.") : t("The account's broker zone — enter times as shown in the terminal or on a screenshot.")}
+                  {form.opened_at && entryZone !== userZone ? ` ${form.closed_at
+                    ? t("In your zone ({zone}): opened {opened}, closed {closed}.", { zone: zoneOptionLabel(userZone, undefined, t), opened: formatDateTimeOrDash(fromZonedInputValue(form.opened_at, entryZone), userZone, intl), closed: formatDateTimeOrDash(fromZonedInputValue(form.closed_at, entryZone), userZone, intl) })
+                    : t("In your zone ({zone}): opened {opened}.", { zone: zoneOptionLabel(userZone, undefined, t), opened: formatDateTimeOrDash(fromZonedInputValue(form.opened_at, entryZone), userZone, intl) })}` : ""}
                 </span>
               </div>
 
               <label className="col-span-2 flex flex-col gap-1 relative">
                 <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
-                  Symbol
+                  {t("Symbol")}
                 </span>
 
                 <div className="relative">
@@ -635,7 +639,7 @@ export function ManualTradeModal({
                     type="button"
                     onClick={() => setSymbolOpen((value) => !value)}
                     className="absolute right-2 top-2"
-                    aria-label="Toggle symbol list"
+                    aria-label={t("Toggle symbol list")}
                   >
                     <ChevronDown className="w-4 h-4" />
                   </button>
@@ -655,13 +659,13 @@ export function ManualTradeModal({
                                 : "border-border bg-secondary/60 text-muted-foreground hover:text-foreground"
                             }`}
                           >
-                            {value}
+                            {value === "All" ? t("All") : value}
                           </button>
                         ))}
                       </div>
                       <div className="max-h-56 overflow-auto p-1">
                         {matchingAssets.length === 0 ? (
-                          <EmptyState title="No symbols found" className="px-3 py-4" />
+                          <EmptyState title={t("No symbols found")} className="px-3 py-4" />
                         ) : (
                           matchingAssets.map((asset) => (
                             <button
@@ -684,14 +688,14 @@ export function ManualTradeModal({
 
                 {errors.symbol ? (
                   <span className="text-[11px] text-destructive">
-                    {errors.symbol}
+                    {t(errors.symbol)}
                   </span>
                 ) : null}
               </label>
 
               <label className="flex flex-col gap-1">
                 <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
-                  Account
+                  {t("Account")}
                 </span>
                 <Select
                   value={form.account_id}
@@ -709,36 +713,36 @@ export function ManualTradeModal({
                 </Select>
               </label>
 
-              {readOnly("Market", form.market)}
+              {readOnly(msg("Market"), form.market)}
 
-              {select("direction", "Direction", ["Long", "Short"])}
-              {select("session", "Session", SESSIONS)}
-              {input("entry_price", "Entry price", "number")}
-              {input("stop_loss", "Stop loss", "number")}
-              {input("take_profit", "Take profit", "number")}
-              {input("exit_price", "Exit price", "number")}
-              {input("volume", "Volume", "number")}
-              {input("risk_percent", "Risk %", "number")}
-              {input("risk_amount", "Risk amount", "number")}
-              {input("gross_pnl", "Gross P/L", "number")}
-              {input("commission", "Commission", "number")}
-              {input("swap", "Swap (+ / −)", "number")}
-              {input("fee", "Fee", "number")}
-              {readOnly("Net P/L (auto)", netPreview)}
-              {readOnly("R (auto)", rPreview)}
+              {select("direction", msg("Direction"), ["Long", "Short"])}
+              {select("session", msg("Session"), SESSIONS)}
+              {input("entry_price", msg("Entry price"), "number")}
+              {input("stop_loss", msg("Stop loss"), "number")}
+              {input("take_profit", msg("Take profit"), "number")}
+              {input("exit_price", msg("Exit price"), "number")}
+              {input("volume", msg("Volume"), "number")}
+              {input("risk_percent", msg("Risk %"), "number")}
+              {input("risk_amount", msg("Risk amount"), "number")}
+              {input("gross_pnl", msg("Gross P/L"), "number")}
+              {input("commission", msg("Commission"), "number")}
+              {input("swap", msg("Swap (+ / −)"), "number")}
+              {input("fee", msg("Fee"), "number")}
+              {readOnly(msg("Net P/L (auto)"), netPreview)}
+              {readOnly(msg("R (auto)"), rPreview)}
             </div>
           </Panel>
 
           <Panel className="p-4 space-y-4">
             <div>
-              <h3 className="text-sm font-semibold">Context</h3>
+              <h3 className="text-sm font-semibold">{t("Context")}</h3>
               <p className="text-xs text-muted-foreground mt-1">
-                Session, setup, emotion, reasons and notes.
+                {t("Session, setup, emotion, reasons and notes.")}
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              {select("setup", "Setup", [
+              {select("setup", msg("Setup"), [
                 "Retest",
                 "Breakout",
                 "Divergence",
@@ -746,12 +750,12 @@ export function ManualTradeModal({
                 "OB",
                 "Other",
               ])}
-              {select("htf_bias", "HTF bias", [
+              {select("htf_bias", msg("HTF bias"), [
                 "Bullish",
                 "Bearish",
                 "Neutral",
               ])}
-              {select("emotion", "Emotion", [
+              {select("emotion", msg("Emotion"), [
                 "Calm",
                 "Neutral",
                 "Fear",
@@ -759,16 +763,16 @@ export function ManualTradeModal({
                 "FOMO",
                 "Confident",
               ])}
-              {input("entry_reason", "Entry reason")}
+              {input("entry_reason", msg("Entry reason"))}
               <div className="col-span-2">
-                {input("exit_reason", "Exit reason")}
+                {input("exit_reason", msg("Exit reason"))}
               </div>
-              <div className="col-span-2">{input("mistake", "Mistake")}</div>
+              <div className="col-span-2">{input("mistake", msg("Mistake"))}</div>
 
               <div className="col-span-2">
                 <label className="flex flex-col gap-1">
                   <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
-                    TradingView snapshot URL
+                    {t("TradingView snapshot URL")}
                   </span>
                   <div className="flex gap-2">
                     <Input
@@ -778,14 +782,14 @@ export function ManualTradeModal({
                         setImageFailed(false);
                         setField("screenshot_url", event.target.value);
                       }}
-                      placeholder="Paste TradingView snapshot URL"
+                      placeholder={t("Paste TradingView snapshot URL")}
                       className="ui-field-control"
                     />
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
                       className="ui-field-control flex items-center justify-center px-3"
-                      aria-label="Add screenshot image"
+                      aria-label={t("Add screenshot image")}
                     >
                       <Camera className="w-4 h-4" />
                     </button>
@@ -804,14 +808,14 @@ export function ManualTradeModal({
                     }}
                   />
                   <span className="text-[11px] text-muted-foreground">
-                    Paste a TradingView snapshot URL for an automatic chart preview.
+                    {t("Paste a TradingView snapshot URL for an automatic chart preview.")}
                   </span>
                 </label>
               </div>
 
               <label className="col-span-2 flex flex-col gap-1">
                 <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
-                  Notes
+                  {t("Notes")}
                 </span>
                 <Textarea
                   value={form.notes}
@@ -836,7 +840,7 @@ export function ManualTradeModal({
             onClick={onClose}
 
           >
-            Cancel
+            {t("Cancel")}
           </Button>
 
           <Button loading={submitting}
@@ -846,7 +850,7 @@ export function ManualTradeModal({
             style={shakeSubmit ? shakeStyle : undefined}
 
           >
-            {initialTrade ? "Save changes" : "Add trade"}
+            {initialTrade ? t("Save changes") : t("Add trade")}
           </Button>
         </footer>
       </aside>
@@ -859,7 +863,7 @@ export function ManualTradeModal({
           <button
             type="button"
             className="absolute right-4 top-4 text-white/80 hover:text-white"
-            aria-label="Close chart preview"
+            aria-label={t("Close chart preview")}
             onClick={(event) => {
               event.stopPropagation();
               setLightboxOpen(false);
@@ -869,7 +873,7 @@ export function ManualTradeModal({
           </button>
           <img
             src={previewSource}
-            alt="Trade chart snapshot"
+            alt={t("Trade chart snapshot")}
             className="max-h-[92vh] max-w-[96vw] object-contain rounded-xl"
             onClick={(event) => event.stopPropagation()}
           />

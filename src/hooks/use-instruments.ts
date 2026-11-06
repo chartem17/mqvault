@@ -26,7 +26,7 @@ export function useInstruments() {
         setFromDb(true);
       })
       .catch(() => {
-        /* залишаємо резервний список */
+        /* keep the fallback list */
       });
 
     return () => {

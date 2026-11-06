@@ -4,12 +4,14 @@ import { dayWindow, fractionOf, sessionSegments } from "@/lib/day-dial";
 import { getSessionGroup, type SessionGroup } from "@/lib/sessions";
 import { zonedParts } from "@/lib/timezone";
 import { fmt } from "@/lib/utils-trade";
+import { msg } from "@/lib/i18n/core";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export type DialTrade = { id: string; symbol: string; opened_at: string; closed_at?: string | null; net_pnl?: number | null; result_r?: number | null };
 
 const SIZE = 460, C = SIZE / 2, RING = 178, TRACK = 138;
 const GROUP_COLOR: Record<SessionGroup, string> = { asia: "oklch(0.68 0.13 285)", london: "var(--color-gold)", new_york: "var(--color-teal)", off: "currentColor" };
-const GROUP_LABEL: Record<SessionGroup, string> = { asia: "Asia", london: "London", new_york: "New York", off: "Поза сесіями" };
+const GROUP_LABEL: Record<SessionGroup, string> = { asia: "Asia", london: "London", new_york: "New York", off: msg("Outside sessions") };
 const DISPLAY = "var(--font-home-display), var(--font-ui), system-ui, sans-serif";
 
 const point = (fraction: number, radius: number) => { const angle = (fraction * 360 - 90) * Math.PI / 180; return { x: C + radius * Math.cos(angle), y: C + radius * Math.sin(angle) }; };
@@ -24,6 +26,7 @@ function wedge(to: number) {
 
 /** The trader's day as a dial: real market sessions on the ring, "now" needle, today's trades as dots. */
 export function DayDial({ trades, timezone, now, netToday }: { trades: readonly DialTrade[]; timezone: string; now: Date; netToday: number | null }) {
+  const { t, intl } = useI18n();
   const model = useMemo(() => {
     const window = dayWindow(timezone, now.getTime());
     const nowFraction = fractionOf(now.getTime(), window) ?? 0;
@@ -40,10 +43,10 @@ export function DayDial({ trades, timezone, now, netToday }: { trades: readonly 
     return { nowFraction, segments, marks, dots };
   }, [trades, timezone, now]);
 
-  const time = new Intl.DateTimeFormat("uk-UA", { timeZone: timezone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(now);
+  const time = new Intl.DateTimeFormat(intl, { timeZone: timezone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(now);
   const currentGroup = getSessionGroup(now);
   const needle = { a: point(model.nowFraction, 112), b: point(model.nowFraction, RING + 12), knob: point(model.nowFraction, RING) };
-  const label = `Циферблат дня. Зараз ${time}, ${GROUP_LABEL[currentGroup]}. Угод сьогодні: ${model.dots.length}.`;
+  const label = t("Day dial. Now {time}, {session}. Trades today: {count}.", { time, session: t(GROUP_LABEL[currentGroup]), count: model.dots.length });
   const segment = (item: { group: SessionGroup; from: number; to: number }, index: number, dim: boolean) => (
     <path key={`${dim ? "d" : "f"}${index}`} d={arc(item.from, item.to, RING)} pathLength={1} fill="none" strokeWidth={16} stroke={GROUP_COLOR[item.group]}
       strokeOpacity={item.group === "off" ? (dim ? 0.07 : 0.16) : dim ? 0.3 : 0.95} className="dial-draw" style={{ animationDelay: `${index * 90}ms` }} />
@@ -63,12 +66,12 @@ export function DayDial({ trades, timezone, now, netToday }: { trades: readonly 
       {model.marks.map(mark => { const p = point(mark.fraction, RING + 34); const t = point(mark.fraction, RING + 14), u = point(mark.fraction, RING + 22);
         return <g key={mark.label}><line x1={t.x} y1={t.y} x2={u.x} y2={u.y} stroke="currentColor" strokeOpacity={0.35} /><text x={p.x} y={p.y} textAnchor="middle" dominantBaseline="central" fontSize={12} fill="currentColor" fillOpacity={0.5} style={{ fontFamily: DISPLAY }}>{mark.label}</text></g>; })}
       {model.dots.map(dot => { const p = point(dot.fraction, TRACK); const tone = dot.pnl === null ? "currentColor" : dot.pnl > 0 ? "var(--color-green)" : dot.pnl < 0 ? "var(--color-red)" : "currentColor";
-        return <circle key={dot.id} cx={p.x} cy={p.y} r={dot.radius} fill={dot.open ? "var(--page-bg)" : tone} fillOpacity={dot.open ? 1 : 0.9} stroke={tone} strokeWidth={dot.open ? 2 : 0} strokeOpacity={dot.pnl === null ? 0.6 : 1}><title>{`${dot.symbol}${dot.pnl === null ? "" : ` · ${fmt.usd(dot.pnl)}`}${dot.open ? " · відкрита" : ""}`}</title></circle>; })}
+        return <circle key={dot.id} cx={p.x} cy={p.y} r={dot.radius} fill={dot.open ? "var(--page-bg)" : tone} fillOpacity={dot.open ? 1 : 0.9} stroke={tone} strokeWidth={dot.open ? 2 : 0} strokeOpacity={dot.pnl === null ? 0.6 : 1}><title>{`${dot.symbol}${dot.pnl === null ? "" : ` · ${fmt.usd(dot.pnl)}`}${dot.open ? ` · ${t("open")}` : ""}`}</title></circle>; })}
       <line x1={needle.a.x} y1={needle.a.y} x2={needle.b.x} y2={needle.b.y} stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
       <circle cx={needle.knob.x} cy={needle.knob.y} r={6} fill="var(--page-bg)" stroke="currentColor" strokeWidth={2.5} />
       <text x={C} y={C - 12} textAnchor="middle" dominantBaseline="central" fontSize={46} fontWeight={600} fill="currentColor" style={{ fontFamily: DISPLAY, letterSpacing: "-0.02em" }}>{time}</text>
       <text x={C} y={C + 28} textAnchor="middle" dominantBaseline="central" fontSize={17} fontWeight={500} fill={netToday === null || netToday === 0 ? "currentColor" : netToday > 0 ? "var(--color-green)" : "var(--color-red)"} fillOpacity={netToday ? 1 : 0.55} style={{ fontFamily: DISPLAY }}>{netToday === null ? "—" : fmt.usd(netToday)}</text>
-      <text x={C} y={C + 54} textAnchor="middle" dominantBaseline="central" fontSize={13} fill="currentColor" fillOpacity={0.55}>{GROUP_LABEL[currentGroup]}</text>
+      <text x={C} y={C + 54} textAnchor="middle" dominantBaseline="central" fontSize={13} fill="currentColor" fillOpacity={0.55}>{t(GROUP_LABEL[currentGroup])}</text>
     </svg>
     <figcaption className="mt-2 flex flex-wrap justify-center gap-x-5 gap-y-1 text-xs text-muted-foreground">
       <span className="sr-only">{label}</span>

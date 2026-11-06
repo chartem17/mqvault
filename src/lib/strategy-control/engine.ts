@@ -1,3 +1,4 @@
+import { msg, translate, type Vars } from "../i18n/core";
 import { ruleEvaluators, ruleLibrary } from "./rule-library";
 import type {
   RuleFinding,
@@ -44,7 +45,12 @@ function resolveStatus(
   return { status, confidence, impactStatus } as const;
 }
 
+type Translate = (text: string, vars?: Vars) => string;
+const english: Translate = (text, vars) => translate(null, text, vars);
+const signedR = (value: number) => `${value >= 0 ? "+" : ""}${value}R`;
+
 function buildRecommendation(
+  tr: Translate,
   title: string,
   status: RuleFinding["status"],
   impactStatus: RuleFinding["impactStatus"],
@@ -56,31 +62,33 @@ function buildRecommendation(
 
   const comparison =
     compliantAvgR !== null && violatedAvgR !== null
-      ? ` Дотримання: ${compliantAvgR >= 0 ? "+" : ""}${compliantAvgR}R, порушення: ${violatedAvgR >= 0 ? "+" : ""}${violatedAvgR}R.`
+      ? ` ${tr(msg("Followed: {followed}, violated: {violated}."), { followed: signedR(compliantAvgR), violated: signedR(violatedAvgR) })}`
       : "";
 
   const note =
     confidence === "high"
-      ? "Вибірка достатня, але це кореляція, а не доказ причини."
+      ? tr(msg("The sample is large enough, but this is correlation, not proof of cause."))
       : confidence === "medium"
-        ? "Вибірка середня — спостерігай далі."
-        : "Вибірка невелика — висновок орієнтовний.";
+        ? tr(msg("The sample is medium — keep watching."))
+        : tr(msg("The sample is small — the conclusion is tentative."));
 
   if (impactStatus === "positive" || impactStatus === "neutral") {
-    return `Правило "${title}" порушувалось, але негативного впливу не виявлено.${comparison} ${note} Не скасовуй правило на основі одного періоду.`;
+    return `${tr(msg("Rule “{title}” was broken, but no negative impact was found."), { title })}${comparison} ${note} ${tr(msg("Do not drop the rule based on a single period."))}`;
   }
 
   if (status === "critical") {
-    return `Правило "${title}" систематично порушується і дає негативний результат.${comparison} ${note} Посиль контроль до наступного звіту.`;
+    return `${tr(msg("Rule “{title}” is broken systematically and hurts results."), { title })}${comparison} ${note} ${tr(msg("Tighten control before the next report."))}`;
   }
 
-  return `Правило "${title}" порушується, вплив негативний, але ще не критичний.${comparison} ${note}`;
+  return `${tr(msg("Rule “{title}” is being broken; the impact is negative but not critical yet."), { title })}${comparison} ${note}`;
 }
 
 export function analyzeTrades(
   trades: Trade[],
   strategy: StrategyProfile,
   period: { start: string; end: string },
+  /** UI translator; English when omitted. Rule titles are translated too. */
+  tr: Translate = english,
 ): StrategyAnalysis {
   const knownRTrades = trades.filter((t) => typeof t.resultR === "number");
   const knownRiskTrades = trades.filter((t) => typeof t.riskPct === "number");
@@ -143,12 +151,13 @@ export function analyzeTrades(
         evidenceTrades: evaluated.evidenceTrades,
         message:
           evaluated.sampleSize === 0
-            ? `Недостатньо даних для перевірки правила "${definition.title}" у вибраному періоді.`
+            ? tr(msg("Not enough data to check rule “{title}” in the selected period."), { title: tr(definition.title) })
             : evaluated.violations === 0
-              ? `Порушень немає: правило "${definition.title}" виконувалось повністю.`
-              : `Правило "${definition.title}" порушено у ${evaluated.violations} випадках (${evaluated.affectedTrades} угод).`,
+              ? tr(msg("No violations: rule “{title}” was followed fully."), { title: tr(definition.title) })
+              : tr(msg("Rule “{title}” was broken {violations} times ({trades} trades)."), { title: tr(definition.title), violations: evaluated.violations, trades: evaluated.affectedTrades }),
         recommendation: buildRecommendation(
-          definition.title,
+          tr,
+          tr(definition.title),
           status,
           impactStatus,
           confidence,

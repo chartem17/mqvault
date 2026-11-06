@@ -41,7 +41,7 @@ export function preparePropRuleUpdate(value: unknown, row: Row) {
   if (Object.keys(body).some(key => !["expectedRevision", "settings", "phase"].includes(key))) throw new AccountSetupError("Unknown rule update field");
   const expectedRevision = revision(body.expectedRevision);
   const current = ruleRecordFromColumns(row);
-  if (expectedRevision !== current.revision) throw new RuleRevisionConflict("Умови вже змінені. Перечитайте їх перед збереженням.");
+  if (expectedRevision !== current.revision) throw new RuleRevisionConflict("The rules were changed elsewhere. Reload them before saving.");
   const delta = own(body, "settings") ? record(body.settings) : {};
   const merged: Row = { ...current.settings, ...delta };
   for (const key of Object.keys(conditions) as (keyof typeof conditions)[]) if (own(delta, key)) merged[key] = { ...current.settings[key], ...record(delta[key]) };

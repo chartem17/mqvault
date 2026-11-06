@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTrades } from "@/hooks/use-trades";
@@ -11,6 +12,7 @@ type EqPoint = { date: string; time?: string; symbol?: string; session?: string;
 const GREEN = "var(--color-green)";
 const RED = "var(--color-red)";
 function EquityChart({ points, totalPnl }: { points: EqPoint[]; totalPnl: number }) {
+  const { t, tn } = useI18n();
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 900, height: 260 });
   const [measured, setMeasured] = useState(false);
@@ -54,7 +56,7 @@ function EquityChart({ points, totalPnl }: { points: EqPoint[]; totalPnl: number
   const handleMouseMove = useCallback((event: React.PointerEvent<SVGSVGElement>) => { const rect = event.currentTarget.getBoundingClientRect(); if (rect.width <= 0 || eq.length === 0) { setHoverIndex(null); return; } const relativeX = Math.max(0, Math.min(1, ((event.clientX - rect.left) / rect.width * W - PAD_L) / chartW)); setHoverIndex(Math.round(relativeX * Math.max(0, eq.length - 1))); }, [W, chartW, eq.length]);
   const hoverPoint = hoverIndex !== null ? eq[hoverIndex] ?? null : null;
   const hover = hoverIndex !== null && hoverPoint && coords[hoverIndex] ? { px: coords[hoverIndex].x, py: coords[hoverIndex].y } : null;
-  return <WidgetPanel title="Equity curve" sub={`${eq.length} точок`} aside={<div className="text-right text-lg font-semibold" style={{ color: totalPnl >= 0 ? GREEN : RED }}>{fmt.usd(totalPnl)}</div>} className="isolate">
+  return <WidgetPanel title={t("Equity curve")} sub={tn(eq.length, "{count} point", "{count} points")} aside={<div className="text-right text-lg font-semibold" style={{ color: totalPnl >= 0 ? GREEN : RED }}>{fmt.usd(totalPnl)}</div>} className="isolate">
     <div className="pointer-events-none absolute inset-0 -z-10" style={{ background: totalPnl >= 0 ? CHART_THEME.gainGlow : CHART_THEME.lossGlow }} />
     <div ref={chartContainerRef} className="relative h-full min-h-[140px] w-full min-w-0">
       <svg viewBox={`0 0 ${W} ${H}`} className="block h-full w-full touch-pan-y" style={{ visibility: measured ? "visible" : "hidden" }} onPointerMove={handleMouseMove} onPointerDown={handleMouseMove} onPointerLeave={() => setHoverIndex(null)}>
@@ -68,7 +70,7 @@ function EquityChart({ points, totalPnl }: { points: EqPoint[]; totalPnl: number
       {hover && hoverPoint ? <div data-dark className="pointer-events-none absolute rounded-xl px-3 py-2 text-xs text-white" style={{ left: hover.px / W > 0.68 ? "auto" : `${hover.px / W * 100 + 1.5}%`, right: hover.px / W > 0.68 ? "36px" : "auto", top: "8px", background: CHART_THEME.tooltipBackground, border: CHART_THEME.tooltipBorder, backdropFilter: "blur(14px)", minWidth: 148 }}>
         <div className="font-medium text-white/95">{hoverPoint.date}{hoverPoint.time ? ` · ${hoverPoint.time}` : ""}</div>
         <div className="mt-1 flex items-center justify-between gap-4"><span className="text-white/55">P&amp;L</span><span style={{ color: hoverPoint.pnl >= 0 ? GREEN : RED }}>{fmt.usd(hoverPoint.pnl)}</span></div>
-        {hoverPoint.symbol || hoverPoint.session || hoverPoint.emotion || hoverPoint.tradePnl !== undefined ? <div className="mt-2 space-y-1 border-t border-white/10 pt-2"><div className="flex items-center justify-between gap-3"><span className="text-white/55">Пара</span><span>{hoverPoint.symbol || "—"}</span></div><div className="flex items-center justify-between gap-3"><span className="text-white/55">Сесія</span><span>{hoverPoint.session || "—"}</span></div><div className="flex items-center justify-between gap-3"><span className="text-white/55">Емоція</span><span>{hoverPoint.emotion || "—"}</span></div><div className="flex items-center justify-between gap-3"><span className="text-white/55">Trade P&amp;L</span><span style={{ color: (hoverPoint.tradePnl ?? 0) >= 0 ? GREEN : RED }}>{fmt.usd(hoverPoint.tradePnl ?? 0)}</span></div></div> : null}
+        {hoverPoint.symbol || hoverPoint.session || hoverPoint.emotion || hoverPoint.tradePnl !== undefined ? <div className="mt-2 space-y-1 border-t border-white/10 pt-2"><div className="flex items-center justify-between gap-3"><span className="text-white/55">{t("Symbol")}</span><span>{hoverPoint.symbol || "—"}</span></div><div className="flex items-center justify-between gap-3"><span className="text-white/55">{t("Session")}</span><span>{hoverPoint.session || "—"}</span></div><div className="flex items-center justify-between gap-3"><span className="text-white/55">{t("Emotion")}</span><span>{hoverPoint.emotion || "—"}</span></div><div className="flex items-center justify-between gap-3"><span className="text-white/55">{t("Trade P&L")}</span><span style={{ color: (hoverPoint.tradePnl ?? 0) >= 0 ? GREEN : RED }}>{fmt.usd(hoverPoint.tradePnl ?? 0)}</span></div></div> : null}
       </div> : null}
     </div>
   </WidgetPanel>;

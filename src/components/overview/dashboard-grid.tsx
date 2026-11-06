@@ -6,6 +6,7 @@ import "react-resizable/css/styles.css";
 import { ArrowDown, ArrowUp, X } from "lucide-react";
 import { WIDGET_COMPONENTS } from "@/components/overview/widget-registry";
 import { WidgetLibrary } from "@/components/overview/widget-library";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { GRID_COLUMNS, GRID_GAP, ROW_HEIGHT, widgetMeta, type DashboardLayout } from "@/lib/dashboard-widgets";
 import { addWidget, applyGridPositions, hiddenWidgets, moveMobile, removeWidget, sameLayout } from "@/lib/dashboard-layout";
 
@@ -15,10 +16,12 @@ const MOBILE_HEIGHT: Record<string, number> = { equity: 300, calendar: 480, draw
 const STAT_HEIGHT = 118;
 
 function RemoveButton({ title, onClick }: { title: string; onClick: () => void }) {
-  return <button type="button" onClick={onClick} onMouseDown={event => event.stopPropagation()} aria-label={`Прибрати ${title}`} className="absolute right-2 top-2 z-20 inline-flex size-7 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"><X className="size-4" aria-hidden /></button>;
+  const { t } = useI18n();
+  return <button type="button" onClick={onClick} onMouseDown={event => event.stopPropagation()} aria-label={t("Remove {name}", { name: t(title) })} className="absolute right-2 top-2 z-20 inline-flex size-7 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"><X className="size-4" aria-hidden /></button>;
 }
 
 export function DashboardGrid({ layout, onChange, editing }: { layout: DashboardLayout; onChange: (next: DashboardLayout) => void; editing: boolean }) {
+  const { t } = useI18n();
   const { width, containerRef, mounted } = useContainerWidth();
   const [dragKey, setDragKey] = useState<string | null>(null);
   const hidden = hiddenWidgets(layout);
@@ -32,13 +35,13 @@ export function DashboardGrid({ layout, onChange, editing }: { layout: Dashboard
   const body = mobile
     ? <ol className={`m-0 grid list-none grid-cols-2 p-0 ${editing ? "gap-2" : "gap-3"}`}>{layout.mobile.map((key, index) => { const Widget = WIDGET_COMPONENTS[key], meta = widgetMeta(key); if (!Widget || !meta) return null;
         const half = meta.group === "metrics" && key !== "streaks" && !editing;
-        return <li key={key} className={`relative min-w-0 ${half ? "" : "col-span-2"}`}>{editing && <div className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-3 py-2"><span className="truncate text-sm font-medium">{meta.title}</span><span className="flex shrink-0 gap-1">
-          <button type="button" disabled={index === 0} onClick={() => onChange(moveMobile(layout, key, -1))} aria-label={`${meta.title}: вище`} className="inline-flex size-9 items-center justify-center rounded-lg border border-border disabled:opacity-40"><ArrowUp className="size-4" aria-hidden /></button>
-          <button type="button" disabled={index === layout.mobile.length - 1} onClick={() => onChange(moveMobile(layout, key, 1))} aria-label={`${meta.title}: нижче`} className="inline-flex size-9 items-center justify-center rounded-lg border border-border disabled:opacity-40"><ArrowDown className="size-4" aria-hidden /></button>
-          <button type="button" onClick={() => onChange(removeWidget(layout, key))} aria-label={`Прибрати ${meta.title}`} className="inline-flex size-9 items-center justify-center rounded-lg border border-border"><X className="size-4" aria-hidden /></button></span></div>}
+        return <li key={key} className={`relative min-w-0 ${half ? "" : "col-span-2"}`}>{editing && <div className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-3 py-2"><span className="truncate text-sm font-medium">{t(meta.title)}</span><span className="flex shrink-0 gap-1">
+          <button type="button" disabled={index === 0} onClick={() => onChange(moveMobile(layout, key, -1))} aria-label={t("{name}: move up", { name: t(meta.title) })} className="inline-flex size-9 items-center justify-center rounded-lg border border-border disabled:opacity-40"><ArrowUp className="size-4" aria-hidden /></button>
+          <button type="button" disabled={index === layout.mobile.length - 1} onClick={() => onChange(moveMobile(layout, key, 1))} aria-label={t("{name}: move down", { name: t(meta.title) })} className="inline-flex size-9 items-center justify-center rounded-lg border border-border disabled:opacity-40"><ArrowDown className="size-4" aria-hidden /></button>
+          <button type="button" onClick={() => onChange(removeWidget(layout, key))} aria-label={t("Remove {name}", { name: t(meta.title) })} className="inline-flex size-9 items-center justify-center rounded-lg border border-border"><X className="size-4" aria-hidden /></button></span></div>}
           {!editing && <div style={{ height: MOBILE_HEIGHT[key] ?? STAT_HEIGHT }}><Widget /></div>}</li>; })}</ol>
     : <div className={`relative rounded-2xl ${editing ? "min-h-[320px] border-2 border-dashed border-border/70 p-2" : ""}`}>
-        {editing && layout.items.length === 0 && <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">Перетягни віджет сюди</div>}
+        {editing && layout.items.length === 0 && <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">{t("Drag a widget here")}</div>}
         {mounted && <ReactGridLayout width={Math.max(0, width - (editing ? 20 : 0))} layout={gridLayout}
           gridConfig={{ cols: GRID_COLUMNS, rowHeight: ROW_HEIGHT, margin: [GRID_GAP, GRID_GAP], containerPadding: [0, 0], maxRows: Infinity }}
           dragConfig={{ enabled: editing, handle: ".widget-drag-handle", bounded: false, threshold: 3 }}

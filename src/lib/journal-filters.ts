@@ -91,7 +91,7 @@ export function matchesJournalFilter(
   return (cell.text ?? '').toLowerCase().includes(needle);
 }
 
-/** Short human label for a filter chip, e.g. "≥ 10 … ≤ 50" or "з 2026-06-01". */
+/** Short human label for a filter chip, e.g. "≥ 10 … ≤ 50" or "≥ 2026-06-01". */
 export function describeJournalFilter(id: JournalColumnId, filter: JournalColumnFilter): string {
   const kind = journalFilterKind(id);
   if (kind === 'number') {
@@ -103,7 +103,7 @@ export function describeJournalFilter(id: JournalColumnId, filter: JournalColumn
     const from = parseFilterDay(filter.from, 'UTC') !== null ? trimmed(filter.from) : '';
     const to = parseFilterDay(filter.to, 'UTC') !== null ? trimmed(filter.to) : '';
     if (from && to) return from === to ? from : `${from} — ${to}`;
-    return from ? `з ${from}` : `по ${to}`;
+    return from ? `≥ ${from}` : `≤ ${to}`;
   }
   return trimmed(filter.value);
 }

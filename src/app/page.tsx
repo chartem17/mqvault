@@ -10,6 +10,7 @@ import { MarketTab } from "@/components/tabs/market-tab";
 import { CalendarTab } from "@/components/tabs/calendar-tab";
 import { StrategyControlTab } from "@/components/tabs/strategy-control-tab";
 import { parseJournalFocus } from "@/lib/journal-focus";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 const TABS = ["home", "overview", "journal", "strategy-control", "market", "calendar"] as const;
 export type TabId = typeof TABS[number];
@@ -43,5 +44,6 @@ function HomeContent() {
   return <AppShellLayout activeTab={activeTab} setActiveTab={setActiveTab}>{renderTab()}</AppShellLayout>;
 }
 export default function Home() {
-  return <Suspense fallback={<div role="status" className="p-6 text-sm text-muted-foreground">Завантаження робочого простору…</div>}><HomeContent /></Suspense>;
+  const { t } = useI18n();
+  return <Suspense fallback={<div role="status" className="p-6 text-sm text-muted-foreground">{t("Loading workspace…")}</div>}><HomeContent /></Suspense>;
 }

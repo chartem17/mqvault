@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -38,6 +39,7 @@ function computeStreaks(trades: StreakTrade[]): StreakSummary {
 }
 export function StreakStatCard() {
   const { visibleTrades, accounts, includedAccountIds, activeAccountId, activeAccount } = useTrades();
+  const { t, tn } = useI18n();
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -67,26 +69,26 @@ export function StreakStatCard() {
   const scheduleClose = () => { cancelClose(); closeTimer.current = window.setTimeout(() => setOpen(false), 120); };
   return (
     <Panel ref={cardRef} className="relative cursor-pointer select-none p-4" onMouseEnter={showPopover} onMouseLeave={scheduleClose} onClick={() => (open ? setOpen(false) : showPopover())}>
-      <div className="mb-2"><CardLabel>STREAKS</CardLabel></div>
+      <div className="mb-2"><CardLabel>{t("Streaks")}</CardLabel></div>
       <div className="relative h-6 overflow-hidden rounded-md" style={{ background: "linear-gradient(135deg, color-mix(in oklab, var(--color-green) 16%, transparent) 49%, color-mix(in oklab, var(--color-red) 16%, transparent) 51%)" }}>
         <span className="absolute left-1.5 top-1/2 -translate-y-1/2 whitespace-nowrap text-xs font-semibold" style={{ color: GREEN }}>{winCount}W</span>
         <span className="absolute right-1.5 top-1/2 -translate-y-1/2 whitespace-nowrap text-xs font-semibold" style={{ color: RED }}>{lossCount}L</span>
       </div>
-      <div className="mt-2 whitespace-nowrap text-[11px] text-muted-foreground">Поточний: <span style={{ color: currentColor }}>{summary.current.type === "none" ? "—" : `${summary.current.count} ${summary.current.type === "win" ? "W" : "L"}`}</span></div>
+      <div className="mt-2 whitespace-nowrap text-[11px] text-muted-foreground">{t("Current:")} <span style={{ color: currentColor }}>{summary.current.type === "none" ? "—" : `${summary.current.count} ${summary.current.type === "win" ? "W" : "L"}`}</span></div>
       {open && coords && typeof document !== "undefined" && createPortal(
         <Panel className="fixed z-[100] w-72 p-3 text-xs shadow-2xl" style={{ top: coords.top, left: coords.left }} onMouseEnter={cancelClose} onMouseLeave={scheduleClose}>
-          <div className="mb-2 font-medium text-foreground">Streak details</div>
+          <div className="mb-2 font-medium text-foreground">{t("Streak details")}</div>
           <div className="mb-2">
-            <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">Поточний стрік</span><span className="whitespace-nowrap" style={{ color: currentColor }}>{summary.current.type === "none" ? "—" : `${summary.current.count} ${summary.current.type === "win" ? "перемог" : "поразок"}`}</span></div>
+            <div className="flex items-baseline justify-between gap-3"><span className="text-muted-foreground">{t("Current streak")}</span><span className="whitespace-nowrap" style={{ color: currentColor }}>{summary.current.type === "none" ? "—" : summary.current.type === "win" ? tn(summary.current.count, "{count} win", "{count} wins") : tn(summary.current.count, "{count} loss", "{count} losses")}</span></div>
             {summary.current.type !== "none" && <div className="flex items-baseline justify-between gap-3 text-muted-foreground"><span>P&L / %</span><span className="whitespace-nowrap">{fmt.usd(summary.current.pnl)} · {fmt.pct(pct(summary.current.pnl))}</span></div>}
           </div>
           <div className="mb-2 border-t border-border pt-2">
-            <div className="flex items-baseline justify-between gap-3" style={{ color: GREEN }}><span>Найдовший win</span><span>{winCount}</span></div>
-            {summary.longestWin && <><div className="flex items-baseline justify-between gap-3 text-muted-foreground"><span>Період</span><span className="whitespace-nowrap">{summary.longestWin.startDate} → {summary.longestWin.endDate}</span></div><div className="flex items-baseline justify-between gap-3 text-muted-foreground"><span>P&L / %</span><span className="whitespace-nowrap">{fmt.usd(summary.longestWin.pnl)} · {fmt.pct(pct(summary.longestWin.pnl))}</span></div></>}
+            <div className="flex items-baseline justify-between gap-3" style={{ color: GREEN }}><span>{t("Longest winning streak")}</span><span>{winCount}</span></div>
+            {summary.longestWin && <><div className="flex items-baseline justify-between gap-3 text-muted-foreground"><span>{t("Period")}</span><span className="whitespace-nowrap">{summary.longestWin.startDate} → {summary.longestWin.endDate}</span></div><div className="flex items-baseline justify-between gap-3 text-muted-foreground"><span>P&L / %</span><span className="whitespace-nowrap">{fmt.usd(summary.longestWin.pnl)} · {fmt.pct(pct(summary.longestWin.pnl))}</span></div></>}
           </div>
           <div className="border-t border-border pt-2">
-            <div className="flex items-baseline justify-between gap-3" style={{ color: RED }}><span>Найдовший loss</span><span>{lossCount}</span></div>
-            {summary.longestLoss && <><div className="flex items-baseline justify-between gap-3 text-muted-foreground"><span>Період</span><span className="whitespace-nowrap">{summary.longestLoss.startDate} → {summary.longestLoss.endDate}</span></div><div className="flex items-baseline justify-between gap-3 text-muted-foreground"><span>P&L / %</span><span className="whitespace-nowrap">{fmt.usd(summary.longestLoss.pnl)} · {fmt.pct(pct(summary.longestLoss.pnl))}</span></div></>}
+            <div className="flex items-baseline justify-between gap-3" style={{ color: RED }}><span>{t("Longest losing streak")}</span><span>{lossCount}</span></div>
+            {summary.longestLoss && <><div className="flex items-baseline justify-between gap-3 text-muted-foreground"><span>{t("Period")}</span><span className="whitespace-nowrap">{summary.longestLoss.startDate} → {summary.longestLoss.endDate}</span></div><div className="flex items-baseline justify-between gap-3 text-muted-foreground"><span>P&L / %</span><span className="whitespace-nowrap">{fmt.usd(summary.longestLoss.pnl)} · {fmt.pct(pct(summary.longestLoss.pnl))}</span></div></>}
           </div>
         </Panel>, document.body,
       )}

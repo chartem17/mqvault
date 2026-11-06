@@ -13,7 +13,7 @@ export async function permanentlyDeleteOwnedEntity(trustedOwnerId: string, kind:
   const { data, error } = await db.rpc("vault_delete_entity", { p_owner_id: trustedOwnerId, p_kind: kind, p_entity_id: entityId });
   if (error) {
     console.error("Permanent entity deletion failed", { code: error.code });
-    throw new Error("Не вдалося підтвердити остаточне видалення");
+    throw new Error("Could not confirm the permanent deletion");
   }
   return parseDeletionResult(data);
 }

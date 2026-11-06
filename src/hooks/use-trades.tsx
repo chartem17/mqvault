@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { AccountKind, AccountPhase, AccountStatus, AccountType, TradingAccount } from "@/lib/account-data";
 import { useUndo } from "@/components/ui/undo-toast";
+import { useI18n } from "@/components/providers/i18n-provider";
 import { useTimezone } from "@/components/providers/timezone-provider";
 import { formatDateTimeOrDash } from "@/lib/timezone";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -103,6 +104,7 @@ const TradesContext = createContext<TradesContextValue | null>(null);
 export function TradesProvider({ children }: { children: ReactNode }) {
   const base = useTradesState();
   const { notify } = useUndo();
+  const { t, tn, intl } = useI18n();
   const { timezone } = useTimezone();
   const [hiddenTrades, setHiddenTrades] = useState<Set<string>>(() => new Set());
   const [hiddenAccounts, setHiddenAccounts] = useState<Set<string>>(() => new Set());
@@ -116,8 +118,8 @@ export function TradesProvider({ children }: { children: ReactNode }) {
     const key = `trade:${trade.account_id}:${id}`;
     if (locks.current.has(key) || locks.current.has(`account:${trade.account_id}`) || hiddenTrades.has(id) || hiddenAccounts.has(trade.account_id)) return;
     locks.current.add(key);
-    const date = formatDateTimeOrDash(trade.opened_at, timezone);
-    const accepted = notify({ key, message: `Позицію ${trade.symbol} · ${date} видалено`, duration: 10000, onUndo: () => { revealTrade(id, key); void base.refreshTrades(); }, onCommit: async () => { await base.deleteTrade(id); locks.current.delete(key); } });
+    const date = formatDateTimeOrDash(trade.opened_at, timezone, intl);
+    const accepted = notify({ key, message: t("Trade {symbol} · {date} deleted", { symbol: trade.symbol, date }), duration: 10000, onUndo: () => { revealTrade(id, key); void base.refreshTrades(); }, onCommit: async () => { await base.deleteTrade(id); locks.current.delete(key); } });
     if (accepted) setHiddenTrades(current => new Set(current).add(id)); else locks.current.delete(key);
   }
   async function deleteAccount(id: string) { if (!locks.current.has(`account:${id}`) && !hiddenAccounts.has(id) && base.accounts.some(account => account.id === id)) setConfirmId(id); }
@@ -128,7 +130,7 @@ export function TradesProvider({ children }: { children: ReactNode }) {
     if (!id || !account || hasPendingTrades || locks.current.has(`account:${id}`)) return;
     setConfirmId(null);
     const key = `account:${id}`; locks.current.add(key);
-    const accepted = notify({ key, message: `Рахунок «${account.name}» видалено`, duration: 10000, onUndo: () => { revealAccount(id); void base.refreshTrades(); }, onCommit: async () => { await base.deleteAccount(id); locks.current.delete(key); } });
+    const accepted = notify({ key, message: t("Account “{name}” deleted", { name: account.name }), duration: 10000, onUndo: () => { revealAccount(id); void base.refreshTrades(); }, onCommit: async () => { await base.deleteAccount(id); locks.current.delete(key); } });
     if (accepted) setHiddenAccounts(current => new Set(current).add(id)); else locks.current.delete(key);
   }
   const accounts = base.accounts.filter(account => !hiddenAccounts.has(account.id));
@@ -142,7 +144,7 @@ export function TradesProvider({ children }: { children: ReactNode }) {
   const count = base.trades.filter(trade => trade.account_id === confirmId).length;
   return <TradesContext.Provider value={{ ...base, accounts, trades, visibleTrades, activeAccountId, activeAccount, includedAccountIds, deleteTrade, deleteAccount }}>
     {children}
-    <ConfirmDialog open={Boolean(pendingAccount)} title={`Видалити рахунок «${pendingAccount?.name ?? ""}»?`} description={hasPendingTrades ? "Спочатку скасуйте або дочекайтеся завершення видалення окремих угод цього рахунку. Потім натисніть Видалити знову." : `Рахунок і ${count} угод зникнуть з дашборда. Після підтвердження буде 10 секунд, щоб скасувати. Перезавантаження до завершення таймера скасує відкладений запит.`} onCancel={() => setConfirmId(null)} onConfirm={confirmDelete} />
+    <ConfirmDialog open={Boolean(pendingAccount)} title={t("Delete account “{name}”?", { name: pendingAccount?.name ?? "" })} description={hasPendingTrades ? t("First undo or wait for the pending trade deletions of this account to finish. Then press Delete again.") : tn(count, "The account and {count} trade will disappear from the dashboard. You will have 10 seconds to undo. Reloading before the timer ends cancels the pending request.", "The account and {count} trades will disappear from the dashboard. You will have 10 seconds to undo. Reloading before the timer ends cancels the pending request.")} onCancel={() => setConfirmId(null)} onConfirm={confirmDelete} />
   </TradesContext.Provider>;
 }
 

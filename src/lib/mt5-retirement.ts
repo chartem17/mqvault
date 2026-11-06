@@ -1,4 +1,4 @@
-export const LOCAL_MT5_RETIRED_MESSAGE = "Локальний MT5 bridge більше не підтримується. Рахунки та угоди залишаються в журналі; автоматичну синхронізацію не підключено.";
+export const LOCAL_MT5_RETIRED_MESSAGE = "The local MT5 bridge is no longer supported. Accounts and trades stay in the journal; automatic sync is not connected.";
 export function retiredMt5Response(kind: "health" | "history" | "positions"): Response {
   if (!["health", "history", "positions"].includes(kind)) throw new Error("Invalid retired MT5 endpoint");
   const body = { connected: false, code: "local_bridge_retired", error: LOCAL_MT5_RETIRED_MESSAGE, ...(kind === "history" ? { deals: [], positions: [], initialDeposit: null, updatedAt: null } : kind === "positions" ? { positions: [], updatedAt: null } : {}) };

@@ -3,6 +3,11 @@
 import { useMemo } from "react";
 import { getBrowserTimeZone, getOffsetLabel, getTimeZoneList, shortZoneName } from "@/lib/timezone";
 import { Select } from "@/components/ui/primitives";
+import { useI18n } from "@/components/providers/i18n-provider";
+import { translate, type Vars } from "@/lib/i18n/core";
+
+type T = (text: string, vars?: Vars) => string;
+const identity: T = (text, vars) => translate(null, text, vars);
 
 /** Zones traders use most; shown first. "Etc/GMT-2" means UTC+2 (POSIX sign is inverted). */
 const COMMON_ZONES = [
@@ -20,11 +25,11 @@ const COMMON_ZONES = [
   "Etc/GMT-3",
 ] as const;
 
-export function zoneOptionLabel(tz: string, at = new Date()): string {
+export function zoneOptionLabel(tz: string, at = new Date(), t: T = identity): string {
   const offset = getOffsetLabel(tz, at);
   if (tz === "UTC" || tz === "Etc/UTC") return "UTC";
   const fixed = /^Etc\/GMT([+-])(\d+)$/.exec(tz);
-  if (fixed) return `Фіксований ${offset} (без літнього часу)`;
+  if (fixed) return t("Fixed {offset} (no DST)", { offset });
   return `${shortZoneName(tz)} (${offset})`;
 }
 
@@ -37,22 +42,23 @@ export function TimezoneSelect({ value, onChange, disabled, id, "aria-label": ar
   "aria-label"?: string;
   className?: string;
 }) {
+  const { t } = useI18n();
   const { common, all } = useMemo(() => {
     const now = new Date();
     const browser = getBrowserTimeZone();
     const commonSet = new Set<string>([value, browser, ...COMMON_ZONES].filter(Boolean));
-    const common = [...commonSet].map(tz => ({ tz, label: tz === browser && tz !== value ? `${zoneOptionLabel(tz, now)} · браузер` : zoneOptionLabel(tz, now) }));
+    const common = [...commonSet].map(tz => ({ tz, label: tz === browser && tz !== value ? t("{zone} · browser", { zone: zoneOptionLabel(tz, now, t) }) : zoneOptionLabel(tz, now, t) }));
     const all = getTimeZoneList()
       .filter(tz => !commonSet.has(tz))
       .map(tz => ({ tz, label: `${tz.replace(/_/g, " ")} (${getOffsetLabel(tz, now)})` }));
     return { common, all };
-  }, [value]);
+  }, [value, t]);
   return (
     <Select id={id} aria-label={ariaLabel} value={value} disabled={disabled} onChange={event => onChange(event.target.value)} className={className}>
-      <optgroup label="Часто вживані">
+      <optgroup label={t("Common")}>
         {common.map(({ tz, label }) => <option key={tz} value={tz}>{label}</option>)}
       </optgroup>
-      <optgroup label="Усі пояси">
+      <optgroup label={t("All time zones")}>
         {all.map(({ tz, label }) => <option key={tz} value={tz}>{label}</option>)}
       </optgroup>
     </Select>

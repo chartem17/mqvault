@@ -12,10 +12,10 @@ async function parentError(context: OwnerContext, accountId: string | null, pare
   const { data, error } = await context.db.from("accounts").select("id,account_type,parent_account_id").eq("user_id", context.ownerId).eq("is_active", true);
   if (error) throw new Error(error.code);
   const rows = (data ?? []).map(row => ({ id: row.id as string, accountType: row.account_type as string, parentAccountId: row.parent_account_id as string | null }));
-  if (!rows.some(row => row.id === parentId)) return "Попередній етап не знайдено";
+  if (!rows.some(row => row.id === parentId)) return "Previous stage not found";
   if (accountId === null) {
-    if (rows.find(row => row.id === parentId)?.accountType !== "prop") return "Привʼязувати можна лише проп-рахунки";
-    return rows.some(row => row.parentAccountId === parentId) ? "У цього етапу вже є наступний рахунок" : null;
+    if (rows.find(row => row.id === parentId)?.accountType !== "prop") return "Only prop accounts can be linked";
+    return rows.some(row => row.parentAccountId === parentId) ? "This stage already has a next account" : null;
   }
   return linkError(accountId, parentId, rows);
 }
@@ -31,7 +31,7 @@ async function readBody(request: Request): Promise<AccountRecord> {
 function failure(error: unknown) {
   if (error instanceof AccountSetupError) return json({ error: error.message }, 400);
   console.error("Account API failed", error instanceof Error ? error.message : "Unknown error");
-  return json({ error: "Не вдалося виконати операцію з рахунком" }, 500);
+  return json({ error: "Account operation failed" }, 500);
 }
 export async function GET(request: Request) {
   try {
@@ -49,12 +49,12 @@ export async function POST(request: Request) {
     const body = await readBody(request);
     const payload = buildAccountPayload(body);
     if (payload.parent_account_id) {
-      if (payload.account_type !== "prop") throw new AccountSetupError("Привʼязувати можна лише проп-рахунки");
+      if (payload.account_type !== "prop") throw new AccountSetupError("Only prop accounts can be linked");
       const message = await parentError(context, null, String(payload.parent_account_id));
       if (message) return json({ error: message }, 400);
     }
     const { data, error } = await context.db.from("accounts").insert({ ...payload, user_id: context.ownerId, is_active: true }).select(FIELDS).single();
-    if (error) { if (error.code === "23505") return json({ error: "Такий рахунок уже існує" }, 409); throw new Error(error.code); }
+    if (error) { if (error.code === "23505") return json({ error: "This account already exists" }, 409); throw new Error(error.code); }
     return json({ data }, 201);
   } catch (error) { return failure(error); }
 }

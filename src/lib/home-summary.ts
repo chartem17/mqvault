@@ -1,4 +1,5 @@
 import { dayKey, dayKeyOrNull } from "./timezone";
+import { msg } from "./i18n/core";
 
 export type HomeTrade = { id: string; account_id: string; symbol: string; direction: string; opened_at: string; closed_at?: string | null; net_pnl?: number | null; result_r?: number | null; setup?: string | null; emotion?: string | null };
 export type StrategyLimits = { maxTrades: number | null; maxLosses: number | null };
@@ -59,17 +60,10 @@ export function unmarkedTrades<T extends HomeTrade>(trades: readonly T[]): T[] {
   return trades.filter(trade => !trade.setup?.trim() || !trade.emotion?.trim());
 }
 
-/** Ukrainian plural form: one / few / many. */
-export function pluralUk(count: number, one: string, few: string, many: string): string {
-  const n = Math.abs(Math.trunc(count)), last = n % 10, tens = n % 100;
-  if (last === 1 && tens !== 11) return one;
-  if (last >= 2 && last <= 4 && (tens < 12 || tens > 14)) return few;
-  return many;
-}
-
+/** English greeting for the hour; translate it with `t()` when rendering. */
 export function greetingFor(hour: number): string {
-  if (hour < 5) return "Доброї ночі";
-  if (hour < 12) return "Доброго ранку";
-  if (hour < 18) return "Доброго дня";
-  return "Доброго вечора";
+  if (hour < 5) return msg("Good night");
+  if (hour < 12) return msg("Good morning");
+  if (hour < 18) return msg("Good afternoon");
+  return msg("Good evening");
 }

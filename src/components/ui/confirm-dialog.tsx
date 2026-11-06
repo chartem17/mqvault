@@ -4,8 +4,10 @@ import { dialogSurface } from "@/components/ui/dialog-styles";
 import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "./primitives";
+import { useI18n } from "@/components/providers/i18n-provider";
 
 export function ConfirmDialog({ open, title, description, onConfirm, onCancel }: { open: boolean; title: string; description: string; onConfirm: () => void; onCancel: () => void }) {
+  const { t } = useI18n();
   const dialog = useRef<HTMLDialogElement>(null);
   const cancel = useRef<HTMLButtonElement>(null);
   const id = useId();
@@ -20,6 +22,6 @@ export function ConfirmDialog({ open, title, description, onConfirm, onCancel }:
   return createPortal(<dialog ref={dialog} aria-labelledby={`${id}-title`} aria-describedby={`${id}-description`} onCancel={event => { event.preventDefault(); onCancel(); }} className={dialogSurface("fixed inset-0 m-auto w-[min(440px,calc(100vw-2rem))] p-6", true)}>
     <h2 id={`${id}-title`} className="text-lg font-semibold">{title}</h2>
     <p id={`${id}-description`} className="mt-3 text-sm leading-6 text-muted-foreground">{description}</p>
-    <div className="mt-6 flex justify-end gap-3"><Button ref={cancel} size="lg" variant="secondary" onClick={onCancel}>Скасувати</Button><Button size="lg" variant="destructive" onClick={onConfirm}>Видалити</Button></div>
+    <div className="mt-6 flex justify-end gap-3"><Button ref={cancel} size="lg" variant="secondary" onClick={onCancel}>{t("Cancel")}</Button><Button size="lg" variant="destructive" onClick={onConfirm}>{t("Delete")}</Button></div>
   </dialog>, document.body);
 }
