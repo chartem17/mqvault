@@ -89,7 +89,7 @@ export function HomeTab() {
       <Figure value={String(visibleTrades.length)} label={pluralUk(visibleTrades.length, "угода", "угоди", "угод")} />
     </section>
 
-    <div className="grid gap-16 lg:grid-cols-2">
+    <div className="grid gap-12 sm:gap-16 lg:grid-cols-2">
       <section aria-label="Розбір дня" className="space-y-5">
         <h2 className="m-0 text-base font-semibold">Потрібен розбір</h2>
         {unmarked.length === 0 ? <p className="m-0 text-muted-foreground">Усе позначено.</p> : <>

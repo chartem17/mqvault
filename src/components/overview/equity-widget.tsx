@@ -23,11 +23,13 @@ function EquityChart({ points, totalPnl }: { points: EqPoint[]; totalPnl: number
     if (typeof ResizeObserver !== "undefined") { const observer = new ResizeObserver(update); observer.observe(element); return () => observer.disconnect(); }
     window.addEventListener("resize", update); return () => window.removeEventListener("resize", update);
   }, []);
-  const W = size.width, H = Math.max(140, size.height), PAD_L = 12, PAD_R = 48, PAD_T = 14, PAD_B = 22;
   const eq = points.slice(-120);
-  const chartW = Math.max(1, W - PAD_L - PAD_R), chartH = H - PAD_T - PAD_B;
   const pnlValues = eq.length > 0 ? eq.map(point => point.pnl) : [0];
   const rawMin = Math.min(...pnlValues), rawMax = Math.max(...pnlValues), range = Math.max(rawMax - rawMin, 1);
+  // Right gutter fits the longest y label (11px digits ≈ 6.7px each) so it is never clipped.
+  const labelChars = Math.max(String(Math.round(Math.abs(rawMax) + range)).length, String(Math.round(Math.abs(rawMin) + range)).length) + 1;
+  const W = size.width, H = Math.max(140, size.height), PAD_L = 12, PAD_R = Math.max(40, Math.ceil(labelChars * 6.7) + 12), PAD_T = 14, PAD_B = 22;
+  const chartW = Math.max(1, W - PAD_L - PAD_R), chartH = H - PAD_T - PAD_B;
   const yMin = Math.min(rawMin, 0) - range * 0.08, yMax = Math.max(rawMax, 0) + range * 0.08, ySpan = Math.max(yMax - yMin, 1);
   const toX = (index: number) => PAD_L + index / Math.max(1, eq.length - 1) * chartW;
   const toY = (value: number) => PAD_T + chartH - (value - yMin) / ySpan * chartH;
@@ -45,15 +47,17 @@ function EquityChart({ points, totalPnl }: { points: EqPoint[]; totalPnl: number
   }
   if (current) segments.push(current);
   const yLabels = Array.from({ length: 5 }, (_, index) => { const value = yMin + index / 4 * ySpan; return { y: toY(value), value }; });
-  const xLabelIndices = Array.from(new Set([0, Math.floor(eq.length / 3), Math.floor(eq.length * 2 / 3), eq.length - 1])).filter(index => eq[index]);
+  // About one date label per 110px so labels never collide on narrow screens.
+  const xSlots = Math.max(2, Math.min(4, Math.floor(chartW / 110)));
+  const xLabelIndices = Array.from(new Set(Array.from({ length: xSlots }, (_, slot) => Math.round(slot / (xSlots - 1) * (eq.length - 1))))).filter(index => eq[index]);
   const xLabels = xLabelIndices.map(index => ({ x: toX(index), label: eq[index].date }));
-  const handleMouseMove = useCallback((event: React.MouseEvent<SVGSVGElement>) => { const rect = event.currentTarget.getBoundingClientRect(); if (rect.width <= 0 || eq.length === 0) { setHoverIndex(null); return; } const relativeX = Math.max(0, Math.min(1, ((event.clientX - rect.left) / rect.width * W - PAD_L) / chartW)); setHoverIndex(Math.round(relativeX * Math.max(0, eq.length - 1))); }, [W, chartW, eq.length]);
+  const handleMouseMove = useCallback((event: React.PointerEvent<SVGSVGElement>) => { const rect = event.currentTarget.getBoundingClientRect(); if (rect.width <= 0 || eq.length === 0) { setHoverIndex(null); return; } const relativeX = Math.max(0, Math.min(1, ((event.clientX - rect.left) / rect.width * W - PAD_L) / chartW)); setHoverIndex(Math.round(relativeX * Math.max(0, eq.length - 1))); }, [W, chartW, eq.length]);
   const hoverPoint = hoverIndex !== null ? eq[hoverIndex] ?? null : null;
   const hover = hoverIndex !== null && hoverPoint && coords[hoverIndex] ? { px: coords[hoverIndex].x, py: coords[hoverIndex].y } : null;
   return <WidgetPanel title="Equity curve" sub={`${eq.length} точок`} aside={<div className="text-right text-lg font-semibold" style={{ color: totalPnl >= 0 ? GREEN : RED }}>{fmt.usd(totalPnl)}</div>} className="isolate">
     <div className="pointer-events-none absolute inset-0 -z-10" style={{ background: totalPnl >= 0 ? CHART_THEME.gainGlow : CHART_THEME.lossGlow }} />
     <div ref={chartContainerRef} className="relative h-full min-h-[140px] w-full min-w-0">
-      <svg viewBox={`0 0 ${W} ${H}`} className="block h-full w-full" style={{ visibility: measured ? "visible" : "hidden" }} onMouseMove={handleMouseMove} onMouseLeave={() => setHoverIndex(null)}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="block h-full w-full touch-pan-y" style={{ visibility: measured ? "visible" : "hidden" }} onPointerMove={handleMouseMove} onPointerDown={handleMouseMove} onPointerLeave={() => setHoverIndex(null)}>
         {yLabels.map((label, index) => <line key={index} x1={PAD_L} x2={W - PAD_R} y1={label.y} y2={label.y} stroke="rgb(var(--ink) / 0.07)" strokeDasharray={label.value === 0 ? "0" : "4 6"} />)}
         {segments.map((segment, index) => segment.pts.length < 2 ? null : <path key={`area-${index}`} d={`${buildPath(segment.pts)} L${segment.pts[segment.pts.length - 1].x},${zeroY} L${segment.pts[0].x},${zeroY} Z`} fill={segment.positive ? CHART_THEME.gainArea : CHART_THEME.lossArea} />)}
         {segments.map((segment, index) => segment.pts.length < 2 ? null : <path key={`line-${index}`} d={buildPath(segment.pts)} fill="none" stroke={segment.positive ? GREEN : RED} strokeWidth="3" strokeLinecap="round" />)}

@@ -36,8 +36,11 @@ function readIncluded(): string[] { try { const parsed: unknown = JSON.parse(typ
 function useTradesState() {
   const [accounts, setAccounts] = useState<TradingAccount[]>([]);
   const [trades, setTrades] = useState<JournalTrade[]>([]);
-  const [activeAccountId, setActiveAccountId] = useState<AccountFilter>(readActive);
-  const [includedAccountIds, setIncludedAccountIds] = useState<string[]>(readIncluded);
+  // Start from server-safe defaults and restore the saved choice after mount; reading storage during
+  // the first render made the server and client HTML differ (hydration error) for anyone with a saved account.
+  const [activeAccountId, setActiveAccountId] = useState<AccountFilter>("all");
+  const [includedAccountIds, setIncludedAccountIds] = useState<string[]>([]);
+  const restored = useRef(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -54,8 +57,9 @@ function useTradesState() {
     } catch (err) { setError(err instanceof Error ? err.message : "Failed to load data"); } finally { setLoading(false); setRefreshing(false); }
   }, []);
   useEffect(() => { void load(true); }, [load]);
-  useEffect(() => { try { window.localStorage.setItem(ACTIVE_KEY, activeAccountId); } catch { /* Storage may be unavailable. */ } }, [activeAccountId]);
-  useEffect(() => { try { window.localStorage.setItem(INCLUDED_KEY, JSON.stringify(includedAccountIds)); } catch { /* Storage may be unavailable. */ } }, [includedAccountIds]);
+  useEffect(() => { const active = readActive(), included = readIncluded(); restored.current = true; if (active !== "all") setActiveAccountId(active); if (included.length) setIncludedAccountIds(included); }, []);
+  useEffect(() => { if (!restored.current) return; try { window.localStorage.setItem(ACTIVE_KEY, activeAccountId); } catch { /* Storage may be unavailable. */ } }, [activeAccountId]);
+  useEffect(() => { if (!restored.current) return; try { window.localStorage.setItem(INCLUDED_KEY, JSON.stringify(includedAccountIds)); } catch { /* Storage may be unavailable. */ } }, [includedAccountIds]);
   useEffect(() => { if (accounts.length && activeAccountId !== "all" && !accounts.some(account => account.id === activeAccountId)) setActiveAccountId("all"); }, [accounts, activeAccountId]);
   useEffect(() => { if (!accounts.length) return; setIncludedAccountIds(current => { const valid = current.filter(id => accounts.some(account => account.id === id)); return valid.length ? valid : accounts.map(account => account.id); }); }, [accounts]);
   const refreshTrades = useCallback(() => load(false), [load]);

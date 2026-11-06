@@ -198,3 +198,9 @@ body, button, input, select, textarea, optgroup, option, table, svg text, .font-
 /* Shared control elevation; consumers must not hardcode popup shadows. */
 :root { --ui-select-shadow: 0 20px 52px rgb(0 0 0 / 0.65); }
 .light { --ui-select-shadow: 0 12px 32px rgb(var(--ink) / 0.14); }
+
+/* Tablet icon rail: the sidebar collapses to icons between md and lg. */
+@media (min-width: 768px) and (max-width: 1023.98px) {
+  .nav-rail-button { justify-content: center !important; padding: 0.75rem !important; }
+  .nav-rail-button > span { display: none; }
+}
