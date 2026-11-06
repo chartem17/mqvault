@@ -37,7 +37,7 @@ const BY_KEY = new Map(WIDGETS.map(widget => [widget.key, widget]));
 export function widgetMeta(key: string): WidgetMeta | undefined { return BY_KEY.get(key); }
 
 export type LayoutItem = { key: string; x: number; y: number; w: number; h: number };
-export type DashboardLayout = { items: LayoutItem[]; mobile: string[] };
+export type DashboardLayout = { version: 1; items: LayoutItem[]; mobile: string[] };
 
 /** The default arrangement: the Overview as it looked before it became customisable. */
 const DEFAULT_POSITIONS: Record<string, [number, number]> = {
@@ -55,7 +55,7 @@ export function defaultItems(): LayoutItem[] {
 }
 export function defaultDashboardLayout(): DashboardLayout {
   const items = defaultItems();
-  return { items, mobile: readingOrder(items) };
+  return { version: 1, items, mobile: readingOrder(items) };
 }
 
 /** Top-to-bottom, left-to-right order of the items (also the default mobile order). */
