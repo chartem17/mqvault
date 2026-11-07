@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { Inter, Unbounded } from "next/font/google";
 import "./globals.css";
 import "./typography.css";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 import { TradesProvider } from "@/hooks/use-trades";
 import { UndoProvider } from "@/components/ui/undo-toast";
 import { TimezoneProvider } from "@/components/providers/timezone-provider";

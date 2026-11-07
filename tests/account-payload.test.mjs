@@ -56,5 +56,5 @@ test("integration sources use the explicit setup flow", () => {
   assert.match(hook, /account_type: input.accountType/);
   assert.doesNotMatch(hook, /account_type: input.platform ===/);
   assert.match(hook, /minTradingDays: input.minTradingDays/);
-  assert.match(readFileSync("src/components/account-switcher.tsx", "utf8"), /components\/accounts\/new-account-modal/);
+  assert.match(readFileSync("src/components/accounts/account-switcher.tsx", "utf8"), /components\/accounts\/new-account-modal/);
 });

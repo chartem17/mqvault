@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { RuleStatus } from "@/lib/strategy-control/types";
-import { MetricCard } from "./metric-card";
-import { surfaceClass } from "./surface-styles";
+import { MetricCard } from "../ui/metric-card";
+import { surfaceClass } from "../ui/surface-styles";
 import { msg } from "@/lib/i18n/core";
 
 export const STRATEGY_SURFACE = surfaceClass("p-4 shadow-sm sm:p-5");

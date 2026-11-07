@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { METRIC_STYLES } from "./metric-card";
+import { METRIC_STYLES } from "../ui/metric-card";
 
 export function CardLabel({ children }: { children: ReactNode }) {
   return <p className={METRIC_STYLES.standard.label}>{children}</p>;

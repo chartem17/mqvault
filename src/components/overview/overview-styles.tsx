@@ -1,5 +1,5 @@
-import { MetricCard } from "./metric-card";
-import { SURFACE_BASE } from "./surface-styles";
+import { MetricCard } from "../ui/metric-card";
+import { SURFACE_BASE } from "../ui/surface-styles";
 
 export const CARD_SURFACE = SURFACE_BASE;
 export const CARD_TITLE = "text-sm font-medium text-foreground";

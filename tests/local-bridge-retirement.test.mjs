@@ -32,7 +32,7 @@ test("active bridge routes and hook contain no transport or timer", () => {
   }
 });
 test("account UI has no bridge connection entry point", () => {
-  const switcher = readFileSync("src/components/account-switcher.tsx", "utf8");
+  const switcher = readFileSync("src/components/accounts/account-switcher.tsx", "utf8");
   assert.doesNotMatch(switcher, /useMt5|Mt5Panel|linkCurrentMt5/);
   const form = readFileSync("src/components/accounts/new-account-modal.tsx", "utf8");
   assert.doesNotMatch(form, /mt5BridgeConnected|mt5DefaultBalance|MT5 bridge/);

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { CARD_SURFACE, CARD_TITLE } from "@/components/ui/overview-styles";
+import { CARD_SURFACE, CARD_TITLE } from "@/components/overview/overview-styles";
 
 /** Shared frame of every Overview widget: fills its grid cell, the body scrolls instead of growing. */
 export function WidgetPanel({ title, sub, aside, children, scroll = false, className = "", bodyClassName = "" }: { title: string; sub?: ReactNode; aside?: ReactNode; children: ReactNode; scroll?: boolean; className?: string; bodyClassName?: string }) {
