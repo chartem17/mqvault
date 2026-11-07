@@ -2,6 +2,7 @@ import { MARKET_INSTRUMENTS } from "@/lib/market/instruments";
 import { matchesSessionSelection, SESSION_RULE_OPTIONS } from "../time/session-selection";
 import type { RuleDefinition, RuleType, Trade } from "./types";
 import { msg } from "../i18n/core";
+import { overDailyLimit } from "./violation-cost";
 
 type EvaluationInput = { trades: Trade[]; params: Record<string, unknown> };
 export type EvaluationOutput = { violations: number; affectedTrades: number; impactR: number; sampleSize: number; compliantImpactR: number; compliantCount: number; evidenceTrades: Trade[] };
@@ -12,8 +13,20 @@ const INSTRUMENT_OPTIONS = Array.from(new Set(MARKET_INSTRUMENTS.filter(item => 
 const DEFAULT_CORE_INSTRUMENTS = ["EUR/USD", "XAU/USD", "BTC/USDT"];
 const SESSION_OPTIONS = SESSION_RULE_OPTIONS.map(option => option.label);
 function groupByDay(trades: Trade[]) { const map = new Map<string, Trade[]>(); trades.forEach(trade => map.set(trade.date, [...(map.get(trade.date) ?? []), trade])); return map; }
-function evaluateMaxTradesPerDay({ trades, params }: EvaluationInput) { const limit = Number(params.limit ?? 3); const grouped = [...groupByDay(trades).entries()]; const dates = new Set(grouped.filter(([, list]) => list.length > limit).map(([date]) => date)); return result(dates.size, trades.filter(trade => dates.has(trade.date)), trades.filter(trade => !dates.has(trade.date)), grouped.length); }
-function evaluateMaxLossesPerDay({ trades, params }: EvaluationInput) { const limit = Number(params.limit ?? 2); const known = trades.filter(trade => typeof trade.resultR === "number"); const grouped = [...groupByDay(known).entries()]; const dates = new Set(grouped.filter(([, list]) => list.filter(trade => (trade.resultR ?? 0) < 0).length > limit).map(([date]) => date)); return result(dates.size, known.filter(trade => dates.has(trade.date)), known.filter(trade => !dates.has(trade.date)), grouped.length); }
+/**
+ * Daily limits: only trades opened after the limit was reached break the rule; the first N trades of
+ * that day were allowed and count as compliant. `violations` is the number of days over the limit.
+ */
+function evaluateDailyLimit(ruleType: "max_trades_per_day" | "max_losses_per_day", trades: Trade[], limit: number) {
+  // Every trade counts towards the daily limit; averages use only trades with a known R.
+  const over = overDailyLimit(ruleType, trades, limit);
+  const overIds = new Set(over.map(trade => trade.id));
+  const days = new Set(over.map(trade => trade.date));
+  const known = (trade: Trade) => typeof trade.resultR === "number";
+  return result(days.size, over.filter(known), trades.filter(trade => known(trade) && !overIds.has(trade.id)), groupByDay(trades).size);
+}
+function evaluateMaxTradesPerDay({ trades, params }: EvaluationInput) { return evaluateDailyLimit("max_trades_per_day", trades, Number(params.limit ?? 3)); }
+function evaluateMaxLossesPerDay({ trades, params }: EvaluationInput) { return evaluateDailyLimit("max_losses_per_day", trades, Number(params.limit ?? 2)); }
 function evaluateAllowedSessions({ trades, params }: EvaluationInput) {
   const allowed = (params.sessions as string[]) ?? ["London", "New York"];
   const known = trades.filter(trade => !!trade.session || !!trade.sessionKey || !!trade.sessionGroup);
