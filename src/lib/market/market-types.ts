@@ -1,4 +1,4 @@
-import type { MarketInstrument } from "@/lib/instruments";
+import type { MarketInstrument } from "@/lib/market/instruments";
 
 export type AssetClass = MarketInstrument["assetClass"];
 export type Provider = MarketInstrument["provider"];

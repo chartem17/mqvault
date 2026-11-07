@@ -3,10 +3,10 @@ import { useMemo, useState } from "react";
 import { Select } from "@/components/ui/primitives";
 import { useTimezone } from "@/components/providers/timezone-provider";
 import { useTrades } from "@/hooks/use-trades";
-import { phaseLabel, type TradingAccount } from "@/lib/account-data";
-import { buildAccountOverview } from "@/lib/account-overview";
-import { chainOf, linkError, summarizeChain } from "@/lib/account-chain";
-import { fmt } from "@/lib/utils-trade";
+import { phaseLabel, type TradingAccount } from "@/lib/accounts/account-data";
+import { buildAccountOverview } from "@/lib/accounts/account-overview";
+import { chainOf, linkError, summarizeChain } from "@/lib/accounts/account-chain";
+import { fmt } from "@/lib/journal/utils-trade";
 import { useI18n } from "@/components/providers/i18n-provider";
 
 /** Branch of linked prop stages (Phase 1 → Phase 2 → Funded): per-stage numbers and a combined journal summary. */

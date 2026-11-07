@@ -7,8 +7,8 @@ import { ArrowDown, ArrowUp, X } from "lucide-react";
 import { WIDGET_COMPONENTS } from "@/components/overview/widget-registry";
 import { WidgetLibrary } from "@/components/overview/widget-library";
 import { useI18n } from "@/components/providers/i18n-provider";
-import { GRID_COLUMNS, GRID_GAP, ROW_HEIGHT, widgetMeta, type DashboardLayout } from "@/lib/dashboard-widgets";
-import { addWidget, applyGridPositions, hiddenWidgets, moveMobile, removeWidget, sameLayout } from "@/lib/dashboard-layout";
+import { GRID_COLUMNS, GRID_GAP, ROW_HEIGHT, widgetMeta, type DashboardLayout } from "@/lib/dashboard/dashboard-widgets";
+import { addWidget, applyGridPositions, hiddenWidgets, moveMobile, removeWidget, sameLayout } from "@/lib/dashboard/dashboard-layout";
 
 const MOBILE_BREAKPOINT = 640;
 /** Phone heights (px): charts need a fixed box to draw into, lists scroll inside it. */

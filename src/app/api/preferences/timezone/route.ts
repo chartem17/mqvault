@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { resolvePrivateOwner } from '@/lib/supabase/private-owner';
-import { isValidTimeZone } from '@/lib/timezone';
+import { isValidTimeZone } from '@/lib/time/timezone';
 export const dynamic = 'force-dynamic';
 function json(body: unknown, status = 200) { return NextResponse.json(body, { status, headers: { 'Cache-Control': 'no-store' } }); }
 function failure(code?: string) { console.error('Timezone preference database operation failed', { code }); return json({ error: 'Time zone operation failed' }, 500); }

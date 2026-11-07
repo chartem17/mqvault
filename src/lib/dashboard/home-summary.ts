@@ -1,5 +1,5 @@
-import { dayKey, dayKeyOrNull } from "./timezone";
-import { msg } from "./i18n/core";
+import { dayKey, dayKeyOrNull } from "../time/timezone";
+import { msg } from "../i18n/core";
 
 export type HomeTrade = { id: string; account_id: string; symbol: string; direction: string; opened_at: string; closed_at?: string | null; net_pnl?: number | null; result_r?: number | null; setup?: string | null; emotion?: string | null };
 export type StrategyLimits = { maxTrades: number | null; maxLosses: number | null };

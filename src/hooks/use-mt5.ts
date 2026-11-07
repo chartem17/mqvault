@@ -1,5 +1,5 @@
 "use client";
-import { LOCAL_MT5_RETIRED_MESSAGE } from "../lib/mt5-retirement";
+import { LOCAL_MT5_RETIRED_MESSAGE } from "../lib/market/mt5-retirement";
 export type Mt5Health = {
   connected: boolean; login?: number; server?: string; company?: string; balance?: number; equity?: number; currency?: string; error?: string;
 };

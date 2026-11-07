@@ -1,5 +1,5 @@
-import { MARKET_INSTRUMENTS } from "@/lib/instruments";
-import { matchesSessionSelection, SESSION_RULE_OPTIONS } from "../session-selection";
+import { MARKET_INSTRUMENTS } from "@/lib/market/instruments";
+import { matchesSessionSelection, SESSION_RULE_OPTIONS } from "../time/session-selection";
 import type { RuleDefinition, RuleType, Trade } from "./types";
 import { msg } from "../i18n/core";
 

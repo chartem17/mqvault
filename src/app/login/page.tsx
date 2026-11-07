@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { safeNextPath } from "@/lib/session-token";
+import { safeNextPath } from "@/lib/auth/session-token";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { LanguageToggle } from "@/components/settings/language-toggle";
 

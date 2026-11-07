@@ -3,11 +3,11 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTrades } from "@/hooks/use-trades";
-import { fmt } from "@/lib/utils-trade";
+import { fmt } from "@/lib/journal/utils-trade";
 import { CARD_TITLE } from "@/components/ui/overview-styles";
-import { dayKey } from "@/lib/timezone";
+import { dayKey } from "@/lib/time/timezone";
 import { useTimezone } from "@/components/providers/timezone-provider";
-import { calendarCellKey, zonedDayOrNull, zonedMonthCursor } from "@/lib/trading-calendar";
+import { calendarCellKey, zonedDayOrNull, zonedMonthCursor } from "@/lib/time/trading-calendar";
 import { WidgetPanel } from "./widget-panel";
 import { useI18n } from "@/components/providers/i18n-provider";
 

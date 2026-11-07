@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const { buildAccountOverview, accountOverviewLabel } = require("../.tmp-account-overview-tests/account-overview.js");
+const { buildAccountOverview, accountOverviewLabel } = require("../.tmp-account-overview-tests/lib/accounts/account-overview.js");
 const account = { id: "a", accountType: "prop", phase: "phase-3", initialBalance: 10000, targetPercent: 8, maxLossPercent: 10, dailyLossPercent: 5, minTradingDays: 4 };
 const trade = value => ({ account_id: "a", net_pnl: value });
 test("configured target uses only this account journal PnL", () => {

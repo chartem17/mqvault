@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const { parseAccountSetup, AccountSetupError } = require("../.tmp-account-tests/account-setup.js");
+const { parseAccountSetup, AccountSetupError } = require("../.tmp-account-tests/lib/accounts/account-setup.js");
 const base = { accountType: "prop", platform: "manual", initialBalance: 10000 };
 
 test("all four account type and platform combinations are independent", () => {

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const tz = require("../.tmp-timezone-tests/timezone.js");
+const tz = require("../.tmp-timezone-tests/lib/time/timezone.js");
 
 test("typed wall time is read in the given zone and stored as UTC", () => {
   // Kyiv winter UTC+2, summer UTC+3

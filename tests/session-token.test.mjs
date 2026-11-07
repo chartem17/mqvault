@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const { createSessionToken, verifySessionToken, safeNextPath, SESSION_MAX_AGE_SECONDS } = require("../.tmp-session-token-tests/session-token.js");
+const { createSessionToken, verifySessionToken, safeNextPath, SESSION_MAX_AGE_SECONDS } = require("../.tmp-session-token-tests/lib/auth/session-token.js");
 
 const password = "a-very-long-test-password-123";
 

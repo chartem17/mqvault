@@ -2,9 +2,9 @@
 
 import { useMemo } from "react";
 import { useTrades, type JournalTrade } from "@/hooks/use-trades";
-import { computeMonthly, fmt, groupByKey } from "@/lib/utils-trade";
+import { computeMonthly, fmt, groupByKey } from "@/lib/journal/utils-trade";
 import { LIST_ROW } from "@/components/ui/overview-styles";
-import { SESSION_DEFINITIONS, SESSION_GROUPS, getSessionKey, getSessionLabel } from "@/lib/sessions";
+import { SESSION_DEFINITIONS, SESSION_GROUPS, getSessionKey, getSessionLabel } from "@/lib/time/sessions";
 import { useTimezone } from "@/components/providers/timezone-provider";
 import { WidgetPanel } from "./widget-panel";
 import { useI18n } from "@/components/providers/i18n-provider";

@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useTrades } from "@/hooks/use-trades";
-import { computeAdvancedStats, type RBucket } from "@/lib/advanced-stats";
+import { computeAdvancedStats, type RBucket } from "@/lib/journal/advanced-stats";
 import { useTimezone } from "@/components/providers/timezone-provider";
 import { WidgetPanel } from "./widget-panel";
 import { useI18n } from "@/components/providers/i18n-provider";

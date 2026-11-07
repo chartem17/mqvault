@@ -4,7 +4,7 @@ import { useI18n } from "@/components/providers/i18n-provider";
 import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTrades, type JournalTrade } from "@/hooks/use-trades";
-import { fmt } from "@/lib/utils-trade";
+import { fmt } from "@/lib/journal/utils-trade";
 import { Panel } from "./primitives";
 import { CardLabel } from "./card-content";
 

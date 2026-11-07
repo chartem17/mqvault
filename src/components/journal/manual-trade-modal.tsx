@@ -4,7 +4,7 @@ import { dialogSurface, DIALOG_BACKDROP } from "@/components/ui/dialog-styles";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Camera, ChevronDown, X } from "lucide-react";
 import { type JournalTrade, type TradeInput } from "@/hooks/use-trades";
-import type { TradingAccount } from "@/lib/account-data";
+import type { TradingAccount } from "@/lib/accounts/account-data";
 import { Button, Input, Panel, Select, Textarea } from "@/components/ui/primitives";
 import { Field } from "@/components/ui/field";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -13,13 +13,13 @@ import { useInstruments } from "@/hooks/use-instruments";
 import {
   marketForSymbol as findMarket,
   type Instrument,
-} from "@/lib/instruments";
-import { marketsFrom, sortBySymbol } from "@/lib/markets";
+} from "@/lib/market/instruments";
+import { marketsFrom, sortBySymbol } from "@/lib/market/markets";
 import { useTimezone } from "@/components/providers/timezone-provider";
 import { TimezoneSelect, zoneOptionLabel } from "@/components/settings/timezone-select";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { msg } from "@/lib/i18n/core";
-import { formatDateTimeOrDash, fromZonedInputValue, isValidTimeZone, toZonedInputValue } from "@/lib/timezone";
+import { formatDateTimeOrDash, fromZonedInputValue, isValidTimeZone, toZonedInputValue } from "@/lib/time/timezone";
 
 const SESSIONS = ["Asia", "London", "NY", "Overlap"] as const;
 

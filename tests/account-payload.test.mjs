@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 const require = createRequire(import.meta.url);
-const { buildAccountPayload } = require("../.tmp-account-payload-tests/account-payload.js");
-const { parseAccountSetup } = require("../.tmp-account-payload-tests/account-setup.js");
+const { buildAccountPayload } = require("../.tmp-account-payload-tests/lib/accounts/account-payload.js");
+const { parseAccountSetup } = require("../.tmp-account-payload-tests/lib/accounts/account-setup.js");
 const current = { account_type: "prop", platform: "mt5", initial_balance: "10000", phase: "phase-2", target_percent: "8", max_loss_percent: "10", daily_loss_percent: "5", min_trading_days: 4, mt5_login: "12345" };
 test("all four creations preserve explicit type and platform", () => {
   for (const accountType of ["personal", "prop"]) for (const platform of ["manual", "mt5"]) {

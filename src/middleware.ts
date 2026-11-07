@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { checkPrivateAccess } from "@/lib/private-access";
+import { checkPrivateAccess } from "@/lib/auth/private-access";
 
 export async function middleware(request: NextRequest) {
   const denied = await checkPrivateAccess(request);

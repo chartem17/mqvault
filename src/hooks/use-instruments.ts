@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FALLBACK_INSTRUMENTS, type Instrument } from "@/lib/instruments";
+import { FALLBACK_INSTRUMENTS, type Instrument } from "@/lib/market/instruments";
 
 let cache: Instrument[] | null = null;
 

@@ -1,7 +1,7 @@
 "use client";
 import { msg } from '@/lib/i18n/core';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { defaultJournalLayout, parseJournalLayout, type JournalLayout } from '@/lib/journal-layout';
+import { defaultJournalLayout, parseJournalLayout, type JournalLayout } from '@/lib/journal/journal-layout';
 type Snapshot = { layout: JournalLayout; revision: number };
 async function responseValue(response: Response): Promise<Snapshot> {
   const body = await response.json();

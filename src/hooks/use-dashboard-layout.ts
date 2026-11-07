@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { defaultDashboardLayout, type DashboardLayout } from "@/lib/dashboard-widgets";
-import { readStoredDashboardLayout, sameLayout } from "@/lib/dashboard-layout";
+import { defaultDashboardLayout, type DashboardLayout } from "@/lib/dashboard/dashboard-widgets";
+import { readStoredDashboardLayout, sameLayout } from "@/lib/dashboard/dashboard-layout";
 import { msg } from "@/lib/i18n/core";
 
 type Snapshot = { layout: DashboardLayout; revision: number };

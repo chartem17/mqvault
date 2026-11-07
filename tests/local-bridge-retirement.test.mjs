@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 const require = createRequire(import.meta.url);
-const { retiredMt5Response } = require("../.tmp-local-bridge-tests/lib/mt5-retirement.js");
+const { retiredMt5Response } = require("../.tmp-local-bridge-tests/lib/market/mt5-retirement.js");
 const { useMt5 } = require("../.tmp-local-bridge-tests/hooks/use-mt5.js");
 test("legacy endpoints explicitly return gone without fake balances", async () => {
   for (const kind of ["health", "history", "positions"]) {

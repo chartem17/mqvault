@@ -1,5 +1,5 @@
 import type { AccountType, PropPhase } from "./account-setup";
-import { msg } from "./i18n/core";
+import { msg } from "../i18n/core";
 export type { AccountType } from "./account-setup";
 export type AccountPhase = PropPhase | "manual";
 export type AccountStatus = "active" | "passed" | "failed" | "archived";

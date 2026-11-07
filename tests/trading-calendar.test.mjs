@@ -4,7 +4,7 @@ import { createRequire } from "node:module";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 const require = createRequire(import.meta.url);
-const { calendarCellKey, kyivDayOrNull, kyivMonthCursor, isInKyivPeriod, defaultKyivPeriod } = require("../.tmp-date-tests/trading-calendar.js");
+const { calendarCellKey, kyivDayOrNull, kyivMonthCursor, isInKyivPeriod, defaultKyivPeriod } = require("../.tmp-date-tests/lib/time/trading-calendar.js");
 
 test("Kyiv day crosses UTC midnight correctly in winter and summer", () => {
   assert.equal(kyivDayOrNull("2026-01-15T21:59:59Z"), "2026-01-15");
@@ -28,7 +28,7 @@ test("month subtraction clamps to last valid day", () => {
 });
 test("calendar cells never shift through UTC serialization", () => {
   for (const zone of ["UTC", "Europe/Kyiv", "Europe/Warsaw", "Asia/Tokyo", "America/Los_Angeles"]) {
-    const code = 'const { calendarCellKey } = require("./.tmp-date-tests/trading-calendar.js"); process.stdout.write(calendarCellKey(new Date(2026, 6, 16, 12)));';
+    const code = 'const { calendarCellKey } = require("./.tmp-date-tests/lib/time/trading-calendar.js"); process.stdout.write(calendarCellKey(new Date(2026, 6, 16, 12)));';
     assert.equal(execFileSync(process.execPath, ["-e", code], { env: { ...process.env, TZ: zone }, encoding: "utf8" }), "2026-07-16");
   }
   assert.equal(calendarCellKey(new Date(2026, 6, 16)), "2026-07-16");
@@ -50,7 +50,7 @@ test("both components use the tested date helpers", () => {
 });
 
 test("zoned helpers take the user's zone instead of Kyiv", () => {
-  const { zonedDayOrNull, isInZonedPeriod, defaultZonedPeriod } = require("../.tmp-date-tests/trading-calendar.js");
+  const { zonedDayOrNull, isInZonedPeriod, defaultZonedPeriod } = require("../.tmp-date-tests/lib/time/trading-calendar.js");
   // 2026-07-16T02:00Z is 16 July in Kyiv but still 15 July in New York.
   assert.equal(zonedDayOrNull("2026-07-16T02:00:00Z", "Europe/Kyiv"), "2026-07-16");
   assert.equal(zonedDayOrNull("2026-07-16T02:00:00Z", "America/New_York"), "2026-07-15");

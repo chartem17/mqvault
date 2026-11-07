@@ -3,7 +3,7 @@ import { useI18n } from "@/components/providers/i18n-provider";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTrades } from "@/hooks/use-trades";
-import { computeEquity, computeStats, fmt } from "@/lib/utils-trade";
+import { computeEquity, computeStats, fmt } from "@/lib/journal/utils-trade";
 import { CHART_THEME } from "@/components/ui/overview-styles";
 import { useTimezone } from "@/components/providers/timezone-provider";
 import { WidgetPanel } from "./widget-panel";

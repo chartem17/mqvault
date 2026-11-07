@@ -1,35 +1,36 @@
 #!/usr/bin/env node
 // Single entry point for unit tests: `npm test`.
-// Each test imports a CommonJS build of its source from ../.tmp-*-tests,
+// Each test imports a CommonJS build of its source from ../.tmp-*-tests/<path under src>.js
+// (compiled with --rootDir src, so the layout mirrors src/),
 // so we compile those sources first, then run every tests/*.test.mjs.
 
 import { execFileSync } from "node:child_process";
 import { readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
-const base = ["--module", "commonjs", "--target", "ES2020", "--skipLibCheck"];
+const base = ["--module", "commonjs", "--target", "ES2020", "--skipLibCheck", "--rootDir", "src"];
 const dom = ["--lib", "ES2020,DOM"];
 
 // [sources, outDir, extra flags]
 const builds = [
-  [["src/hooks/use-mt5.ts", "src/lib/mt5-retirement.ts"], ".tmp-local-bridge-tests", [...dom, "--strict"]],
-  [["src/lib/account-chain.ts"], ".tmp-account-chain-tests", [...dom, "--strict"]],
-  [["src/lib/dashboard-layout.ts"], ".tmp-dashboard-layout-tests", ["--strict"]],
-  [["src/lib/day-dial.ts"], ".tmp-day-dial-tests", [...dom, "--strict"]],
-  [["src/lib/home-summary.ts"], ".tmp-home-summary-tests", [...dom, "--strict"]],
-  [["src/lib/account-overview.ts"], ".tmp-account-overview-tests", [...dom, "--strict"]],
-  [["src/lib/account-payload.ts"], ".tmp-account-payload-tests", [...dom, "--strict"]],
-  [["src/lib/account-setup.ts"], ".tmp-account-tests", [...dom, "--strict"]],
-  [["src/lib/journal-focus.ts"], ".tmp-journal-focus-tests", [...dom, "--strict"]],
-  [["src/lib/journal-layout.ts"], ".tmp-journal-layout-tests", ["--strict"]],
-  [["src/lib/journal-filters.ts"], ".tmp-journal-filters-tests", ["--strict"]],
-  [["src/lib/timezone.ts"], ".tmp-timezone-tests", [...dom, "--strict"]],
-  [["src/lib/prop-rule-settings.ts", "src/lib/prop-rule-record.ts"], ".tmp-prop-rule-tests", [...dom, "--strict"]],
-  [["src/lib/session-token.ts"], ".tmp-session-token-tests", [...dom, "--strict"]],
-  [["src/lib/session-selection.ts"], ".tmp-session-selection-tests", [...dom, "--strict"]],
-  [["src/lib/sessions.ts"], ".tmp-session-tests", dom],
+  [["src/hooks/use-mt5.ts", "src/lib/market/mt5-retirement.ts"], ".tmp-local-bridge-tests", [...dom, "--strict"]],
+  [["src/lib/accounts/account-chain.ts"], ".tmp-account-chain-tests", [...dom, "--strict"]],
+  [["src/lib/dashboard/dashboard-layout.ts"], ".tmp-dashboard-layout-tests", ["--strict"]],
+  [["src/lib/dashboard/day-dial.ts"], ".tmp-day-dial-tests", [...dom, "--strict"]],
+  [["src/lib/dashboard/home-summary.ts"], ".tmp-home-summary-tests", [...dom, "--strict"]],
+  [["src/lib/accounts/account-overview.ts"], ".tmp-account-overview-tests", [...dom, "--strict"]],
+  [["src/lib/accounts/account-payload.ts"], ".tmp-account-payload-tests", [...dom, "--strict"]],
+  [["src/lib/accounts/account-setup.ts"], ".tmp-account-tests", [...dom, "--strict"]],
+  [["src/lib/journal/journal-focus.ts"], ".tmp-journal-focus-tests", [...dom, "--strict"]],
+  [["src/lib/journal/journal-layout.ts"], ".tmp-journal-layout-tests", ["--strict"]],
+  [["src/lib/journal/journal-filters.ts"], ".tmp-journal-filters-tests", ["--strict"]],
+  [["src/lib/time/timezone.ts"], ".tmp-timezone-tests", [...dom, "--strict"]],
+  [["src/lib/accounts/prop-rule-settings.ts", "src/lib/accounts/prop-rule-record.ts"], ".tmp-prop-rule-tests", [...dom, "--strict"]],
+  [["src/lib/auth/session-token.ts"], ".tmp-session-token-tests", [...dom, "--strict"]],
+  [["src/lib/time/session-selection.ts"], ".tmp-session-selection-tests", [...dom, "--strict"]],
+  [["src/lib/time/sessions.ts"], ".tmp-session-tests", dom],
   [["src/lib/supabase/deletion-result.ts"], ".tmp-deletion-tests", [...dom, "--strict"]],
-  [["src/lib/trading-calendar.ts"], ".tmp-date-tests", [...dom, "--strict"]],
+  [["src/lib/time/trading-calendar.ts"], ".tmp-date-tests", [...dom, "--strict"]],
   [["src/lib/i18n/core.ts", "src/lib/i18n/uk.ts"], ".tmp-i18n-tests", ["--strict"]],
 ];
 

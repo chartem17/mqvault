@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { resolvePrivateOwner } from "@/lib/supabase/private-owner";
-import { defaultDashboardLayout } from "@/lib/dashboard-widgets";
-import { parseDashboardLayout, readStoredDashboardLayout } from "@/lib/dashboard-layout";
+import { defaultDashboardLayout } from "@/lib/dashboard/dashboard-widgets";
+import { parseDashboardLayout, readStoredDashboardLayout } from "@/lib/dashboard/dashboard-layout";
 
 export const dynamic = "force-dynamic";
 const TABLE = "dashboard_layout_preferences";

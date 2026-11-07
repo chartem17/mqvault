@@ -1,5 +1,5 @@
 import { ruleLibrary } from "./rule-library";
-import { normalizeSessionSelections, sessionSelectionLabel } from "../session-selection";
+import { normalizeSessionSelections, sessionSelectionLabel } from "../time/session-selection";
 import type { RuleInstance, RuleType, StrategyProfile } from "./types";
 
 export class StrategyInputError extends Error {}

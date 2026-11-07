@@ -1,9 +1,9 @@
 "use client";
 import { useMemo } from "react";
-import { dayWindow, fractionOf, sessionSegments } from "@/lib/day-dial";
-import { getSessionGroup, type SessionGroup } from "@/lib/sessions";
-import { zonedParts } from "@/lib/timezone";
-import { fmt } from "@/lib/utils-trade";
+import { dayWindow, fractionOf, sessionSegments } from "@/lib/dashboard/day-dial";
+import { getSessionGroup, type SessionGroup } from "@/lib/time/sessions";
+import { zonedParts } from "@/lib/time/timezone";
+import { fmt } from "@/lib/journal/utils-trade";
 import { msg } from "@/lib/i18n/core";
 import { useI18n } from "@/components/providers/i18n-provider";
 

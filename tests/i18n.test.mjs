@@ -5,8 +5,8 @@ import { join } from "node:path";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const core = require("../.tmp-i18n-tests/core.js");
-const { uk } = require("../.tmp-i18n-tests/uk.js");
+const core = require("../.tmp-i18n-tests/lib/i18n/core.js");
+const { uk } = require("../.tmp-i18n-tests/lib/i18n/uk.js");
 
 function files(dir) {
   return readdirSync(dir).flatMap(name => { const path = join(dir, name); return statSync(path).isDirectory() ? files(path) : /\.(tsx?|mjs)$/.test(name) ? [path] : []; });

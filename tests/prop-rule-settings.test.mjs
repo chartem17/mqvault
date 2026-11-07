@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const { parsePropRuleSettings, legacyRuleCondition } = require("../.tmp-prop-rule-tests/prop-rule-settings.js");
+const { parsePropRuleSettings, legacyRuleCondition } = require("../.tmp-prop-rule-tests/lib/accounts/prop-rule-settings.js");
 const unset = () => ({ state: "unknown", value: null });
 const settings = () => ({ target: unset(), maxLoss: { state: "configured", value: 5 }, dailyLoss: unset(), minTradingDays: unset() });
 test("legacy null remains unknown and existing values remain configured", () => {

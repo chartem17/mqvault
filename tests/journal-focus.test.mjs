@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const { parseJournalFocus, applyJournalFocus, journalAliasDestination, MAX_JOURNAL_FOCUS_IDS } = require("../.tmp-journal-focus-tests/journal-focus.js");
+const { parseJournalFocus, applyJournalFocus, journalAliasDestination, MAX_JOURNAL_FOCUS_IDS } = require("../.tmp-journal-focus-tests/lib/journal/journal-focus.js");
 const A = "aaaaaaaa-0000-4000-8000-000000000001", B = "bbbbbbbb-0000-4000-8000-000000000002", C = "cccccccc-0000-4000-8000-000000000003";
 const parse = value => parseJournalFocus(new URLSearchParams(value));
 test("absent focus preserves normal journal mode", () => { assert.equal(parse("").kind, "none"); });

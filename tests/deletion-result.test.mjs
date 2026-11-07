@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const { parseDeletionResult } = require("../.tmp-deletion-tests/deletion-result.js");
+const { parseDeletionResult } = require("../.tmp-deletion-tests/lib/supabase/deletion-result.js");
 
 test("accepts confirmed trade and strategy deletion", () => {
   assert.deepEqual(parseDeletionResult({ deleted: true }), { deleted: true });

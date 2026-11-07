@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const { settingsFromColumns, ruleRecordFromColumns, preparePropRuleUpdate, RuleRevisionConflict, parseRuleRecord } = require("../.tmp-prop-rule-tests/prop-rule-record.js");
+const { settingsFromColumns, ruleRecordFromColumns, preparePropRuleUpdate, RuleRevisionConflict, parseRuleRecord } = require("../.tmp-prop-rule-tests/lib/accounts/prop-rule-record.js");
 const row = { id: "a", account_type: "prop", phase: "funded", prop_rules_revision: 2, target_percent: 8, max_loss_percent: 5, daily_loss_percent: null, min_trading_days: null };
 test("legacy settings keep values and unknown absence", () => {
   const value = settingsFromColumns(row); assert.equal(value.target.state, "configured"); assert.equal(value.dailyLoss.state, "unknown"); assert.equal(value.minTradingDays.state, "unknown");

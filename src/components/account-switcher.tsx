@@ -5,8 +5,8 @@ import { NewAccountModal } from "@/components/accounts/new-account-modal";
 import { Button, Panel } from "@/components/ui/primitives";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useTrades } from "@/hooks/use-trades";
-import { kindLabel } from "@/lib/account-data";
-import { fmt } from "@/lib/utils-trade";
+import { kindLabel } from "@/lib/accounts/account-data";
+import { fmt } from "@/lib/journal/utils-trade";
 import { useI18n } from "@/components/providers/i18n-provider";
 
 function currencyAmount(value: number, currency: "USD" | "USDT") { return `${fmt.num(value)} ${currency}`; }

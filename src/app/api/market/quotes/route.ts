@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchMarketQuotes } from "@/lib/market-live";
+import { fetchMarketQuotes } from "@/lib/market/market-live";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";

@@ -4,7 +4,7 @@ import { useI18n } from "@/components/providers/i18n-provider";
 import { useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, TrendingDown } from "lucide-react";
 import { useTrades, type JournalTrade } from "@/hooks/use-trades";
-import { fmt } from "@/lib/utils-trade";
+import { fmt } from "@/lib/journal/utils-trade";
 import { CARD_SURFACE as CARD, CARD_TITLE, EPISODE_TRIGGER, MetricTile } from "./overview-styles";
 
 const RED = "var(--color-red)";

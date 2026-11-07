@@ -1,5 +1,5 @@
-import { getSessionGroup, type SessionGroup } from "./sessions";
-import { dayKey, shiftDay, startOfZonedDay } from "./timezone";
+import { getSessionGroup, type SessionGroup } from "../time/sessions";
+import { dayKey, shiftDay, startOfZonedDay } from "../time/timezone";
 
 export type DialSegment = { group: SessionGroup; from: number; to: number };
 export type DialWindow = { start: number; end: number };

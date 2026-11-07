@@ -1,4 +1,4 @@
-import { msg } from './i18n/core';
+import { msg } from '../i18n/core';
 
 /** Column labels are English source text; the UI translates them with `t()`. */
 export const JOURNAL_COLUMNS = [

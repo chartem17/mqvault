@@ -1,5 +1,5 @@
 import { phaseLabel, type TradingAccount } from "./account-data";
-import { msg, translate, type Vars } from "./i18n/core";
+import { msg, translate, type Vars } from "../i18n/core";
 type T = (text: string, vars?: Vars) => string;
 const english: T = (text, vars) => translate(null, text, vars);
 type OverviewAccount = Pick<TradingAccount, "id" | "accountType" | "phase" | "initialBalance" | "targetPercent" | "maxLossPercent" | "dailyLossPercent" | "minTradingDays">;

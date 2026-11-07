@@ -1,5 +1,5 @@
-import { dayKeyOrNull } from "./timezone";
-import { msg } from "./i18n/core";
+import { dayKeyOrNull } from "../time/timezone";
+import { msg } from "../i18n/core";
 
 /** Prop stages are linked into one linear branch through `parentAccountId` (Phase 1 → Phase 2 → Funded). */
 export type ChainAccount = { id: string; accountType?: string; parentAccountId?: string | null };

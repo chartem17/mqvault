@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { getBrowserTimeZone, getOffsetLabel, getTimeZoneList, shortZoneName } from "@/lib/timezone";
+import { getBrowserTimeZone, getOffsetLabel, getTimeZoneList, shortZoneName } from "@/lib/time/timezone";
 import { Select } from "@/components/ui/primitives";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { translate, type Vars } from "@/lib/i18n/core";

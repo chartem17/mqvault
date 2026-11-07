@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { resolvePrivateOwner } from "@/lib/supabase/private-owner";
-import { AccountSetupError } from "@/lib/account-setup";
-import { PROP_RULE_SELECT, RuleRevisionConflict, preparePropRuleUpdate, ruleRecordFromColumns } from "@/lib/prop-rule-record";
+import { AccountSetupError } from "@/lib/accounts/account-setup";
+import { PROP_RULE_SELECT, RuleRevisionConflict, preparePropRuleUpdate, ruleRecordFromColumns } from "@/lib/accounts/prop-rule-record";
 export const dynamic = "force-dynamic";
 type Context = { params: Promise<{ id: string }> };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

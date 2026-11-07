@@ -1,6 +1,6 @@
 import "server-only";
-import { MARKET_WATCHLIST, type WatchlistInstrument } from "@/lib/market-watchlist";
-import type { MarketQuote } from "@/lib/market-types";
+import { MARKET_WATCHLIST, type WatchlistInstrument } from "@/lib/market/market-watchlist";
+import type { MarketQuote } from "@/lib/market/market-types";
 
 const TWELVE_CACHE_MS = 60_000;
 const TWELVE_RETRY_AFTER_429_MS = 90_000;

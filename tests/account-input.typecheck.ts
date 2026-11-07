@@ -1,4 +1,4 @@
-import type { AccountSetup } from "../src/lib/account-setup";
+import type { AccountSetup } from "../src/lib/accounts/account-setup";
 import type { AccountInput } from "../src/hooks/use-trades";
 
 const setup: AccountSetup = { accountType: "prop", platform: "manual", initialBalance: 10000, phase: "phase-3", targetPercent: null, maxLossPercent: null, dailyLossPercent: null, minTradingDays: null };

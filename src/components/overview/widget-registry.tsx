@@ -1,6 +1,6 @@
 "use client";
 import type { ComponentType } from "react";
-import { WIDGETS } from "@/lib/dashboard-widgets";
+import { WIDGETS } from "@/lib/dashboard/dashboard-widgets";
 import { AvgLossWidget, AvgRWidget, AvgWinWidget, BestTradeWidget, NetPnlWidget, ProfitFactorWidget, WinrateWidget, WorstTradeWidget } from "./metric-widgets";
 import { EquityWidget } from "./equity-widget";
 import { CalendarWidget } from "./calendar-widget";

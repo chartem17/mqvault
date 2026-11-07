@@ -1,7 +1,7 @@
 "use client";
 import { GripVertical, Plus } from "lucide-react";
 import { GROUP_LABEL, hiddenKeysByGroup } from "@/components/overview/library-groups";
-import type { WidgetMeta } from "@/lib/dashboard-widgets";
+import type { WidgetMeta } from "@/lib/dashboard/dashboard-widgets";
 import { useI18n } from "@/components/providers/i18n-provider";
 
 /** Side library: widgets that are not on the dashboard. Drag onto the grid (desktop) or press "Додати". */

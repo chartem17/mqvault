@@ -4,7 +4,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { STRATEGY_SURFACE } from "@/components/ui/strategy-ui";
 import { useState } from "react";
 import { ruleLibrary } from "@/lib/strategy-control/rule-library";
-import { normalizeSessionSelection, SESSION_RULE_OPTIONS } from "@/lib/session-selection";
+import { normalizeSessionSelection, SESSION_RULE_OPTIONS } from "@/lib/time/session-selection";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { msg } from "@/lib/i18n/core";
 import type { ParamDefinition, RuleInstance, RuleType, StrategyProfile } from "@/lib/strategy-control/types";

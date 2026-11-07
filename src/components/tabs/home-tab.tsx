@@ -6,10 +6,10 @@ import { useStrategies } from "@/hooks/use-strategies";
 import { useTimezone } from "@/components/providers/timezone-provider";
 import { DayDial } from "@/components/home/day-dial";
 import { Button } from "@/components/ui/primitives";
-import { dailyLossRoom, greetingFor, lastDays, summarizeToday, unmarkedTrades, type StrategyLimits } from "@/lib/home-summary";
-import { getSessionGroup } from "@/lib/sessions";
-import { formatDateTimeOrDash, zonedParts } from "@/lib/timezone";
-import { fmt } from "@/lib/utils-trade";
+import { dailyLossRoom, greetingFor, lastDays, summarizeToday, unmarkedTrades, type StrategyLimits } from "@/lib/dashboard/home-summary";
+import { getSessionGroup } from "@/lib/time/sessions";
+import { formatDateTimeOrDash, zonedParts } from "@/lib/time/timezone";
+import { fmt } from "@/lib/journal/utils-trade";
 import { useI18n } from "@/components/providers/i18n-provider";
 
 const POS = "var(--color-green)", NEG = "var(--color-red)";
