@@ -28,6 +28,9 @@
   --color-red: oklch(0.70 0.18 15);
   --color-gold: oklch(0.80 0.14 75);
   --color-teal: oklch(0.70 0.13 185);
+  /* Two-series charts (Strategy Control: rules followed vs as traded); validated pair for CVD and contrast. */
+  --color-chart-clean: #00a99c;
+  --color-chart-actual: #d37e01;
   --radius: 0.75rem;
 
   /* Radius scale: slightly rounder than the Tailwind defaults, applied to every rounded-* utility. */
@@ -83,6 +86,8 @@
   --color-red: oklch(0.55 0.19 15);
   --color-gold: oklch(0.68 0.14 75);
   --color-teal: oklch(0.52 0.13 185);
+  --color-chart-clean: #00876d;
+  --color-chart-actual: #c66c00;
 }
 
 *, *::before, *::after { box-sizing: border-box; }

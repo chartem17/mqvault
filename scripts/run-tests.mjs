@@ -24,6 +24,7 @@ const builds = [
   [["src/lib/journal/journal-focus.ts"], ".tmp-journal-focus-tests", [...dom, "--strict"]],
   [["src/lib/journal/journal-layout.ts"], ".tmp-journal-layout-tests", ["--strict"]],
   [["src/lib/journal/journal-filters.ts"], ".tmp-journal-filters-tests", ["--strict"]],
+  [["src/lib/strategy-control/violation-cost.ts"], ".tmp-violation-cost-tests", ["--strict"]],
   [["src/lib/journal/trade-review.ts", "src/lib/journal/trade-financials.ts"], ".tmp-trade-review-tests", [...dom, "--strict"]],
   [["src/lib/time/timezone.ts"], ".tmp-timezone-tests", [...dom, "--strict"]],
   [["src/lib/accounts/prop-rule-settings.ts", "src/lib/accounts/prop-rule-record.ts"], ".tmp-prop-rule-tests", [...dom, "--strict"]],
