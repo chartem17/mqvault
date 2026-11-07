@@ -23,7 +23,7 @@ function HomeContent() {
     const next = typeof value === "function" ? value(activeTab) : value;
     if (next === activeTab && focus.kind === "none") return;
     const params = new URLSearchParams(search.toString());
-    params.delete("focusTradeIds"); params.set("tab", next);
+    params.delete("focusTradeIds"); params.delete("review"); params.set("tab", next);
     router.push(`/?${params.toString()}`, { scroll: false });
   };
   function clearFocus() {
@@ -31,11 +31,18 @@ function HomeContent() {
     params.delete("focusTradeIds"); params.set("tab", "journal");
     router.replace(`/?${params.toString()}`, { scroll: false });
   }
+  const review = activeTab === "journal" && search.get("review") === "1";
+  function setReview(open: boolean) {
+    const params = new URLSearchParams(search.toString());
+    params.set("tab", "journal");
+    if (open) params.set("review", "1"); else params.delete("review");
+    router.push(`/?${params.toString()}`, { scroll: false });
+  }
   function renderTab() {
     switch (activeTab) {
       case "home": return <HomeTab />;
       case "overview": return <OverviewTab />;
-      case "journal": return <JournalTab key={focus.kind === "ids" ? `ids:${focus.ids.join(",")}` : focus.kind} focus={focus} onClearFocus={clearFocus} />;
+      case "journal": return <JournalTab key={focus.kind === "ids" ? `ids:${focus.ids.join(",")}` : focus.kind} focus={focus} onClearFocus={clearFocus} review={review} onReviewChange={setReview} />;
       case "strategy-control": return <StrategyControlTab />;
       case "market": return <MarketTab />;
       case "calendar": return <CalendarTab />;

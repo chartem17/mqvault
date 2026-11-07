@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { parseTradeReview, reviewFromInput } from "@/lib/journal/trade-review";
+import { financialsChanged } from "@/lib/journal/trade-financials";
 
 export const dynamic = "force-dynamic";
 
@@ -187,6 +189,7 @@ function mapRow(row: Record<string, unknown>) {
     mistake: row.mistake,
     screenshot_url: row.screenshot_url,
     notes: row.notes,
+    review: parseTradeReview(row.meta),
   };
 }
 
@@ -341,13 +344,28 @@ export async function PATCH(request: NextRequest) {
     }
     if (!current) return fail(404, "Trade not found");
 
+    let meta: Record<string, unknown> | undefined;
+    if (body.review !== undefined) {
+      const review = reviewFromInput(body.review);
+      if (review === undefined) return fail(400, "review is invalid");
+      const base =
+        current.meta && typeof current.meta === "object" && !Array.isArray(current.meta)
+          ? { ...(current.meta as Record<string, unknown>) }
+          : {};
+      if (review === null) delete base.review;
+      else base.review = review;
+      meta = base;
+    }
+
+    const recompute = financialsChanged(fields, current);
     const merged = { ...current, ...fields };
 
     const { data, error } = await db
       .from("journal_trades")
       .update({
         ...fields,
-        ...derived(merged),
+        ...(recompute ? derived(merged) : {}),
+        ...(meta ? { meta } : {}),
         updated_at: new Date().toISOString(),
       })
       .eq("id", body.id)

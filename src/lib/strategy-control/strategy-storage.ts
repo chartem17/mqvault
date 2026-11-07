@@ -1,5 +1,6 @@
 import { ruleLibrary } from "./rule-library";
 import { normalizeSessionSelections, sessionSelectionLabel } from "../time/session-selection";
+import { parseReviewChips } from "../journal/trade-review";
 import type { RuleInstance, RuleType, StrategyProfile } from "./types";
 
 export class StrategyInputError extends Error {}
@@ -42,5 +43,5 @@ export function parseStrategyRules(value: unknown): RuleInstance[] {
 export type StoredStrategy = { id: string; account_id: string; name: string; description: string | null; created_at: string; definition: unknown; source_strategy_id?: string | null };
 export function toStrategyProfile(row: StoredStrategy): StrategyProfile {
   if (!STRATEGY_UUID.test(row.id) || !isRecord(row.definition)) throw new StrategyInputError("Invalid stored strategy");
-  return { id: row.id, name: row.name, description: row.description ?? "", createdAt: row.created_at.slice(0, 10), rules: parseStrategyRules(row.definition.rules) };
+  return { id: row.id, name: row.name, description: row.description ?? "", createdAt: row.created_at.slice(0, 10), rules: parseStrategyRules(row.definition.rules), reviewChips: parseReviewChips(row.definition.review) };
 }

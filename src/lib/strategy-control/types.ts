@@ -10,6 +10,8 @@ export type ParamType = "number" | "session_list" | "pair_list" | "emotion_list"
 export type ParamDefinition = { key: string; label: string; type: ParamType; min?: number; max?: number; step?: number; options?: string[] };
 export type RuleDefinition = { ruleType: RuleType; title: string; category: "discipline" | "risk" | "session" | "setup" | "psychology"; description: string; paramsSchema: ParamDefinition[]; defaultParams: Record<string, unknown> };
 export type RuleInstance = { ruleType: RuleType; enabled: boolean; params: Record<string, unknown> };
-export type StrategyProfile = { id: string; name: string; description?: string; createdAt: string; rules: RuleInstance[] };
+/** Chip lists the day review offers for trades of this strategy's account. */
+export type StrategyReviewChips = { setups: string[]; mistakes: string[] };
+export type StrategyProfile = { id: string; name: string; description?: string; createdAt: string; rules: RuleInstance[]; reviewChips?: StrategyReviewChips };
 export type RuleFinding = { ruleType: RuleType; title: string; category: string; complianceStatus: ComplianceStatus; impactStatus: ImpactStatus; confidence: Confidence; status: RuleStatus; violations: number; affectedTrades: number; impactR: number; sampleSize: number; compliantCount: number; compliantAvgR: number | null; violatedAvgR: number | null; evidenceTradeIds: string[]; evidenceTrades: Trade[]; message: string; recommendation: string | null };
 export type StrategyAnalysis = { strategyId: string; strategyName: string; period: { start: string; end: string }; trades: number; checkedTrades: number; cleanTrades: number; compliance: number; winRate: number | null; totalR: number | null; averageR: number | null; averageRisk: number | null; averagePlannedRR: number | null; medianPlannedRR: number | null; disciplineRisk: number; findings: RuleFinding[]; recommendations: string[] };

@@ -83,7 +83,7 @@ export function useStrategies() {
     writeBusy.current = true;
     setSaving(true); setError(null);
     try {
-      const result = await requestJson<{ strategy: StoredStrategy }>("/api/strategies", { method: "POST", body: JSON.stringify({ account_id: accountId, name: profile.name, description: profile.description ?? null, definition: { rules: profile.rules }, source_strategy_id: sourceId ?? null }) });
+      const result = await requestJson<{ strategy: StoredStrategy }>("/api/strategies", { method: "POST", body: JSON.stringify({ account_id: accountId, name: profile.name, description: profile.description ?? null, definition: { rules: profile.rules, review: profile.reviewChips }, source_strategy_id: sourceId ?? null }) });
       const saved = profileFromRow(result.strategy);
       if (mounted.current && currentAccount.current === accountId) {
         setRecords(current => [saved, ...current.filter(strategy => strategy.id !== saved.id)]);

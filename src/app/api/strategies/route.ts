@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { parseReviewChips } from "@/lib/journal/trade-review";
 import { resolvePrivateOwner } from "@/lib/supabase/private-owner";
 import { permanentlyDeleteOwnedEntity } from "@/lib/supabase/permanent-delete";
 import { isRecord, parseStrategyRules, StrategyInputError, STRATEGY_UUID, toStrategyProfile } from "@/lib/strategy-control/strategy-storage";
@@ -25,7 +26,8 @@ function descriptionOf(value: unknown) {
 function definitionOf(body: Record<string, unknown>) {
   if (body.definition !== undefined && !isRecord(body.definition)) throw new StrategyInputError("Invalid definition");
   const definition = isRecord(body.definition) ? body.definition : body;
-  return { rules: parseStrategyRules(definition.rules) };
+  const review = parseReviewChips(definition.review);
+  return { rules: parseStrategyRules(definition.rules), ...(review.setups.length || review.mistakes.length ? { review } : {}) };
 }
 function failure(error: unknown) {
   if (error instanceof StrategyInputError) return json({ error: error.message }, 400);

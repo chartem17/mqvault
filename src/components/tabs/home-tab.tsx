@@ -98,9 +98,9 @@ export function HomeTab() {
       <section aria-label={t("Day review")} className="space-y-5">
         <h2 className="m-0 text-base font-semibold">{t("Needs review")}</h2>
         {unmarked.length === 0 ? <p className="m-0 text-muted-foreground">{t("Everything is marked.")}</p> : <>
-          <p className="m-0 text-muted-foreground"><span className="mr-2 text-[2rem] font-medium tabular-nums text-foreground" style={DISPLAY}>{unmarked.length}</span>{tn(unmarked.length, "trade without a setup or emotion", "trades without a setup or emotion")}</p>
+          <p className="m-0 text-muted-foreground"><span className="mr-2 text-[2rem] font-medium tabular-nums text-foreground" style={DISPLAY}>{unmarked.length}</span>{tn(unmarked.length, "trade waiting for review", "trades waiting for review")}</p>
           <ul className="m-0 max-w-md list-none divide-y divide-border/60 p-0">{recentUnmarked.map(trade => <li key={trade.id} className="flex items-baseline justify-between gap-4 py-2.5 text-sm"><span>{trade.symbol} <span className="text-muted-foreground">{trade.direction === "Short" ? "short" : "long"}</span></span><span className="text-xs tabular-nums text-muted-foreground">{formatDateTimeOrDash(trade.opened_at, timezone, intl)}</span></li>)}</ul>
-          <Button variant="secondary" size="sm" type="button" onClick={() => router.push("/?tab=journal", { scroll: false })}>{t("Open journal")}</Button>
+          <Button variant="secondary" size="sm" type="button" onClick={() => router.push("/?tab=journal&review=1", { scroll: false })}>{t("Start review")}</Button>
         </>}
       </section>
 

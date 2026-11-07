@@ -1,7 +1,8 @@
 import { dayKey, dayKeyOrNull } from "../time/timezone";
 import { msg } from "../i18n/core";
+import { needsReview, type TradeReview } from "../journal/trade-review";
 
-export type HomeTrade = { id: string; account_id: string; symbol: string; direction: string; opened_at: string; closed_at?: string | null; net_pnl?: number | null; result_r?: number | null; setup?: string | null; emotion?: string | null };
+export type HomeTrade = { id: string; account_id: string; symbol: string; direction: string; opened_at: string; closed_at?: string | null; net_pnl?: number | null; result_r?: number | null; setup?: string | null; emotion?: string | null; review?: TradeReview | null };
 export type StrategyLimits = { maxTrades: number | null; maxLosses: number | null };
 
 export type TodaySummary = {
@@ -55,9 +56,9 @@ export function lastDays(trades: readonly HomeTrade[], timezone: string, days: n
   return out;
 }
 
-/** Trades that still miss the fields strategy control relies on. */
+/** Trades waiting in the day review: not reviewed yet and missing a setup or an emotion. */
 export function unmarkedTrades<T extends HomeTrade>(trades: readonly T[]): T[] {
-  return trades.filter(trade => !trade.setup?.trim() || !trade.emotion?.trim());
+  return trades.filter(needsReview);
 }
 
 /** English greeting for the hour; translate it with `t()` when rendering. */
