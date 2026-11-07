@@ -28,7 +28,7 @@ VALUES ('legacy_personal','personal',1000,NULL,NULL,NULL,NULL,NULL),
        ('legacy_prop','prop',10000,'phase-2',8,10,5,4);
 CREATE TEMP TABLE original_accounts AS SELECT * FROM public.accounts;
 
-\ir ../supabase/migrations/20261030200500_prop_rule_settings_v1.sql
+\ir ../supabase/migrations/20261030211812_prop_rule_settings_v1.sql
 
 DO $$
 DECLARE additions text[] := ARRAY['prop_target_state','prop_max_loss_state','prop_daily_loss_state','prop_min_days_state','prop_max_loss_mode','prop_day_timezone','prop_day_close','prop_loss_control_basis','prop_rules_notes','prop_rules_revision'];
