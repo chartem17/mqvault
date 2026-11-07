@@ -32,6 +32,8 @@ export const WIDGETS: readonly WidgetMeta[] = [
   { key: "sessions", title: msg("Sessions"), description: msg("Result by trading session"), group: "breakdowns", w: 4, h: 7, minW: 3, minH: 4, maxW: 12, maxH: 14 },
   { key: "risk", title: msg("Risk"), description: msg("Average and maximum risk per trade"), group: "breakdowns", w: 5, h: 5, minW: 3, minH: 3, maxW: 12, maxH: 10 },
   { key: "emotions", title: msg("Emotions"), description: msg("Result by emotion"), group: "breakdowns", w: 7, h: 5, minW: 3, minH: 3, maxW: 12, maxH: 14 },
+  { key: "earn_lose", title: msg("Where I earn / lose"), description: msg("R by symbol, session, weekday, hour or setup"), group: "breakdowns", w: 6, h: 9, minW: 4, minH: 5, maxW: 12, maxH: 16 },
+  { key: "weekday_hour", title: msg("Weekday × hour"), description: msg("Average R by opening time"), group: "breakdowns", w: 6, h: 7, minW: 5, minH: 5, maxW: 12, maxH: 10 },
 ];
 
 export const GROUP_LABEL: Record<WidgetGroup, string> = { metrics: msg("Metrics"), charts: msg("Charts"), breakdowns: msg("Breakdowns") };
@@ -50,6 +52,7 @@ const DEFAULT_POSITIONS: Record<string, [number, number]> = {
   streaks: [0, 21],
   monthly: [0, 23], symbols: [4, 23], sessions: [8, 23],
   risk: [0, 30], emotions: [5, 30],
+  earn_lose: [0, 35], weekday_hour: [6, 35],
 };
 
 export function defaultItems(): LayoutItem[] {
