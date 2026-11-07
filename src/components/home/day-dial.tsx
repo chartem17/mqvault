@@ -2,6 +2,7 @@
 import { useMemo } from "react";
 import { dayWindow, fractionOf, sessionSegments } from "@/lib/dashboard/day-dial";
 import { getSessionGroup, type SessionGroup } from "@/lib/time/sessions";
+import { isForexWeekend } from "@/lib/dashboard/session-status";
 import { zonedParts } from "@/lib/time/timezone";
 import { fmt } from "@/lib/journal/utils-trade";
 import { msg } from "@/lib/i18n/core";
@@ -44,9 +45,11 @@ export function DayDial({ trades, timezone, now, netToday }: { trades: readonly 
   }, [trades, timezone, now]);
 
   const time = new Intl.DateTimeFormat(intl, { timeZone: timezone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(now);
+  const closed = isForexWeekend(now.getTime());
   const currentGroup = getSessionGroup(now);
+  const sessionName = closed ? t("Market closed") : t(GROUP_LABEL[currentGroup]);
   const needle = { a: point(model.nowFraction, 112), b: point(model.nowFraction, RING + 12), knob: point(model.nowFraction, RING) };
-  const label = t("Day dial. Now {time}, {session}. Trades today: {count}.", { time, session: t(GROUP_LABEL[currentGroup]), count: model.dots.length });
+  const label = t("Day dial. Now {time}, {session}. Trades today: {count}.", { time, session: sessionName, count: model.dots.length });
   const segment = (item: { group: SessionGroup; from: number; to: number }, index: number, dim: boolean) => (
     <path key={`${dim ? "d" : "f"}${index}`} d={arc(item.from, item.to, RING)} pathLength={1} fill="none" strokeWidth={16} stroke={GROUP_COLOR[item.group]}
       strokeOpacity={item.group === "off" ? (dim ? 0.07 : 0.16) : dim ? 0.3 : 0.95} className="dial-draw" style={{ animationDelay: `${index * 90}ms` }} />
@@ -71,7 +74,7 @@ export function DayDial({ trades, timezone, now, netToday }: { trades: readonly 
       <circle cx={needle.knob.x} cy={needle.knob.y} r={6} fill="var(--page-bg)" stroke="currentColor" strokeWidth={2.5} />
       <text x={C} y={C - 12} textAnchor="middle" dominantBaseline="central" fontSize={46} fontWeight={600} fill="currentColor" style={{ fontFamily: DISPLAY, letterSpacing: "-0.02em" }}>{time}</text>
       <text x={C} y={C + 28} textAnchor="middle" dominantBaseline="central" fontSize={17} fontWeight={500} fill={netToday === null || netToday === 0 ? "currentColor" : netToday > 0 ? "var(--color-green)" : "var(--color-red)"} fillOpacity={netToday ? 1 : 0.55} style={{ fontFamily: DISPLAY }}>{netToday === null ? "—" : fmt.usd(netToday)}</text>
-      <text x={C} y={C + 54} textAnchor="middle" dominantBaseline="central" fontSize={13} fill="currentColor" fillOpacity={0.55}>{t(GROUP_LABEL[currentGroup])}</text>
+      <text x={C} y={C + 54} textAnchor="middle" dominantBaseline="central" fontSize={13} fill="currentColor" fillOpacity={0.55}>{sessionName}</text>
     </svg>
     <figcaption className="mt-2 flex flex-wrap justify-center gap-x-5 gap-y-1 text-xs text-muted-foreground">
       <span className="sr-only">{label}</span>

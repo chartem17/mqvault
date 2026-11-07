@@ -1,5 +1,5 @@
 "use client";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTrades } from "@/hooks/use-trades";
 import { useStrategies } from "@/hooks/use-strategies";
@@ -7,14 +7,13 @@ import { useTimezone } from "@/components/providers/timezone-provider";
 import { DayDial } from "@/components/home/day-dial";
 import { Button } from "@/components/ui/primitives";
 import { dailyLossRoom, greetingFor, lastDays, summarizeToday, unmarkedTrades, type StrategyLimits } from "@/lib/dashboard/home-summary";
-import { getSessionGroup } from "@/lib/time/sessions";
+import { sessionStatus } from "@/lib/dashboard/session-status";
 import { formatDateTimeOrDash, zonedParts } from "@/lib/time/timezone";
 import { fmt } from "@/lib/journal/utils-trade";
 import { useI18n } from "@/components/providers/i18n-provider";
 
 const POS = "var(--color-green)", NEG = "var(--color-red)";
 const DISPLAY = { fontFamily: "var(--font-home-display), var(--font-ui), system-ui, sans-serif" } as const;
-const SESSION_NAME = { asia: "Asia", london: "London", new_york: "New York", off: "" } as const;
 
 /** Row of dots: how much of a daily limit is used. The last dot turns red once the limit is reached. */
 function Rail({ label, used, limit, fallback }: { label: string; used: number; limit: number | null; fallback: string }) {
@@ -41,12 +40,19 @@ export function HomeTab() {
   const { visibleTrades, activeAccount, activeAccountId, loading } = useTrades();
   const { timezone } = useTimezone();
   const { activeStrategy } = useStrategies();
-  const now = useMemo(() => new Date(), []);
+  // Ticks every minute so the session status and the dial stay current while the page is open.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => { const id = window.setInterval(() => setNow(new Date()), 60_000); return () => window.clearInterval(id); }, []);
 
   const limits = useMemo<StrategyLimits>(() => {
     const value = (type: string) => { const rule = activeStrategy?.rules.find(item => item.ruleType === type && item.enabled); const limit = Number(rule?.params.limit); return Number.isFinite(limit) && limit > 0 ? limit : null; };
     return { maxTrades: value("max_trades_per_day"), maxLosses: value("max_losses_per_day") };
   }, [activeStrategy]);
+  const allowedSessions = useMemo(() => {
+    const rule = activeStrategy?.rules.find(item => item.ruleType === "allowed_sessions" && item.enabled);
+    return Array.isArray(rule?.params.sessions) ? (rule.params.sessions as string[]) : null;
+  }, [activeStrategy]);
+  const status = useMemo(() => sessionStatus(now, allowedSessions), [now, allowedSessions]);
   const today = useMemo(() => summarizeToday(visibleTrades, timezone, now, limits), [visibleTrades, timezone, now, limits]);
   const days = useMemo(() => lastDays(visibleTrades, timezone, 14, now), [visibleTrades, timezone, now]);
   const unmarked = useMemo(() => unmarkedTrades(visibleTrades), [visibleTrades]);
@@ -60,9 +66,15 @@ export function HomeTab() {
   const winRate = known.length ? known.filter(trade => (trade.net_pnl as number) > 0).length / known.length * 100 : null;
   const room = activeAccount?.accountType === "prop" ? dailyLossRoom(activeAccount.initialBalance, activeAccount.dailyLossPercent ?? null, today.netPnl) : null;
   const scope = activeAccountId === "all" ? t("All selected accounts") : activeAccount?.name ?? t("Account");
-  const session = SESSION_NAME[getSessionGroup(now)];
+  const todayKey = zonedParts(now, timezone).date;
+  /** Time in the user's zone; the weekday is added when it is not today. */
+  const when = (iso: string) => new Date(iso).toLocaleString(intl, { timeZone: timezone, hour: "2-digit", minute: "2-digit", ...(zonedParts(iso, timezone).date === todayKey ? {} : { weekday: "short" }) });
+  const sessionLine = status.closed
+    ? t("Forex market is closed for the weekend.")
+    : status.current && status.current.key !== "off_hours" ? t("The {session} session is on now.", { session: t(status.current.label) }) : t("Outside the main sessions right now.");
+  const limitHit = (today.limits.maxTrades !== null && today.opened >= today.limits.maxTrades) || (today.limits.maxLosses !== null && today.losses >= today.limits.maxLosses);
   const summary = today.opened === 0 && today.closedCount === 0
-    ? `${t("No trades yet today.")} ${session ? t("The {session} session is on now.", { session }) : t("Outside the main sessions right now.")}`
+    ? `${t("No trades yet today.")} ${sessionLine}`
     : today.closedCount > 0 && today.netPnl !== null
       ? tn(today.opened, "{count} trade opened today, closed trades made {pnl}.", "{count} trades opened today, closed trades made {pnl}.", { pnl: fmt.usd(today.netPnl) })
       : tn(today.opened, "{count} trade opened today.", "{count} trades opened today.");
@@ -81,8 +93,14 @@ export function HomeTab() {
         <dl className="m-0 max-w-md space-y-4">
           <Rail label={t("Trades opened")} used={today.opened} limit={today.limits.maxTrades} fallback={activeAccountId === "all" ? t("pick an account for limits") : t("no limit set")} />
           <Rail label={t("Losing")} used={today.losses} limit={today.limits.maxLosses} fallback={activeAccountId === "all" ? t("pick an account for limits") : t("no limit set")} />
+          <div className="flex items-baseline justify-between gap-6"><dt className="text-sm text-foreground">{t("Session")}</dt><dd className="m-0 text-right text-sm text-muted-foreground">{status.closed
+            ? <>{t("Market closed")} · {t("opens {time}", { time: status.opensAt ? when(status.opensAt) : "—" })}</>
+            : status.current && <><span className="text-foreground">{t(status.current.label)}</span> · {t("until {time}", { time: when(status.current.endsAt) })}{status.allowed !== null && <> · <span style={{ color: status.allowed ? POS : NEG }}>{status.allowed ? t("allowed by the strategy") : t("not in the strategy")}</span></>}</>}
+            {status.nextAllowed && <span className="block">{t("Next allowed: {session} at {time}", { session: t(status.nextAllowed.label), time: when(status.nextAllowed.startsAt) })}</span>}
+          </dd></div>
           {activeAccount?.accountType === "prop" && <div className="flex items-baseline justify-between gap-6"><dt className="text-sm text-foreground">{t("Room to daily limit")}</dt><dd className="m-0 text-sm tabular-nums text-muted-foreground">{room ? t("≈ {room} of {limit} {currency}", { room: fmt.num(room.room, 2), limit: fmt.num(room.limit, 2), currency: activeAccount.currency }) : t("not set in the rules")}</dd></div>}
         </dl>
+        {(limitHit || (room !== null && room.room <= 0)) && <p role="status" className="m-0 max-w-md rounded-xl border px-4 py-3 text-sm" style={{ borderColor: NEG, color: NEG }}>{t("Daily limit reached — the strategy says stop for today.")}</p>}
       </div>
       <DayDial trades={todayDots} timezone={timezone} now={now} netToday={today.netPnl} />
     </section>

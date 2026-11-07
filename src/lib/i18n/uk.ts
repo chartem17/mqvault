@@ -734,4 +734,12 @@ export const uk: Dictionary = {
   "broke a rule": "порушення",
   "“Following the rules” simply leaves out the trades that broke an enabled rule; nothing replaces them. Daily limits count only trades taken after the limit was reached.": "«Якби за правилами» просто прибирає угоди, що порушили активне правило; нічим їх не замінює. Денні ліміти враховують лише угоди після досягнення ліміту.",
   "{count} trades without R are left out.": {"one": "{count} угоду без R не враховано.", "few": "{count} угоди без R не враховано.", "many": "{count} угод без R не враховано."},
+  "Daily limit reached — the strategy says stop for today.": "Денний ліміт досягнуто — за стратегією на сьогодні все.",
+  "Forex market is closed for the weekend.": "Форекс закритий на вихідні.",
+  "Market closed": "Ринок закритий",
+  "Next allowed: {session} at {time}": "Наступна дозволена: {session} о {time}",
+  "allowed by the strategy": "дозволена стратегією",
+  "not in the strategy": "не за стратегією",
+  "opens {time}": "відкриється {time}",
+  "until {time}": "до {time}",
 };

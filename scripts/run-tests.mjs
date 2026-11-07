@@ -16,6 +16,7 @@ const builds = [
   [["src/hooks/use-mt5.ts", "src/lib/market/mt5-retirement.ts"], ".tmp-local-bridge-tests", [...dom, "--strict"]],
   [["src/lib/accounts/account-chain.ts"], ".tmp-account-chain-tests", [...dom, "--strict"]],
   [["src/lib/dashboard/dashboard-layout.ts"], ".tmp-dashboard-layout-tests", ["--strict"]],
+  [["src/lib/dashboard/session-status.ts"], ".tmp-session-status-tests", dom],
   [["src/lib/dashboard/day-dial.ts"], ".tmp-day-dial-tests", [...dom, "--strict"]],
   [["src/lib/dashboard/home-summary.ts", "src/lib/journal/trade-review.ts"], ".tmp-home-summary-tests", [...dom, "--strict"]],
   [["src/lib/accounts/account-overview.ts"], ".tmp-account-overview-tests", [...dom, "--strict"]],
