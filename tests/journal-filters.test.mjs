@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const f = require('../.tmp-journal-filters-tests/journal-filters.js');
+const f = require('../.tmp-journal-filters-tests/lib/journal/journal-filters.js');
 
 test('column kinds', () => {
   assert.equal(f.journalFilterKind('net_pnl'), 'number');

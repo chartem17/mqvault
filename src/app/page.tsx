@@ -9,7 +9,7 @@ import { JournalTab } from "@/components/tabs/journal-tab";
 import { MarketTab } from "@/components/tabs/market-tab";
 import { CalendarTab } from "@/components/tabs/calendar-tab";
 import { StrategyControlTab } from "@/components/tabs/strategy-control-tab";
-import { parseJournalFocus } from "@/lib/journal-focus";
+import { parseJournalFocus } from "@/lib/journal/journal-focus";
 import { useI18n } from "@/components/providers/i18n-provider";
 
 const TABS = ["home", "overview", "journal", "strategy-control", "market", "calendar"] as const;

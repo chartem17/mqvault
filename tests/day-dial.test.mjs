@@ -2,8 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const { dayWindow, fractionOf, sessionSegments } = require("../.tmp-day-dial-tests/day-dial.js");
-const { greetingFor } = require("../.tmp-home-summary-tests/home-summary.js");
+const { dayWindow, fractionOf, sessionSegments } = require("../.tmp-day-dial-tests/lib/dashboard/day-dial.js");
+const { greetingFor } = require("../.tmp-home-summary-tests/lib/dashboard/home-summary.js");
 
 test("day window follows the user's zone, including DST days", () => {
   const kyiv = dayWindow("Europe/Kyiv", Date.parse("2026-11-05T22:30:00Z")); // 06.11 in Kyiv

@@ -1,5 +1,5 @@
 import { parseAccountSetup, AccountSetupError } from "./account-setup";
-import { isValidTimeZone } from "./timezone";
+import { isValidTimeZone } from "../time/timezone";
 export type AccountRecord = Record<string, unknown>;
 const own = (value: AccountRecord, key: string) => Object.prototype.hasOwnProperty.call(value, key);
 const pairs = [["accountType", "account_type"], ["initialBalance", "initial_balance"], ["targetPercent", "target_percent"], ["maxLossPercent", "max_loss_percent"], ["dailyLossPercent", "daily_loss_percent"], ["minTradingDays", "min_trading_days"]] as const;

@@ -2,8 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const w = require("../.tmp-dashboard-layout-tests/dashboard-widgets.js");
-const l = require("../.tmp-dashboard-layout-tests/dashboard-layout.js");
+const w = require("../.tmp-dashboard-layout-tests/lib/dashboard/dashboard-widgets.js");
+const l = require("../.tmp-dashboard-layout-tests/lib/dashboard/dashboard-layout.js");
 
 test("catalogue: unique keys, sane sizes, defaults inside the grid and without overlaps", () => {
   assert.equal(new Set(w.WIDGETS.map(x => x.key)).size, w.WIDGETS.length);

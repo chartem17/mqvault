@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const { chainOf, linkError, summarizeChain } = require("../.tmp-account-chain-tests/account-chain.js");
+const { chainOf, linkError, summarizeChain } = require("../.tmp-account-chain-tests/lib/accounts/account-chain.js");
 const prop = (id, parentAccountId = null) => ({ id, accountType: "prop", parentAccountId });
 const accounts = [prop("p1"), prop("p2", "p1"), prop("f", "p2"), prop("solo"), { id: "me", accountType: "personal" }];
 

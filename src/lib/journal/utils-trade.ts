@@ -1,5 +1,5 @@
 import type { JournalTrade } from "@/hooks/use-trades";
-import { DEFAULT_TIMEZONE, dayKey, monthKey, timeLabel } from "@/lib/timezone";
+import { DEFAULT_TIMEZONE, dayKey, monthKey, timeLabel } from "@/lib/time/timezone";
 
 function toNumber(value: unknown, fallback = 0) {
   if (typeof value === "number")

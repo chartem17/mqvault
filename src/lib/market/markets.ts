@@ -1,4 +1,4 @@
-import type { Instrument } from "@/lib/instruments";
+import type { Instrument } from "@/lib/market/instruments";
 
 const MARKET_ORDER = [
   "Forex",

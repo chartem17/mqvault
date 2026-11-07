@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { checkPrivateAccess } from "@/lib/private-access";
+import { checkPrivateAccess } from "@/lib/auth/private-access";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { permanentlyDeleteOwnedEntity, type DeletionKind } from "@/lib/supabase/permanent-delete";
 

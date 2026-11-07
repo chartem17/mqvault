@@ -1,4 +1,4 @@
-import { msg } from "./i18n/core";
+import { msg } from "../i18n/core";
 
 /** `message` is English source text; the UI translates it (`{max}` is filled from MAX_JOURNAL_FOCUS_IDS). */
 export type JournalFocus = { kind: "none" } | { kind: "invalid"; message: string } | { kind: "ids"; ids: readonly string[] };

@@ -1,5 +1,5 @@
 import type { JournalTrade } from "@/hooks/use-trades";
-import { DEFAULT_TIMEZONE, dayKeyOrNull } from "@/lib/timezone";
+import { DEFAULT_TIMEZONE, dayKeyOrNull } from "@/lib/time/timezone";
 
 export type DrawdownPoint = {
   date: string;

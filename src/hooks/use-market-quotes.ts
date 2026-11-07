@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import type { MarketQuote } from "@/lib/market-types";
+import type { MarketQuote } from "@/lib/market/market-types";
 
 type FeedState = "loading" | "ready" | "degraded" | "error";
 export function useMarketQuotes(symbols?: string[], refreshMs = 15_000) {

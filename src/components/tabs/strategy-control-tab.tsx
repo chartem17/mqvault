@@ -6,7 +6,7 @@ import { statusTone, impactTone, STRATEGY_SURFACE, StrategyMetricCard as StatCar
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { defaultZonedPeriod, isInZonedPeriod } from "@/lib/trading-calendar";
+import { defaultZonedPeriod, isInZonedPeriod } from "@/lib/time/trading-calendar";
 import { useTimezone } from "@/components/providers/timezone-provider";
 import { ShieldCheck, AlertTriangle, TrendingUp, Target, Scale, X } from "lucide-react";
 import { useTrades } from "@/hooks/use-trades";

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTrades } from "@/hooks/use-trades";
 import { useDashboardLayout } from "@/hooks/use-dashboard-layout";
-import { accountOverviewLabel } from "@/lib/account-overview";
+import { accountOverviewLabel } from "@/lib/accounts/account-overview";
 import { AccountRulesCard } from "@/components/accounts/account-rules-card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { DashboardGrid } from "@/components/overview/dashboard-grid";

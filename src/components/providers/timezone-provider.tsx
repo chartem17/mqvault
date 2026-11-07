@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { msg } from "@/lib/i18n/core";
-import { DEFAULT_TIMEZONE, getBrowserTimeZone, isValidTimeZone } from "@/lib/timezone";
+import { DEFAULT_TIMEZONE, getBrowserTimeZone, isValidTimeZone } from "@/lib/time/timezone";
 
 /**
  * The user's display time zone. Saved on the server (app_users.timezone);

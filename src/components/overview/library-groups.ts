@@ -1,4 +1,4 @@
-import { GROUP_LABEL, type WidgetGroup, type WidgetMeta } from "@/lib/dashboard-widgets";
+import { GROUP_LABEL, type WidgetGroup, type WidgetMeta } from "@/lib/dashboard/dashboard-widgets";
 
 export { GROUP_LABEL };
 export function hiddenKeysByGroup(hidden: readonly WidgetMeta[]): [WidgetGroup, WidgetMeta[]][] {

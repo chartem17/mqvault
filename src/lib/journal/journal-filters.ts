@@ -1,5 +1,5 @@
 import { JOURNAL_COLUMNS, type JournalColumnId } from './journal-layout';
-import { shiftDay, startOfZonedDay } from './timezone';
+import { shiftDay, startOfZonedDay } from '../time/timezone';
 
 export type JournalFilterKind = 'text' | 'number' | 'date';
 

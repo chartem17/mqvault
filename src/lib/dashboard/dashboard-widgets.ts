@@ -1,6 +1,6 @@
 /** Widget catalogue for the customisable Overview grid. Pure data, shared by the UI, the API validation and tests.
  *  Titles are English source text; the UI translates them with `t()`. */
-import { msg } from "./i18n/core";
+import { msg } from "../i18n/core";
 export const GRID_COLUMNS = 12;
 export const ROW_HEIGHT = 40;
 export const GRID_GAP = 16;

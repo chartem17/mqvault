@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const { SESSION_DEFINITIONS, getSessionKey, getSessionGroup, getSessionBounds, getSessionDisplay } = require("../.tmp-session-tests/sessions.js");
+const { SESSION_DEFINITIONS, getSessionKey, getSessionGroup, getSessionBounds, getSessionDisplay } = require("../.tmp-session-tests/lib/time/sessions.js");
 
 test("all exact boundaries use start-inclusive and end-exclusive intervals", () => {
   const next = { asia: "frankfurt", frankfurt: "london", london: "london_lunch", london_lunch: "london_pm", london_pm: "new_york", new_york: "off_hours", off_hours: "asia" };

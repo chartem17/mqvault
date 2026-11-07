@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useTrades } from "@/hooks/use-trades";
-import { computeStats, fmt } from "@/lib/utils-trade";
+import { computeStats, fmt } from "@/lib/journal/utils-trade";
 import { StatCard } from "@/components/ui/stat-card";
 import { useI18n } from "@/components/providers/i18n-provider";
 

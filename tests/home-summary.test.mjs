@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const { summarizeToday, dailyLossRoom, lastDays, unmarkedTrades } = require("../.tmp-home-summary-tests/home-summary.js");
+const { summarizeToday, dailyLossRoom, lastDays, unmarkedTrades } = require("../.tmp-home-summary-tests/lib/dashboard/home-summary.js");
 const t = (id, opened_at, closed_at, net_pnl, extra = {}) => ({ id, account_id: "a", symbol: "EURUSD", direction: "Long", opened_at, closed_at, net_pnl, ...extra });
 const now = new Date("2026-11-05T22:30:00Z"); // 06.11 00:30 in Kyiv, still 05.11 in UTC
 
