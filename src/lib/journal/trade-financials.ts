@@ -21,3 +21,28 @@ export function financialsChanged(fields: Record<string, unknown>, current: Reco
     return next !== prev;
   });
 }
+
+function round(value: number, digits: number) { const k = 10 ** digits; return Math.round(value * k) / k; }
+
+/** net = gross − (commission + fee) + swap; commission/fee are costs whatever their sign, swap is signed. */
+export function calcNet(gross: number, commission: number, swap: number, fee: number) {
+  return round(gross - (Math.abs(commission) + Math.abs(fee)) + swap, 8);
+}
+
+/** Realised R = price move / initial risk (entry → stop); null without a valid stop. */
+export function calcR(direction: unknown, entry: number | null, exit: number | null, stop: number | null): number | null {
+  if (entry === null || exit === null || stop === null) return null;
+  if (direction !== "Long" && direction !== "Short") return null;
+  const risk = direction === "Long" ? entry - stop : stop - entry;
+  if (!(risk > 0)) return null;
+  const move = direction === "Long" ? exit - entry : entry - exit;
+  return round(move / risk, 4);
+}
+
+/** Server-side derived fields of a trade row. The only place these formulas live (ADR 0003). */
+export function derivedFinancials(source: Record<string, unknown>) {
+  return {
+    net_pnl: calcNet(toNum(source.gross_pnl) ?? 0, toNum(source.commission) ?? 0, toNum(source.swap) ?? 0, toNum(source.fee) ?? 0),
+    result_r: calcR(source.direction, toNum(source.entry_price), toNum(source.exit_price), toNum(source.stop_loss)),
+  };
+}

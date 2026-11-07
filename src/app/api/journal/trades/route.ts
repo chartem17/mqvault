@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { parseTradeReview, reviewFromInput } from "@/lib/journal/trade-review";
-import { financialsChanged } from "@/lib/journal/trade-financials";
+import { derivedFinancials, financialsChanged } from "@/lib/journal/trade-financials";
 
 export const dynamic = "force-dynamic";
 
@@ -47,33 +47,6 @@ function toNum(value: unknown): number | null {
   if (value === "" || value === null || value === undefined) return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
-}
-
-function round(value: number, digits: number) {
-  const k = 10 ** digits;
-  return Math.round(value * k) / k;
-}
-
-// net = gross - (commission + fee) + swap; commission/fee are positive costs, swap is signed.
-function calcNet(gross: number, commission: number, swap: number, fee: number) {
-  return round(gross - (commission + fee) + swap, 8);
-}
-
-// Realized R = result in price / initial risk distance (entry -> stop).
-function calcR(
-  direction: unknown,
-  entry: number | null,
-  exit: number | null,
-  stop: number | null,
-): number | null {
-  if (entry === null || exit === null || stop === null) return null;
-  if (direction !== "Long" && direction !== "Short") return null;
-
-  const risk = direction === "Long" ? entry - stop : stop - entry;
-  if (!(risk > 0)) return null;
-
-  const move = direction === "Long" ? exit - entry : entry - exit;
-  return round(move / risk, 4);
 }
 
 function normDirection(value: unknown): "Long" | "Short" | null {
@@ -193,22 +166,7 @@ function mapRow(row: Record<string, unknown>) {
   };
 }
 
-function derived(source: Record<string, unknown>) {
-  const gross = toNum(source.gross_pnl) ?? 0;
-  const swap = toNum(source.swap) ?? 0;
-  const commission = Math.abs(toNum(source.commission) ?? 0);
-  const fee = Math.abs(toNum(source.fee) ?? 0);
-
-  return {
-    net_pnl: calcNet(gross, commission, swap, fee),
-    result_r: calcR(
-      source.direction,
-      toNum(source.entry_price),
-      toNum(source.exit_price),
-      toNum(source.stop_loss),
-    ),
-  };
-}
+const derived = derivedFinancials;
 
 async function readBody(request: NextRequest): Promise<Body | null> {
   try {

@@ -3,11 +3,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { screenshotImageUrl } from '@/lib/journal/screenshot-gallery';
 import { EmptyState } from "@/components/ui/empty-state";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Pencil, Plus, Search, Trash2, SlidersHorizontal, GripVertical, LayoutGrid, Table as TableIcon, Filter, ListChecks, Images } from 'lucide-react';
+import { Pencil, Plus, Search, Trash2, SlidersHorizontal, GripVertical, LayoutGrid, Table as TableIcon, Filter, ListChecks, Images, Upload } from 'lucide-react';
 import { Button, Input, Select } from '@/components/ui/primitives';
 import { ManualTradeModal } from '@/components/journal/manual-trade-modal';
 import { DayReview } from '@/components/journal/day-review';
 import { ScreenshotGallery } from '@/components/journal/screenshot-gallery';
+import { CsvImportModal } from '@/components/journal/csv-import-modal';
 import { needsReview } from '@/lib/journal/trade-review';
 import { useTrades, type JournalTrade, type TradeInput, type UpdateTradeInput } from '@/hooks/use-trades';
 import { useJournalLayout } from '@/hooks/use-journal-layout';
@@ -25,7 +26,8 @@ const positive = 'var(--color-green)', negative = 'var(--color-red)';
 function session(trade: JournalTrade) { try { return getSessionLabel(trade.opened_at); } catch { return trade.session || '—'; } }
 const labelOf = (id: JournalColumnId) => JOURNAL_COLUMNS.find(c => c.id === id)!.label;
 export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus, review = false, onReviewChange, gallery = false, onGalleryChange }: { focus?: JournalFocus; onClearFocus?: () => void; review?: boolean; onReviewChange?: (open: boolean) => void; gallery?: boolean; onGalleryChange?: (open: boolean) => void } = {}) {
-  const { visibleTrades, accounts, activeAccountId, loading, saving, error, createTrade, updateTrade, deleteTrade } = useTrades();
+  const { visibleTrades, accounts, activeAccountId, loading, saving, error, createTrade, updateTrade, deleteTrade, refreshTrades } = useTrades();
+  const [importOpen, setImportOpen] = useState(false);
   const prefs = useJournalLayout();
   const { t, intl } = useI18n();
   const labelFor = (id: JournalColumnId) => t(labelOf(id));
@@ -172,7 +174,8 @@ export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus, review = fa
         <button type="button" role="tab" aria-selected={view === 'cards'} onClick={() => setView('cards')} className={`relative z-10 flex items-center justify-center gap-1.5 rounded-full px-3 py-1.5 transition-colors ${view === 'cards' ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}><LayoutGrid className="h-3.5 w-3.5" />{t("Cards")}</button>
       </div>
       {view !== 'cards' && !editing && <Button variant="secondary" size="sm" disabled={!prefs.canEdit} onClick={startEditing}>{t("Reorder columns")}</Button>}
-      {onGalleryChange && <Button variant="secondary" size="sm" className="order-3 size-10 p-0 sm:order-none sm:ml-auto sm:size-auto sm:px-3" aria-label={t("Screenshot gallery")} title={t("Screenshot gallery")} onClick={() => onGalleryChange(true)}><Images className="h-4 w-4" /><span className="hidden sm:inline">{t("Gallery")}</span></Button>}
+      <Button variant="secondary" size="sm" className="order-3 size-10 p-0 sm:order-none sm:ml-auto sm:size-auto sm:px-3" aria-label={t("Import CSV")} title={t("Import CSV")} onClick={() => setImportOpen(true)}><Upload className="h-4 w-4" /><span className="hidden sm:inline">{t("Import")}</span></Button>
+      {onGalleryChange && <Button variant="secondary" size="sm" className="order-3 size-10 p-0 sm:order-none sm:size-auto sm:px-3" aria-label={t("Screenshot gallery")} title={t("Screenshot gallery")} onClick={() => onGalleryChange(true)}><Images className="h-4 w-4" /><span className="hidden sm:inline">{t("Gallery")}</span></Button>}
       {onReviewChange && <Button variant="secondary" size="sm" className="relative order-3 size-10 p-0 sm:order-none sm:size-auto sm:px-3" aria-label={t("Day review")} title={t("Day review")} onClick={() => onReviewChange(true)}><ListChecks className="h-4 w-4" /><span className="hidden sm:inline">{t("Review")}</span>{toReview > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground sm:static sm:ml-1">{toReview}</span>}</Button>}
       <Button size="sm" className="order-2 size-10 p-0 sm:order-none sm:size-auto sm:px-3" aria-label={t("Add trade")} title={t("Add trade")} onClick={() => { setEditingTrade(null); setShowModal(true); }}><Plus className="h-4 w-4" /><span className="hidden sm:inline">{t("Add trade")}</span></Button>
     </div>
@@ -211,5 +214,6 @@ export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus, review = fa
     </tbody></table></div>
     )}
     {modal}
+    <CsvImportModal open={importOpen} accounts={accounts} defaultAccountId={activeAccountId !== 'all' ? activeAccountId : undefined} onClose={() => setImportOpen(false)} onImported={() => void refreshTrades()} />
   </div>;
 }

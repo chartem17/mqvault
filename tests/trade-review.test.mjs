@@ -75,3 +75,10 @@ test("PATCH keeps reconciled P/L: only a changed financial input triggers a reco
   assert.equal(financialsChanged({ direction: "Short" }, current), true);
   assert.equal(financialsChanged({ stop_loss: null }, current), true);
 });
+
+test("server formulas: net treats costs as costs whatever the sign, R needs a valid stop", () => {
+  const { derivedFinancials } = require("../.tmp-trade-review-tests/lib/journal/trade-financials.js");
+  assert.deepEqual(derivedFinancials({ gross_pnl: -53.1, commission: -4.5, swap: 0, fee: 0, direction: "Long", entry_price: "1.16723", exit_price: 1.16669, stop_loss: 1.16669 }), { net_pnl: -57.6, result_r: -1 });
+  assert.deepEqual(derivedFinancials({ gross_pnl: 10, commission: 2, swap: -0.5, fee: 1, direction: "Short", entry_price: 100, exit_price: 98, stop_loss: 101 }), { net_pnl: 6.5, result_r: 2 });
+  assert.equal(derivedFinancials({ gross_pnl: 1, direction: "Long", entry_price: 1, exit_price: 2, stop_loss: 1.5 }).result_r, null);
+});
