@@ -1,11 +1,13 @@
 "use client";
 import { Checkbox } from "@/components/ui/checkbox";
+import { screenshotImageUrl } from '@/lib/journal/screenshot-gallery';
 import { EmptyState } from "@/components/ui/empty-state";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Pencil, Plus, Search, Trash2, SlidersHorizontal, GripVertical, LayoutGrid, Table as TableIcon, Filter, ListChecks } from 'lucide-react';
+import { Pencil, Plus, Search, Trash2, SlidersHorizontal, GripVertical, LayoutGrid, Table as TableIcon, Filter, ListChecks, Images } from 'lucide-react';
 import { Button, Input, Select } from '@/components/ui/primitives';
 import { ManualTradeModal } from '@/components/journal/manual-trade-modal';
 import { DayReview } from '@/components/journal/day-review';
+import { ScreenshotGallery } from '@/components/journal/screenshot-gallery';
 import { needsReview } from '@/lib/journal/trade-review';
 import { useTrades, type JournalTrade, type TradeInput, type UpdateTradeInput } from '@/hooks/use-trades';
 import { useJournalLayout } from '@/hooks/use-journal-layout';
@@ -22,7 +24,7 @@ import { activeJournalFilters, describeJournalFilter, journalFilterKind, matches
 const positive = 'var(--color-green)', negative = 'var(--color-red)';
 function session(trade: JournalTrade) { try { return getSessionLabel(trade.opened_at); } catch { return trade.session || '—'; } }
 const labelOf = (id: JournalColumnId) => JOURNAL_COLUMNS.find(c => c.id === id)!.label;
-export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus, review = false, onReviewChange }: { focus?: JournalFocus; onClearFocus?: () => void; review?: boolean; onReviewChange?: (open: boolean) => void } = {}) {
+export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus, review = false, onReviewChange, gallery = false, onGalleryChange }: { focus?: JournalFocus; onClearFocus?: () => void; review?: boolean; onReviewChange?: (open: boolean) => void; gallery?: boolean; onGalleryChange?: (open: boolean) => void } = {}) {
   const { visibleTrades, accounts, activeAccountId, loading, saving, error, createTrade, updateTrade, deleteTrade } = useTrades();
   const prefs = useJournalLayout();
   const { t, intl } = useI18n();
@@ -143,6 +145,8 @@ export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus, review = fa
     return raw(trade, id) ?? '—';
   }
   if (review && focus.kind === 'none') return <div className="space-y-4 sm:p-6">{loading ? <EmptyState title={t("Loading trades…")} role="status" /> : <DayReview key={activeAccountId} trades={visibleTrades} accounts={accounts} updateTrade={updateTrade} onExit={() => onReviewChange?.(false)} />}</div>;
+  const modal = <ManualTradeModal open={showModal} accounts={accounts} defaultAccountId={activeAccountId !== 'all' ? activeAccountId : undefined} initialTrade={editingTrade} submitting={saving} onClose={() => { setShowModal(false); setEditingTrade(null); }} onSubmit={submit} />;
+  if (gallery && focus.kind === 'none') return <div className="space-y-4 sm:p-6">{loading ? <EmptyState title={t("Loading trades…")} role="status" /> : <ScreenshotGallery trades={visibleTrades} accounts={accounts} onExit={() => onGalleryChange?.(false)} onOpenTrade={trade => { setEditingTrade(trade); setShowModal(true); }} />}{modal}</div>;
   return <div className="space-y-4 sm:p-6">
     <div className="flex flex-wrap items-center gap-2">
       <div className="relative order-1 w-[calc(100%-3rem)] min-w-0 sm:order-none sm:w-auto sm:min-w-[200px] sm:flex-1"><Search aria-hidden="true" className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input aria-label={t("Search trades")} value={search} onChange={e => setSearch(e.target.value)} placeholder={t("Search trades, ID…")} style={{ paddingLeft: '2.25rem' }} /></div>
@@ -168,7 +172,8 @@ export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus, review = fa
         <button type="button" role="tab" aria-selected={view === 'cards'} onClick={() => setView('cards')} className={`relative z-10 flex items-center justify-center gap-1.5 rounded-full px-3 py-1.5 transition-colors ${view === 'cards' ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}><LayoutGrid className="h-3.5 w-3.5" />{t("Cards")}</button>
       </div>
       {view !== 'cards' && !editing && <Button variant="secondary" size="sm" disabled={!prefs.canEdit} onClick={startEditing}>{t("Reorder columns")}</Button>}
-      {onReviewChange && <Button variant="secondary" size="sm" className="relative order-3 size-10 p-0 sm:order-none sm:ml-auto sm:size-auto sm:px-3" aria-label={t("Day review")} title={t("Day review")} onClick={() => onReviewChange(true)}><ListChecks className="h-4 w-4" /><span className="hidden sm:inline">{t("Review")}</span>{toReview > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground sm:static sm:ml-1">{toReview}</span>}</Button>}
+      {onGalleryChange && <Button variant="secondary" size="sm" className="order-3 size-10 p-0 sm:order-none sm:ml-auto sm:size-auto sm:px-3" aria-label={t("Screenshot gallery")} title={t("Screenshot gallery")} onClick={() => onGalleryChange(true)}><Images className="h-4 w-4" /><span className="hidden sm:inline">{t("Gallery")}</span></Button>}
+      {onReviewChange && <Button variant="secondary" size="sm" className="relative order-3 size-10 p-0 sm:order-none sm:size-auto sm:px-3" aria-label={t("Day review")} title={t("Day review")} onClick={() => onReviewChange(true)}><ListChecks className="h-4 w-4" /><span className="hidden sm:inline">{t("Review")}</span>{toReview > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground sm:static sm:ml-1">{toReview}</span>}</Button>}
       <Button size="sm" className="order-2 size-10 p-0 sm:order-none sm:size-auto sm:px-3" aria-label={t("Add trade")} title={t("Add trade")} onClick={() => { setEditingTrade(null); setShowModal(true); }}><Plus className="h-4 w-4" /><span className="hidden sm:inline">{t("Add trade")}</span></Button>
     </div>
     {editing && view !== 'cards' && <div role="region" aria-label={t("Column order")} className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
@@ -191,7 +196,7 @@ export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus, review = fa
       <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr))]">
         {loading ? <EmptyState title={t("Loading trades…")} role="status" className="col-span-full" /> : !filtered.length ? <EmptyState title={t("No trades match these filters.")} className="col-span-full" /> : filtered.map(trade => (
           <button key={trade.id} type="button" onClick={() => { setEditingTrade(trade); setShowModal(true); }} className="group overflow-hidden rounded-2xl border border-border bg-card text-left transition hover:border-primary/40 hover:shadow-lg">
-            {trade.screenshot_url ? <img src={trade.screenshot_url} alt="" className="h-40 w-full object-cover" /> : <div className="hidden h-40 items-center justify-center bg-secondary/40 text-xs text-muted-foreground md:flex">{t("No screenshot")}</div>}
+            {screenshotImageUrl(trade.screenshot_url) ? <img src={screenshotImageUrl(trade.screenshot_url) ?? undefined} alt="" loading="lazy" className="h-40 w-full object-cover" /> : <div className="hidden h-40 items-center justify-center bg-secondary/40 text-xs text-muted-foreground md:flex">{t("No screenshot")}</div>}
             <div className="space-y-1 p-3">
               <div className="flex items-center justify-between"><span className="font-semibold">{trade.symbol}</span><span style={{ color: trade.direction === 'Long' ? positive : negative }}>{trade.direction}</span></div>
               <div className="flex items-center justify-between text-xs text-muted-foreground"><span>{date(trade.opened_at)}</span><span style={{ color: (trade.net_pnl ?? 0) >= 0 ? positive : negative }}>{typeof trade.net_pnl === 'number' ? fmt.usd(trade.net_pnl) : '—'}</span></div>
@@ -205,6 +210,6 @@ export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus, review = fa
       {loading ? <tr><td colSpan={columns.length + 1} className="p-8"><EmptyState title={t("Loading trades…")} role="status" /></td></tr> : !filtered.length ? <tr><td colSpan={columns.length + 1} className="p-8"><EmptyState title={t("No trades match these filters.")} /></td></tr> : filtered.map((trade, index) => <tr key={trade.id} className={`border-b border-border/50 hover:bg-secondary/30 ${index % 2 ? 'bg-background/30' : ''}`}>{columns.map(id => <td key={id} className="whitespace-nowrap px-3 py-2">{cell(trade, id)}</td>)}<td className="sticky right-0 bg-card px-3 py-2"><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" aria-label={t("Edit trade")} onClick={() => { setEditingTrade(trade); setShowModal(true); }}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" aria-label={t("Delete trade")} disabled={saving} onClick={() => void remove(trade.id)}><Trash2 className="h-4 w-4" /></Button></div></td></tr>)}
     </tbody></table></div>
     )}
-    <ManualTradeModal open={showModal} accounts={accounts} defaultAccountId={activeAccountId !== 'all' ? activeAccountId : undefined} initialTrade={editingTrade} submitting={saving} onClose={() => { setShowModal(false); setEditingTrade(null); }} onSubmit={submit} />
+    {modal}
   </div>;
 }

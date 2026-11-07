@@ -1,5 +1,6 @@
 "use client";
 import { dialogSurface, DIALOG_BACKDROP } from "@/components/ui/dialog-styles";
+import { screenshotImageUrl } from "@/lib/journal/screenshot-gallery";
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Camera, ChevronDown, X } from "lucide-react";
@@ -308,7 +309,7 @@ export function ManualTradeModal({
   }, [form]);
   const previewSource =
     localPreviewUrl ||
-    (form.screenshot_url.trim() ? form.screenshot_url : "");
+    (form.screenshot_url.trim() ? screenshotImageUrl(form.screenshot_url) ?? form.screenshot_url.trim() : "");
 
   if (!open) return null;
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { screenshotImageUrl } from "@/lib/journal/screenshot-gallery";
 import { ArrowLeft, ArrowRight, Check, CheckCheck, Plus, X } from "lucide-react";
 import { Button, Input } from "@/components/ui/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -197,7 +198,7 @@ export function DayReview({ trades, accounts, updateTrade, onExit }: Props) {
           <div><dt className="text-xs text-muted-foreground">R</dt><dd className="m-0 tabular-nums">{typeof trade.result_r === "number" ? fmt.r(trade.result_r) : "—"}</dd></div>
           <div className="col-span-2 lg:col-span-1"><dt className="text-xs text-muted-foreground">{t("Account")}</dt><dd className="m-0 truncate">{accountName(trade.account_id)}</dd></div>
         </dl>
-        {trade.screenshot_url && <a href={trade.screenshot_url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl border border-border"><img src={trade.screenshot_url} alt={t("Chart of the trade")} className="h-32 w-full object-cover" /></a>}
+        {screenshotImageUrl(trade.screenshot_url) && <a href={trade.screenshot_url ?? undefined} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl border border-border"><img src={screenshotImageUrl(trade.screenshot_url) ?? undefined} alt={t("Chart of the trade")} className="h-32 w-full object-cover" /></a>}
       </div>
 
       <div className="min-w-0 space-y-5">
