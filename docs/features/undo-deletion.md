@@ -1,13 +1,13 @@
 # Undo deletion: integration and acceptance checklist
 
-Branch: feat/undo-delete-current. Do not merge without owner review.
+Decision and rationale: [ADR 0005](../decisions/0005-deferred-deletion-with-undo.md). This file keeps the required behaviour and the acceptance checklist.
 
-## Current status
-- Shared Undo UI and confirmation dialog are committed and the provider is mounted.
-- Transactional deletion migration and helper are prepared, not applied or wired to APIs.
-- Trades/account UI handlers and the actual strategy-control-tab.tsx still need integration.
-- Strategy UI currently uses mockStrategies in React state. Do not equate these IDs with database strategy_rules UUIDs. Persistence needs an explicit mapping/API before database deletion is connected.
-- No build, lint, SQL execution or browser test results have been claimed.
+## Current status (2026-11-07)
+- [x] Deferred final deletion of trades, accounts and strategies with a 10-second Undo; confirmation for accounts/strategies; server-side `deleted: true` check; transactional RPC (`service_role` only).
+- [ ] Verify the old bug where an account reappears after an error at timer end. A general "everything works" does not replace this specific check.
+- [ ] Acceptance: several timers, cancel, reload before the timer, network errors, re-fetch, independence of other accounts.
+- [ ] Cleanup of linked Storage files, if they are really used.
+- [ ] Undo for trade edits via snapshot/history.
 
 ## Required behavior
 - No server DELETE before the 10-second undo window ends.

@@ -15,35 +15,36 @@ npm run build   # production-збірка
 
 CI (`.github/workflows/ci.yml`) на кожен PR у `main`: lint, типи, тести, build і перевірка SQL-міграції проп-правил на тимчасовому Postgres.
 
+## Змінні середовища
+
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SECRET_KEY` (лише сервер), `VAULT_ACCESS_PASSWORD` (≥ 20 символів). Значення не зберігаються в репозиторії.
+
 ## Структура
 
 ```
 src/
-  app/            сторінки та API (api/accounts, journal, strategies, preferences, deletions, …)
-  middleware.ts   приватний доступ для всіх сторінок і API: сторінка /login, після входу cookie на 30 днів
-  components/
-    tabs/         вкладки: overview, journal, strategy-control, market, calendar
-    journal/      форма угоди
-    accounts/     форми рахунків і проп-умов
-    settings/     часовий пояс
-    providers/    контексти (часовий пояс)
-    ui/           спільні примітиви: кнопки, поля, модалки, картки
-  hooks/          дані: use-trades, use-journal-layout, use-strategies, …
-  lib/            чиста логіка: сесії, час, фільтри, статистика, проп-правила, strategy-control
+  app/            сторінки та API (/api/accounts, journal/trades, strategies, preferences, deletions, …)
+  components/     tabs · overview · accounts · journal · strategy-control · home · settings · layout · providers · ui
+  hooks/          клієнтські дані: use-trades, use-strategies, use-dashboard-layout, …
+  lib/            доменна логіка: accounts · journal · dashboard · time · market · auth · strategy-control · i18n · supabase
 supabase/migrations/  SQL-міграції
 tests/                юніт-тести логіки
-docs/                 roadmap і специфікації
+docs/                 документація (індекс нижче)
+CLAUDE.md             інструкції для Claude та правила роботи в репозиторії
 ```
+
+Докладна карта, шари й правила залежностей — [`docs/architecture/overview.md`](docs/architecture/overview.md).
 
 ## Ключові правила
 
-- **Час.** У БД — лише абсолютні моменти (`timestamptz`, UTC). Показ, дні календаря, денний/місячний P&L і періоди рахуються в поясі користувача (`app_users.timezone`, перемикач у шапці). Час, введений вручну у формі угоди, читається в поясі брокера рахунку (`accounts.broker_timezone`).
-- **Сесії** (`src/lib/time/sessions.ts`) прив'язані до годинника самих ринків: Asia з 18:00 Нью-Йорка, Frankfurt 08:00 Франкфурта, London 08:00 / lunch 10:00 / after lunch 12:00 Лондона, New York 08:00 Нью-Йорка, Off hours з 16:00 Нью-Йорка. Від поясу користувача не залежать.
-- **Фінанси угоди** (сервер, `src/app/api/journal/trades/route.ts`): `net = gross − |commission| − |fee| + swap`. Комісія й fee — додатні витрати, swap зі знаком. Брокерський результат не перераховується з ціни й лотів.
-- **Доступ.** Один пароль `VAULT_ACCESS_PASSWORD` (≥20 символів). Вхід на `/login` ставить httpOnly-cookie (`vault_session`, підпис HMAC від пароля, 30 днів); зміна пароля розлогінює всіх. Basic-auth лишається для скриптів. Зміни (не GET) приймаються лише same-origin JSON.
-- **Видалення** відкладене: 10 секунд на Undo, лише потім DELETE (`docs/UNDO-DELETION-CHECKLIST.md`).
-- **Проп-правила:** `docs/prop-rules-v1.md`, `docs/prop-rules-integration.md`.
+Час і пояси, сесії, фінанси угоди, проп-рахунки, відкладене видалення, приватний доступ, мови, адаптивність і дашборд описані окремими рішеннями в [`docs/decisions/`](docs/decisions/).
 
-## Документи
+## Документація
 
-- `docs/ROADMAP.md` — що зроблено, що далі, порядок робіт.
+- [`docs/README.md`](docs/README.md) — індекс і правила ведення документації.
+- [`docs/architecture/`](docs/architecture/) — архітектура коду та база даних.
+- [`docs/decisions/`](docs/decisions/) — ухвалені рішення (ADR).
+- [`docs/features/`](docs/features/) — проп-рахунки, видалення з Undo, мови.
+- [`docs/roadmap/ROADMAP.md`](docs/roadmap/ROADMAP.md) — що зроблено, що далі, порядок робіт.
+- [`docs/runbooks/`](docs/runbooks/) — ручні приймальні перевірки.
+- [`docs/archive/`](docs/archive/) — історичні журнали.
