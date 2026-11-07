@@ -9,7 +9,7 @@ import { accountOverviewLabel, buildAccountOverview } from "@/lib/accounts/accou
 import { parseRuleRecord, settingsFromColumns, type PropRuleRecord } from "@/lib/accounts/prop-rule-record";
 import { parsePropRuleSettings, type ConditionState, type PropRuleSettings, type RuleCondition } from "@/lib/accounts/prop-rule-settings";
 import { fmt } from "@/lib/journal/utils-trade";
-import { FORM_SURFACE as CARD } from "@/components/ui/form-styles";
+import { FORM_SURFACE as CARD } from "@/components/accounts/form-styles";
 import { AccountChainCard } from "@/components/accounts/account-chain-card";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { msg } from "@/lib/i18n/core";

@@ -1,5 +1,5 @@
 "use client";
-import { RiskSummary } from "@/components/ui/risk-summary";
+import { RiskSummary } from "@/components/overview/risk-summary";
 import { WidgetPanel } from "./widget-panel";
 import { useI18n } from "@/components/providers/i18n-provider";
 

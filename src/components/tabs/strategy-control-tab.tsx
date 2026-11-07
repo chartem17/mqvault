@@ -2,7 +2,7 @@
 import { dialogSurface, DIALOG_BACKDROP } from "@/components/ui/dialog-styles";
 import { Button, Select } from "@/components/ui/primitives";
 import { DateTimeField } from "@/components/ui/date-time-field";
-import { statusTone, impactTone, STRATEGY_SURFACE, StrategyMetricCard as StatCard, StrategySummaryMetric as SummaryMetric } from "@/components/ui/strategy-ui";
+import { statusTone, impactTone, STRATEGY_SURFACE, StrategyMetricCard as StatCard, StrategySummaryMetric as SummaryMetric } from "@/components/strategy-control/strategy-ui";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";

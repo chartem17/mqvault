@@ -1,6 +1,6 @@
 "use client";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { Button } from "./primitives";
+import { Button } from "../ui/primitives";
 
 export type NavigationButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "style"> & { active?: boolean; icon?: ReactNode };
 export function NavigationButton({ active = false, icon, children, className, ...props }: NavigationButtonProps) {

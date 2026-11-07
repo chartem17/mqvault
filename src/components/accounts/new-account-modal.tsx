@@ -12,7 +12,7 @@ import { useTimezone } from "@/components/providers/timezone-provider";
 import { TimezoneSelect } from "@/components/settings/timezone-select";
 import { useI18n } from "@/components/providers/i18n-provider";
 type Props = { onClose: () => void; onCreate: (account: AccountInput) => Promise<void> | void; initialPlatform?: SetupPlatform };
-import { FIELD_LABEL as LABEL, CHOICE_LAYOUT, CHOICE_SELECTED, CHOICE_IDLE } from "@/components/ui/form-styles";
+import { FIELD_LABEL as LABEL, CHOICE_LAYOUT, CHOICE_SELECTED, CHOICE_IDLE } from "@/components/accounts/form-styles";
 function optionalNumber(value: string): number | null { return value.trim() ? Number(value) : null; }
 export function NewAccountModal({ onClose, onCreate, initialPlatform = "manual" }: Props) {
   const { t } = useI18n();

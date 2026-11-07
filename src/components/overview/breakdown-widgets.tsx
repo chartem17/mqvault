@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useTrades, type JournalTrade } from "@/hooks/use-trades";
 import { computeMonthly, fmt, groupByKey } from "@/lib/journal/utils-trade";
-import { LIST_ROW } from "@/components/ui/overview-styles";
+import { LIST_ROW } from "@/components/overview/overview-styles";
 import { SESSION_DEFINITIONS, SESSION_GROUPS, getSessionKey, getSessionLabel } from "@/lib/time/sessions";
 import { useTimezone } from "@/components/providers/timezone-provider";
 import { WidgetPanel } from "./widget-panel";

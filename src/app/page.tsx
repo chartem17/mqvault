@@ -2,7 +2,7 @@
 
 import { Suspense, useMemo, type Dispatch, type SetStateAction } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import AppShellLayout from "@/components/app-shell-layout";
+import AppShellLayout from "@/components/layout/app-shell-layout";
 import { HomeTab } from "@/components/tabs/home-tab";
 import { OverviewTab } from "@/components/tabs/overview-tab";
 import { JournalTab } from "@/components/tabs/journal-tab";

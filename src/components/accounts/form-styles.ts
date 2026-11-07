@@ -1,4 +1,4 @@
-import { surfaceClass } from "./surface-styles";
+import { surfaceClass } from "../ui/surface-styles";
 export const FIELD_LABEL = "flex flex-col gap-1 text-xs text-muted-foreground";
 export const CHOICE_LAYOUT = "rounded-2xl border p-4 text-left";
 export const CHOICE_SELECTED = "border-primary/60 bg-primary/10";

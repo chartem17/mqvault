@@ -1,7 +1,7 @@
 "use client";
 import { Button, Input, Textarea } from "@/components/ui/primitives";
 import { Checkbox } from "@/components/ui/checkbox";
-import { STRATEGY_SURFACE } from "@/components/ui/strategy-ui";
+import { STRATEGY_SURFACE } from "@/components/strategy-control/strategy-ui";
 import { useState } from "react";
 import { ruleLibrary } from "@/lib/strategy-control/rule-library";
 import { normalizeSessionSelection, SESSION_RULE_OPTIONS } from "@/lib/time/session-selection";
