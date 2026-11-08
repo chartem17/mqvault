@@ -34,6 +34,7 @@ const builds = [
   [["src/lib/time/timezone.ts"], ".tmp-timezone-tests", [...dom, "--strict"]],
   [["src/lib/accounts/prop-rule-settings.ts", "src/lib/accounts/prop-rule-record.ts"], ".tmp-prop-rule-tests", [...dom, "--strict"]],
   [["src/lib/auth/session-token.ts"], ".tmp-session-token-tests", [...dom, "--strict"]],
+  [["src/lib/auth/private-access.ts", "src/lib/auth/session-token.ts"], ".tmp-private-access-tests", [...dom, "--strict"]],
   [["src/lib/time/session-selection.ts"], ".tmp-session-selection-tests", [...dom, "--strict"]],
   [["src/lib/time/sessions.ts"], ".tmp-session-tests", dom],
   [["src/lib/supabase/deletion-result.ts"], ".tmp-deletion-tests", [...dom, "--strict"]],
