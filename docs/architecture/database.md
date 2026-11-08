@@ -54,7 +54,7 @@ app_users ─┬─< accounts ─┬─< journal_trades ─┬─< strategy_chec
 | `20261031000150 journal_layout_preferences` | розкладка журналу |
 | `20261106165747 dashboard_layout_preferences` | розкладка дашборду |
 | `20261107120100 index_cleanup` | прибрано 4 дублікати індексів, індекси для 3 FK |
-| `20261108171403 news_events_calendar_fields` | **ще не застосовано** (гілка `feat/economic-calendar`, чекає погодження): поля календаря MT5, числові значення, `license_scope`, RPC `import_news_events` ([ADR 0013](../decisions/0013-economic-calendar-source.md)) |
+| `20261108171403 news_events_calendar_fields` | застосовано 2026-11-08 за погодженням власника (гілка `feat/economic-calendar`): поля календаря MT5, числові значення, `license_scope`, RPC `import_news_events` ([ADR 0013](../decisions/0013-economic-calendar-source.md)) |
 
 Що лишається:
 
