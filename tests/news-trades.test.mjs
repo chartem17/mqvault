@@ -132,3 +132,22 @@ test("active red-news window: ±N around high releases only", () => {
   assert.equal(w.endsAt, at(25));
   assert.equal(m.activeNewsWindow([ev("a", -15)], T, 15).endsAt, at(0), "edge is inside");
 });
+
+test("edge news: only red releases within 60 min of entry or exit", () => {
+  // A trade held for 28 hours is open during many releases, but only those at its edges are "near".
+  const day = (id, min, impact = "high") => ({ id, title: id, currency: "USD", impact, event_time: at(min) });
+  const events = [day("entry-15", -15), day("mid", 600), day("exit+40", 28 * 60 + 40), day("exit+90", 28 * 60 + 90), day("entry+50-medium", 50, "medium"), day("entry-70", -70)];
+  const [s] = m.summarizeTradesNews([trade("swing", "EURUSD", 0, 28 * 60)], events);
+  assert.equal(s.links.find(l => l.eventId === "mid").minutesFromClose, 600 - 28 * 60);
+  assert.deepEqual(m.edgeNewsLinks(s.links).map(l => [l.eventId, l.edge, l.edgeMinutes]), [["entry-15", "entry", -15], ["exit+40", "exit", 40]]);
+  assert.deepEqual(m.edgeNewsLinks(s.links, 90).map(l => l.eventId), ["entry-70", "entry-15", "exit+40", "exit+90"]);
+});
+
+test("nearest trade edge", () => {
+  assert.deepEqual(m.nearestTradeEdge(-10, 500), { edge: "entry", minutes: -10 });
+  assert.deepEqual(m.nearestTradeEdge(300, 20), { edge: "exit", minutes: 20 });
+  assert.deepEqual(m.nearestTradeEdge(5, 5), { edge: "entry", minutes: 5 }, "tie goes to entry");
+  assert.equal(m.nearestTradeEdge(61, 120), null);
+  assert.deepEqual(m.nearestTradeEdge(-60, null), { edge: "entry", minutes: -60 }, "open trade: entry only, 60 is inside");
+  assert.equal(m.nearestTradeEdge(300, null), null);
+});

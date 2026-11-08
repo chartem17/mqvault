@@ -15,6 +15,8 @@ export type NewsRelation = "open_at_release" | "opened_near" | "closed_near" | "
 export const NEWS_RELATIONS: readonly NewsRelation[] = ["open_at_release", "opened_near", "closed_near", "within_2h"];
 const CORE_RELATIONS = new Set<NewsRelation>(["open_at_release", "opened_near", "closed_near"]);
 export const NEWS_NEAR_MINUTES = 30;
+/** What the UI shows next to a trade and in the calendar: red releases within this many minutes of entry or exit. */
+export const NEWS_EDGE_MINUTES = 60;
 export const NEWS_WIDE_MINUTES = 120;
 /** How far the nearest red release is searched for the "±N minutes" rule (N ≤ this). */
 export const NEWS_RULE_HORIZON_MINUTES = 240;
@@ -50,6 +52,8 @@ export type TradeNewsLink = {
   relation: NewsRelation;
   /** Release time minus trade open, in whole minutes: negative = the release came before the entry. */
   minutesFromOpen: number;
+  /** Same, relative to the exit; null while the trade is open. */
+  minutesFromClose: number | null;
 };
 export type NewsBucket = "near_high" | "around_high" | "clear";
 export type TradeNewsSummary = {
@@ -97,6 +101,30 @@ export function classifyTradeEvent(openMs: number, closeMs: number | null, event
   if (closeMs !== null && Math.abs(eventMs - closeMs) <= NEWS_NEAR_MINUTES * MIN) return "closed_near";
   if (openMs - NEWS_WIDE_MINUTES * MIN <= eventMs && eventMs <= close + NEWS_WIDE_MINUTES * MIN) return "within_2h";
   return null;
+}
+
+/**
+ * How close a release is to the trade's entry or exit: the nearer edge and the signed minutes
+ * (negative = the release came before that edge). Null when both edges are farther than `maxMinutes`.
+ * A position that merely stayed open during a release is not "near" it.
+ */
+export function nearestTradeEdge(minutesFromOpen: number, minutesFromClose: number | null, maxMinutes = NEWS_EDGE_MINUTES): { edge: "entry" | "exit"; minutes: number } | null {
+  const exit = minutesFromClose;
+  const useExit = exit !== null && Math.abs(exit) < Math.abs(minutesFromOpen);
+  const minutes = useExit ? (exit as number) : minutesFromOpen;
+  return Math.abs(minutes) <= maxMinutes ? { edge: useExit ? "exit" : "entry", minutes } : null;
+}
+export type EdgeNewsLink = TradeNewsLink & { edge: "entry" | "exit"; edgeMinutes: number };
+
+/** Red releases within `maxMinutes` of the trade's entry or exit, in time order. */
+export function edgeNewsLinks(links: readonly TradeNewsLink[], maxMinutes = NEWS_EDGE_MINUTES): EdgeNewsLink[] {
+  const out: EdgeNewsLink[] = [];
+  for (const link of links) {
+    if (link.impact !== "high") continue;
+    const near = nearestTradeEdge(link.minutesFromOpen, link.minutesFromClose ?? null, maxMinutes);
+    if (near) out.push({ ...link, edge: near.edge, edgeMinutes: near.minutes });
+  }
+  return out.sort((a, b) => a.eventTime.localeCompare(b.eventTime) || a.title.localeCompare(b.title));
 }
 
 type PreparedEvent = { ms: number; event: NewsEventInput; impact: "high" | "medium"; currency: string };
@@ -149,6 +177,7 @@ export function summarizeTradesNews(trades: NewsTradeInput[], events: NewsEventI
       links.push({
         eventId: item.event.id, title: item.event.title, eventKey: item.event.event_code || item.event.title,
         currency: item.currency, impact: item.impact, eventTime: new Date(item.ms).toISOString(), relation, minutesFromOpen: minutes,
+        minutesFromClose: closeMs === null ? null : Math.round((item.ms - closeMs) / MIN),
       });
     }
     const highCore = links.some(l => l.impact === "high" && CORE_RELATIONS.has(l.relation));
