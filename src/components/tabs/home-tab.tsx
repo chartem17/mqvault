@@ -12,6 +12,7 @@ import { sessionStatus } from "@/lib/dashboard/session-status";
 import { formatDateTimeOrDash, zonedParts } from "@/lib/time/timezone";
 import { fmt } from "@/lib/journal/utils-trade";
 import { useI18n } from "@/components/providers/i18n-provider";
+import { NewsWindowWarning, NextNewsRow, useRedNews } from "@/components/home/next-news";
 
 const POS = "var(--color-green)", NEG = "var(--color-red)";
 const DISPLAY = { fontFamily: "var(--font-home-display), var(--font-ui), system-ui, sans-serif" } as const;
@@ -54,6 +55,12 @@ export function HomeTab() {
     return Array.isArray(rule?.params.sessions) ? (rule.params.sessions as string[]) : null;
   }, [activeStrategy]);
   const status = useMemo(() => sessionStatus(now, allowedSessions), [now, allowedSessions]);
+  const blackoutMinutes = useMemo(() => {
+    const rule = activeStrategy?.rules.find(item => item.ruleType === "news_blackout" && item.enabled);
+    const minutes = Number(rule?.params.minutes);
+    return Number.isFinite(minutes) && minutes > 0 ? minutes : null;
+  }, [activeStrategy]);
+  const redNews = useRedNews(now, blackoutMinutes);
   const today = useMemo(() => summarizeToday(visibleTrades, timezone, now, limits), [visibleTrades, timezone, now, limits]);
   const days = useMemo(() => lastDays(visibleTrades, timezone, 14, now), [visibleTrades, timezone, now]);
   const unmarked = useMemo(() => unmarkedTrades(visibleTrades), [visibleTrades]);
@@ -99,8 +106,10 @@ export function HomeTab() {
             : status.current && <><span className="text-foreground">{t(status.current.label)}</span> · {t("until {time}", { time: when(status.current.endsAt) })}{status.allowed !== null && <> · <span style={{ color: status.allowed ? POS : NEG }}>{status.allowed ? t("allowed by the strategy") : t("not in the strategy")}</span></>}</>}
             {status.nextAllowed && <span className="block">{t("Next allowed: {session} at {time}", { session: t(status.nextAllowed.label), time: when(status.nextAllowed.startsAt) })}</span>}
           </dd></div>
+          <NextNewsRow now={now} news={redNews} />
           {activeAccount?.accountType === "prop" && <div className="flex items-baseline justify-between gap-6"><dt className="text-sm text-foreground">{t("Room to daily limit")}</dt><dd className="m-0 text-sm tabular-nums text-muted-foreground">{room ? t("≈ {room} of {limit} {currency}", { room: fmt.num(room.room, 2), limit: fmt.num(room.limit, 2), currency: activeAccount.currency }) : t("not set in the rules")}</dd></div>}
         </dl>
+        <NewsWindowWarning now={now} news={redNews} />
         {(limitHit || (room !== null && room.room <= 0)) && <p role="status" className="m-0 max-w-md rounded-xl border px-4 py-3 text-sm" style={{ borderColor: NEG, color: NEG }}>{t("Daily limit reached — the strategy says stop for today.")}</p>}
       </div>
       <DayDial trades={todayDots} timezone={timezone} now={now} netToday={today.netPnl} />
