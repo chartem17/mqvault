@@ -151,3 +151,14 @@ test("nearest trade edge", () => {
   assert.deepEqual(m.nearestTradeEdge(-60, null), { edge: "entry", minutes: -60 }, "open trade: entry only, 60 is inside");
   assert.equal(m.nearestTradeEdge(300, null), null);
 });
+
+test("split by red news at entry or exit", () => {
+  const trades = [trade("near", "EURUSD", 10, 30, 20, 1), trade("swing", "EURUSD", -300, 300, -10, -0.5), trade("clear", "GBPJPY", 0, 20, 5, 0.2), trade("missing", "EURUSD", 0, 20, 7, 0.3)];
+  const map = new Map(m.summarizeTradesNews(trades.slice(0, 3), [nfp, ecb]).map(s => [s.tradeId, s]));
+  const split = m.splitByEdgeNews(trades, map);
+  assert.equal(split.withNews.trades, 1, "only the trade opened 10 min after NFP");
+  assert.equal(split.withNews.totalNet, 20);
+  assert.equal(split.withoutNews.trades, 2, "the swing held through NFP is not 'near'; GBPJPY has no USD/EUR leg");
+  assert.equal(split.withoutNews.totalNet, -5);
+  assert.equal(split.unchecked, 1);
+});

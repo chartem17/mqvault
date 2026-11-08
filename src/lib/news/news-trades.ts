@@ -234,6 +234,26 @@ export function newsStats(trades: NewsTradeInput[]): NewsStats {
   };
 }
 
+export type EdgeNewsSplit = {
+  /** Trades with a red release within NEWS_EDGE_MINUTES of entry or exit. */
+  withNews: NewsStats;
+  withoutNews: NewsStats;
+  /** Trades the calendar did not cover (no summary); counted in neither group. */
+  unchecked: number;
+};
+
+/** Splits trades by "red news within 1 h of entry or exit" — the same rule the UI shows next to a trade. */
+export function splitByEdgeNews(trades: readonly NewsTradeInput[], byTrade: ReadonlyMap<string, TradeNewsSummary>, maxMinutes = NEWS_EDGE_MINUTES): EdgeNewsSplit {
+  const withNews: NewsTradeInput[] = [], withoutNews: NewsTradeInput[] = [];
+  let unchecked = 0;
+  for (const trade of trades) {
+    const summary = byTrade.get(trade.id);
+    if (!summary) { unchecked++; continue; }
+    (edgeNewsLinks(summary.links, maxMinutes).length ? withNews : withoutNews).push(trade);
+  }
+  return { withNews: newsStats(withNews), withoutNews: newsStats(withoutNews), unchecked };
+}
+
 export type NewsGroupStats = NewsStats & { key: string; label: string; currency: string | null };
 export type NewsImpactReport = {
   buckets: Record<NewsBucket, NewsStats>;
