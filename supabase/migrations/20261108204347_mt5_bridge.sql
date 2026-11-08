@@ -1,5 +1,5 @@
 -- MQVault Bridge, stage 1 (ADR 0015, docs/features/mt5-bridge.md §6).
--- NOT APPLIED until the owner approves it.
+-- Approved by the owner 2026-11-08.
 --
 -- Same access model as every other table: RLS on, no client policies, the server talks to the database with the
 -- service key only. Nothing here changes existing tables; deleting an account or a trade keeps working unchanged:
