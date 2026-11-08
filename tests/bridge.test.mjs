@@ -303,3 +303,16 @@ test("deal batches are bounded and strictly typed", () => {
   assert.equal(payload.parseDealsBatch({ account: { server: "S", login: "1" }, deals: Array(1001).fill(raw) }), null);
   assert.equal(payload.parseDealsBatch({ account: { server: "S", login: "1", password: "x" }, deals: [] }), null);
 });
+
+// ---------- cross-language vector (bridge/app/tests/vector.json, produced by the Python Bridge) ----------
+test("a request signed by the Python Bridge verifies on the server", async () => {
+  const { readFileSync } = await import("node:fs");
+  const vector = JSON.parse(readFileSync(new URL("../bridge/app/tests/vector.json", import.meta.url), "utf8"));
+  const canonical = sig.canonicalString(vector.method, vector.path, vector.time_ms, vector.seq, await sig.sha256Hex(vector.body));
+  assert.equal(canonical, vector.canonical);
+  const signature = Uint8Array.from(Buffer.from(vector.signature_der, "base64"));
+  assert.equal(await sig.verifySignature(vector.public_key, canonical, signature), true);
+  assert.equal(await sig.verifySignature(vector.public_key, canonical.replace("heartbeat", "deals"), signature), false);
+  const headers = sig.parseSignedHeaders(name => ({ "x-mqv-device": "8c1f2a3b-0000-4000-8000-000000000001", "x-mqv-seq": String(vector.seq), "x-mqv-time": String(vector.time_ms), "x-mqv-sig": vector.signature_der })[name] ?? null);
+  assert.equal(headers.seq, vector.seq, "microsecond-based seq fits the header format");
+});
