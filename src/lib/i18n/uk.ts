@@ -212,6 +212,7 @@ export const uk: Dictionary = {
   "Filters": "Фільтри",
   "First undo or wait for the pending trade deletions of this account to finish. Then press Delete again.": "Спочатку скасуйте або дочекайтеся завершення видалення окремих угод цього рахунку. Потім натисніть «Видалити» знову.",
   "Fixed {offset} (no DST)": "Фіксований {offset} (без літнього часу)",
+  "MT5 server: New York +7 ({offset})": "Сервер MT5: Нью-Йорк +7 ({offset})",
   "Followed": "Дотримано",
   "Followed: {followed}, violated: {violated}.": "Дотримання: {followed}, порушення: {violated}.",
   "For example: TS Base": "Наприклад: TS Base",

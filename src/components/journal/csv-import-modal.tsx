@@ -121,7 +121,7 @@ export function CsvImportModal({ open, accounts, defaultAccountId, onClose, onIm
               <Select value={accountId} onChange={event => setAccountId(event.target.value)} aria-label={t("Account")}>{accounts.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</Select>
             </label>
             <label className="space-y-1.5 text-sm"><span className="font-medium">{t("Time zone of the times in the file")}</span>
-              <TimezoneSelect value={zone} onChange={setZone} aria-label={t("Time zone of the times in the file")} />
+              <TimezoneSelect broker value={zone} onChange={setZone} aria-label={t("Time zone of the times in the file")} />
               <span className="block text-xs text-muted-foreground">{t("Defaults to the broker time zone of the account.")}</span>
             </label>
           </section>
