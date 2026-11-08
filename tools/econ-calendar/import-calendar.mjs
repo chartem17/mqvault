@@ -5,7 +5,7 @@
 //   node --experimental-strip-types tools/econ-calendar/import-calendar.mjs <clean.csv> --apply   # upsert in batches
 //
 // --apply needs NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY in the environment and the
-// migration 20261108180000_news_events_calendar_fields applied. It calls the import_news_events RPC,
+// migration 20261108171403_news_events_calendar_fields applied. It calls the import_news_events RPC,
 // which writes only rows that changed, so re-running the same file is safe.
 // Production import only after the owner's explicit approval (CLAUDE.md). Never commit the CSV.
 

@@ -40,7 +40,7 @@ VALUES ('NZD', 'Trade Balance', 'low', '2026-10-18T21:45:00Z', 'faireconomy', 'N
        ('ALL', 'IMF Meetings', 'low', '2026-10-18T14:15:00Z', 'faireconomy', 'ALL|IMF Meetings|2026-10-18T14:15:00.000Z', 'ALL', NULL, NULL, '{}');
 CREATE TEMP TABLE original_events AS SELECT * FROM public.news_events;
 
-\ir ../supabase/migrations/20261108180000_news_events_calendar_fields.sql
+\ir ../supabase/migrations/20261108171403_news_events_calendar_fields.sql
 
 DO $$
 DECLARE

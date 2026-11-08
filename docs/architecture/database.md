@@ -13,7 +13,7 @@ Supabase (Postgres 17), проєкт `mqvault-dev`. Схему знято з ж�
 | `journal_trades` | Угоди | `source`, `opened_at`/`closed_at` (timestamptz), `gross_pnl`, `commission`, `swap`, `fee`, `net_pnl`, `result_r`, `session`, `setup`, `emotion`, `mistake`, `screenshot_url`, поля нормалізації символу (`normalized_symbol`, `asset_class`, …), `meta` |
 | `strategy_rules` | Стратегії (правила) | `account_id`, `definition` (jsonb), `source_strategy_id` (копія зі стратегії) |
 | `strategy_checks` | Результат перевірки угоди стратегією | `trade_id`, `strategy_rule_id`, `passed`, `reasons`. Порожня, у коді поки не використовується (перевірки рахуються на льоту в `lib/strategy-control`) |
-| `news_events` | Економічні новини/календар, одна таблиця на весь сайт ([ADR 0013](../decisions/0013-economic-calendar-source.md)) | `event_time`, `impact`, `currency`, `actual/forecast/previous` (текст для показу), `source`, `external_id`; після міграції `20261108180000` — `*_value` (числа), `event_type`, `all_day`, `forecast_suspect`, `license_scope` |
+| `news_events` | Економічні новини/календар, одна таблиця на весь сайт ([ADR 0013](../decisions/0013-economic-calendar-source.md)) | `event_time`, `impact`, `currency`, `actual/forecast/previous` (текст для показу), `source`, `external_id`; після міграції `20261108171403` — `*_value` (числа), `event_type`, `all_day`, `forecast_suspect`, `license_scope` |
 | `trade_news_links` | Зв'язок угод із новинами | `trade_id`, `news_event_id`, `minutes_diff`, `relation_type`, `window_minutes` |
 | `market_instruments` | Список інструментів для вкладки Market | `provider` (binance/twelve-data), `provider_symbol`, `is_active`, `sort_order` |
 | `journal_layout_preferences` | Розкладка колонок журналу | PK `user_id`, `layout` jsonb ≤ 4 КБ, `revision` (оптимістичний контроль) |
@@ -54,7 +54,7 @@ app_users ─┬─< accounts ─┬─< journal_trades ─┬─< strategy_chec
 | `20261031000150 journal_layout_preferences` | розкладка журналу |
 | `20261106165747 dashboard_layout_preferences` | розкладка дашборду |
 | `20261107120100 index_cleanup` | прибрано 4 дублікати індексів, індекси для 3 FK |
-| `20261108180000 news_events_calendar_fields` | **ще не застосовано** (гілка `feat/economic-calendar`, чекає погодження): поля календаря MT5, числові значення, `license_scope`, RPC `import_news_events` ([ADR 0013](../decisions/0013-economic-calendar-source.md)) |
+| `20261108171403 news_events_calendar_fields` | **ще не застосовано** (гілка `feat/economic-calendar`, чекає погодження): поля календаря MT5, числові значення, `license_scope`, RPC `import_news_events` ([ADR 0013](../decisions/0013-economic-calendar-source.md)) |
 
 Що лишається:
 
