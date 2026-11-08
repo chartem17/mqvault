@@ -161,6 +161,38 @@ class SenderTest(unittest.TestCase):
         for (status, error), expected in cases.items():
             self.assertEqual(decide(Response(status, {"error": error} if error else {})), expected, (status, error))
 
+    def test_sender_uses_its_own_outbox_connection_in_its_thread(self):
+        """Regression (e2e 2026-11-08): the connection was made in the supervisor thread and the sender thread crashed."""
+        import threading
+        from mqvault_bridge.sender import Sender
+
+        class FakeClient:
+            def __init__(self, state):
+                self.state, self.sent = state, []
+
+            def signed(self, method, path, payload, signer_id):
+                self.sent.append(path)
+                return Response(200, {})
+
+        with tempfile.TemporaryDirectory() as folder:
+            path = pathlib.Path(folder) / "outbox.sqlite"
+            box = Outbox(path)
+            box.put_heartbeat("a", {"n": 1})
+            box.put_deals("a", [{"d": 1}])
+            box.close()
+            state = StateFile(pathlib.Path(folder) / "state.json")
+            state.state.device_id = "d"
+            client, stop = FakeClient(state), threading.Event()
+            sender = Sender(client, path, stop)
+            sender.start()
+            deadline = time.time() + 10
+            while len(client.sent) < 2 and time.time() < deadline:
+                time.sleep(0.05)
+            stop.set()
+            sender.join(5)
+            self.assertEqual(client.sent, ["/api/bridge/device/heartbeat", "/api/bridge/device/deals"])
+            self.assertEqual(sender.status, "online")
+
     def test_backoff_is_bounded(self):
         self.assertLessEqual(max(backoff(n) for n in range(50)), 300)
         self.assertGreater(backoff(0), 0)

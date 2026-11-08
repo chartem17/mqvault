@@ -81,12 +81,17 @@ def run(server: str, show_code, stop: threading.Event, open_browser: bool = True
         return 0
 
     outbox_path = home / "outbox.sqlite"
-    sender = Sender(client, Outbox(outbox_path), stop)
+    Outbox(outbox_path).close()  # create the schema before any process uses the file
+    sender = Sender(client, outbox_path, stop)
     sender.start()
     workers = Workers(str(outbox_path))
     log.info("running, version %s", config.VERSION)
     try:
         while not stop.is_set():
+            if not sender.is_alive():  # never expected (the loop catches errors), but a dead sender would stop all syncing
+                log.error("sender thread stopped; restarting")
+                sender = Sender(client, outbox_path, stop)
+                sender.start()
             workers.tick(running_terminals())
             stop.wait(config.TERMINAL_SCAN_SECONDS)
     finally:
