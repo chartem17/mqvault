@@ -35,3 +35,22 @@ export function terminalAccountState(row: { account_id: string | null; matched_a
   if (row.account_id) return "linked";
   return row.matched_at ? "ignored" : "new";
 }
+
+export type ReviewDecision = { id: string; decision: "confirm" | "ignore" };
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Owner's answer to "new MT5 account found": keep it (after setting the type in the journal) or stop syncing it. */
+export function parseReviewDecision(body: unknown): ReviewDecision | null {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return null;
+  const row = body as Record<string, unknown>;
+  if (Object.keys(row).some(key => key !== "id" && key !== "decision")) return null;
+  if (typeof row.id !== "string" || !UUID.test(row.id)) return null;
+  if (row.decision !== "confirm" && row.decision !== "ignore") return null;
+  return { id: row.id.toLowerCase(), decision: row.decision };
+}
+
+/** Suggested starting balance / prop size: the sum of deposits (balance deals with a positive amount). */
+export function depositsTotal(balanceDeals: readonly { type: number; profit: number }[]): number | null {
+  const total = balanceDeals.filter(deal => deal.type === 2 && deal.profit > 0).reduce((sum, deal) => sum + deal.profit, 0);
+  return total > 0 ? Math.round(total * 100) / 100 : null;
+}

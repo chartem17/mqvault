@@ -316,3 +316,14 @@ test("a request signed by the Python Bridge verifies on the server", async () =>
   const headers = sig.parseSignedHeaders(name => ({ "x-mqv-device": "8c1f2a3b-0000-4000-8000-000000000001", "x-mqv-seq": String(vector.seq), "x-mqv-time": String(vector.time_ms), "x-mqv-sig": vector.signature_der })[name] ?? null);
   assert.equal(headers.seq, vector.seq, "microsecond-based seq fits the header format");
 });
+
+test("the owner's answer about a new MT5 account is parsed strictly; deposits suggest the starting balance", () => {
+  const id = "8C1F2A3B-0000-4000-8000-000000000001";
+  assert.deepEqual(match.parseReviewDecision({ id, decision: "confirm" }), { id: id.toLowerCase(), decision: "confirm" });
+  assert.deepEqual(match.parseReviewDecision({ id, decision: "ignore" }), { id: id.toLowerCase(), decision: "ignore" });
+  assert.equal(match.parseReviewDecision({ id, decision: "delete" }), null);
+  assert.equal(match.parseReviewDecision({ id, decision: "confirm", account_type: "prop" }), null);
+  assert.equal(match.parseReviewDecision({ id: "x", decision: "confirm" }), null);
+  assert.equal(match.depositsTotal([{ type: 2, profit: 10000 }, { type: 2, profit: 5000.004 }, { type: 2, profit: -2000 }, { type: 0, profit: 300 }]), 15000);
+  assert.equal(match.depositsTotal([{ type: 0, profit: 300 }]), null);
+});

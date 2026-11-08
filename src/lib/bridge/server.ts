@@ -8,6 +8,7 @@ import { derivedFinancials } from "@/lib/journal/trade-financials";
 import { canonicalString, clockSkewOk, MAX_BODY_BYTES, parseSignedHeaders, sha256Hex, verifySignature } from "./signature";
 import { buildTrades, type Mt5Deal, type Mt5Order } from "./deals-to-trades";
 import { planSync, type JournalTradeRef, type PositionLink } from "./trade-sync";
+import { depositsTotal } from "./account-match";
 
 export type Db = ReturnType<typeof createServerSupabase>;
 export const json = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: { "Cache-Control": "no-store" } });
@@ -84,9 +85,15 @@ export type SyncResult = { inserted: number; updated: number; skipped_deleted: n
  */
 export async function syncPositions(db: Db, terminal: { id: string; user_id: string; account_id: string }, positionIds: number[] | "all"): Promise<SyncResult> {
   const result: SyncResult = { inserted: 0, updated: 0, skipped_deleted: 0 };
-  if (positionIds !== "all" && positionIds.length === 0) return result;
-  const { data: account } = await db.from("accounts").select("id, broker_timezone").eq("id", terminal.account_id).eq("user_id", terminal.user_id).maybeSingle();
+  const { data: account } = await db.from("accounts").select("id, broker_timezone, initial_balance").eq("id", terminal.account_id).eq("user_id", terminal.user_id).maybeSingle();
   if (!account) return result;
+  if (account.initial_balance === null) {
+    // An account the Bridge created starts with the broker's deposits as its starting balance (never overwrites the owner's value).
+    const { data: deposits } = await db.from("bridge_deals").select("type, profit").eq("terminal_account_id", terminal.id).eq("type", 2).limit(1000);
+    const total = depositsTotal((deposits ?? []).map(deal => ({ type: Number(deal.type), profit: Number(deal.profit) })));
+    if (total !== null) await db.from("accounts").update({ initial_balance: total }).eq("id", terminal.account_id).eq("user_id", terminal.user_id).is("initial_balance", null);
+  }
+  if (positionIds !== "all" && positionIds.length === 0) return result;
 
   const page = async <T>(table: "bridge_deals" | "bridge_orders", columns: string): Promise<T[]> => {
     const rows: T[] = [];
