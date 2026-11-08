@@ -18,6 +18,7 @@ Supabase (Postgres 17), проєкт `mqvault-dev`. Схему знято з ж�
 | `market_instruments` | Список інструментів для вкладки Market | `provider` (binance/twelve-data), `provider_symbol`, `is_active`, `sort_order` |
 | `journal_layout_preferences` | Розкладка колонок журналу | PK `user_id`, `layout` jsonb ≤ 4 КБ, `revision` (оптимістичний контроль) |
 | `dashboard_layout_preferences` | Розкладка віджетів «Огляду» | PK `user_id`, `layout` jsonb ≤ 8 КБ, `revision` |
+| `bridge_*` (7 таблиць) | MQVault Bridge: підключені ПК, рахунки MT5, сирі deals/ордери, зв'язок позиція → угода | **Ще не застосовано** — міграція `20261108150000_mt5_bridge.sql` чекає погодження; див. [features/mt5-bridge.md §6, §9.4](../features/mt5-bridge.md) |
 | `mt5_import_runs`, `mt5_deals_raw`, `broker_symbols` | Залишки MT5-імпорту | Порожні (0 рядків на 2026-11-07), у коді не використовуються: локальний міст виведено з експлуатації. Лишаються як основа майбутньої синхронізації; видаляти лише після рішення |
 
 ### Зв'язки
