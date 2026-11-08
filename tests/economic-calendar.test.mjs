@@ -115,3 +115,51 @@ test("DB row → API event", () => {
   assert.equal(event.tentative, false);
   assert.equal(m.toCalendarEvent({ ...event, id: "y", event_time: event.time, impact: "Unknown", event_type: null, all_day: null, actual_value: null, forecast_value: null, forecast_suspect: null }).impact, "none");
 });
+
+const RAW = {
+  value_id: "200001", event_id: "840030016", event_code: "nonfarm-payrolls", event_name: "Nonfarm Payrolls", country_code: "US", currency: "USD",
+  importance: "CALENDAR_IMPORTANCE_HIGH", event_type: "CALENDAR_TYPE_INDICATOR", sector: "CALENDAR_SECTOR_JOBS", frequency: "CALENDAR_FREQUENCY_MONTH",
+  time_mode: "CALENDAR_TIMEMODE_DATETIME", unit: "CALENDAR_UNIT_JOB", multiplier: "CALENDAR_MULTIPLIER_THOUSANDS", digits: 0,
+  server_time: "2024.01.05 15:30:00", period: "2023-12-01", revision: 0, actual: "216.000000", forecast: "170.000000", previous: "199.000000", revised_previous: "173.000000",
+};
+
+test("raw MT5 value → clean record (same rules as clean_calendar.py)", () => {
+  const { record } = m.cleanRecordFromMt5(RAW, 120);
+  assert.equal(record.scheduled_at, "2024-01-05T13:30:00Z", "server time minus the current server offset");
+  assert.equal(record.impact, "high");
+  assert.equal(record.event_type, "indicator");
+  assert.equal(record.sector, "jobs");
+  assert.equal(record.frequency, "month");
+  assert.equal(record.unit, "job");
+  assert.equal(record.multiplier, "thousands");
+  assert.equal(record.all_day, "false");
+  assert.equal(record.forecast_suspect, "false");
+  const { row } = m.calendarRowFromCsv(record);
+  assert.equal(row.actual, "216K");
+  assert.equal(row.previous, "173K");
+
+  assert.equal(m.cleanRecordFromMt5({ ...RAW, importance: "CALENDAR_IMPORTANCE_MODERATE" }, 0).record.impact, "medium");
+  const holiday = m.cleanRecordFromMt5({ ...RAW, event_type: "CALENDAR_TYPE_HOLIDAY", importance: "CALENDAR_IMPORTANCE_NONE", time_mode: "CALENDAR_TIMEMODE_DATE", period: "1970-01-01" }, 0).record;
+  assert.equal(holiday.impact, "holiday");
+  assert.equal(holiday.all_day, "true");
+  assert.equal(holiday.period, "");
+  assert.equal(m.cleanRecordFromMt5({ ...RAW, time_mode: "CALENDAR_TIMEMODE_TENTATIVE" }, 0).record.tentative, "true");
+  assert.equal(m.cleanRecordFromMt5({ ...RAW, server_time: "2024-01-05 00:30" }, -300).record.scheduled_at, "2024-01-05T05:30:00Z");
+
+  assert.ok(m.cleanRecordFromMt5({ ...RAW, value_id: "" }, 0).error);
+  assert.ok(m.cleanRecordFromMt5({ ...RAW, value_id: "1; drop" }, 0).error);
+  assert.ok(m.cleanRecordFromMt5({ ...RAW, server_time: "yesterday" }, 0).error);
+  assert.ok(m.cleanRecordFromMt5(RAW, 1000).error, "offset beyond ±14 h");
+  assert.ok(m.cleanRecordFromMt5({ ...RAW, importance: "SOMETHING" }, 0).error);
+});
+
+test("suspect forecast: far from previous and actual relative to the series' typical change", () => {
+  const series = [150, 180, 160, 200, 170, 190, 210, 175];   // median |Δ| = 30
+  assert.equal(m.forecastLooksSuspect(78356, 199, 216, series), true, "NFP 2020-style glitch");
+  assert.equal(m.forecastLooksSuspect(170, 199, 216, series), false);
+  assert.equal(m.forecastLooksSuspect(1, 199, 216, series), false, "198 away < 8 × 30: not caught (known gap)");
+  assert.equal(m.forecastLooksSuspect(78356, 199, 216, series.slice(0, 6)), false, "needs ≥ 6 changes");
+  assert.equal(m.forecastLooksSuspect(null, 199, 216, series), false);
+  assert.equal(m.forecastLooksSuspect(5000, null, null, series), false);
+  assert.equal(m.forecastLooksSuspect(5000, 1, 1, [1, 1, 1, 1, 1, 1, 1, 1]), false, "flat series has no scale");
+});

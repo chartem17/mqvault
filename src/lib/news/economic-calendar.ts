@@ -303,3 +303,82 @@ export function toCalendarEvent(row: NewsEventRecord): CalendarEvent {
     source: row.source,
   };
 }
+
+// ---------- raw MT5 values (live sync) ----------
+
+/**
+ * One value as the MT5 EA sends it: the same fields as the raw export CSV (see
+ * tools/mt5/MQVault_CalendarExport.mq5), enums as MQL5 names, values as decimal strings, time in server time.
+ */
+export type Mt5RawValue = Record<string, string | number | null | undefined>;
+
+const str = (v: string | number | null | undefined) => (v === null || v === undefined ? "" : String(v)).trim();
+const stripEnum = (v: string, prefix: string) => str(v).replace(prefix, "").toLowerCase();
+const RAW_IMPORTANCE: Record<string, CalendarImpact> = { HIGH: "high", MODERATE: "medium", LOW: "low", NONE: "none" };
+
+/**
+ * Raw MT5 value → record in the clean CSV shape (same rules as clean_calendar.py), ready for
+ * calendarRowFromCsv. UTC = server time − the server's current offset (MT5 reports all times with it).
+ * forecast_suspect is left "false": it needs the series history (see forecastLooksSuspect).
+ */
+export function cleanRecordFromMt5(raw: Mt5RawValue, offsetMinutes: number): { record: Record<string, string> } | { error: string } {
+  const valueId = str(raw.value_id), eventId = str(raw.event_id);
+  if (!/^\d{1,20}$/.test(valueId) || !/^\d{1,20}$/.test(eventId)) return { error: "missing value_id or event_id" };
+  if (!Number.isInteger(offsetMinutes) || Math.abs(offsetMinutes) > 14 * 60) return { error: "invalid server offset" };
+  const m = /^(\d{4})[-.](\d{2})[-.](\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/.exec(str(raw.server_time));
+  if (!m) return { error: "invalid server_time" };
+  const serverMs = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] ?? 0));
+  const utc = new Date(serverMs - offsetMinutes * 60_000);
+  if (Number.isNaN(utc.getTime())) return { error: "invalid server_time" };
+  const eventType = stripEnum(str(raw.event_type), "CALENDAR_TYPE_");
+  const importance = RAW_IMPORTANCE[str(raw.importance).split("_").pop() ?? ""];
+  if (eventType !== "holiday" && !importance) return { error: `unknown importance "${str(raw.importance)}"` };
+  const timeMode = str(raw.time_mode);
+  const period = str(raw.period);
+  return {
+    record: {
+      source: "mt5",
+      source_event_id: valueId,
+      mt5_event_id: eventId,
+      event_code: str(raw.event_code),
+      title: str(raw.event_name),
+      country: str(raw.country_code),
+      currency: str(raw.currency),
+      impact: eventType === "holiday" ? "holiday" : importance,
+      event_type: eventType,
+      sector: stripEnum(str(raw.sector), "CALENDAR_SECTOR_"),
+      frequency: stripEnum(str(raw.frequency), "CALENDAR_FREQUENCY_"),
+      all_day: String(timeMode === "CALENDAR_TIMEMODE_DATE"),
+      tentative: String(timeMode === "CALENDAR_TIMEMODE_TENTATIVE"),
+      scheduled_at: utc.toISOString().replace(".000Z", "Z"),
+      period: period.startsWith("1970") ? "" : period,
+      revision: str(raw.revision),
+      actual: str(raw.actual),
+      forecast: str(raw.forecast),
+      previous: str(raw.previous),
+      revised_previous: str(raw.revised_previous),
+      unit: stripEnum(str(raw.unit), "CALENDAR_UNIT_"),
+      multiplier: stripEnum(str(raw.multiplier), "CALENDAR_MULTIPLIER_"),
+      digits: str(raw.digits),
+      forecast_suspect: "false",
+    },
+  };
+}
+
+/**
+ * Same rule as clean_calendar.py: a forecast is suspect when it is farther than 8× the series' typical
+ * release-to-release change (median of |Δactual|, needs ≥ 6 changes) from both previous and actual.
+ * `seriesActuals` are the series' actual values in time order.
+ */
+export function forecastLooksSuspect(forecast: number | null, previous: number | null, actual: number | null, seriesActuals: number[]): boolean {
+  if (forecast === null) return false;
+  const refs = [previous, actual].filter((v): v is number => v !== null);
+  if (!refs.length) return false;
+  const diffs = seriesActuals.slice(1).map((v, i) => Math.abs(v - seriesActuals[i]));
+  if (diffs.length < 6) return false;
+  const sorted = [...diffs].sort((a, b) => a - b);
+  const mid = sorted.length >> 1;
+  const scale = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  if (scale === 0) return false;
+  return Math.min(...refs.map(v => Math.abs(forecast - v))) > 8 * scale;
+}
