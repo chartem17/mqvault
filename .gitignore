@@ -40,3 +40,7 @@ pnpm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+# Economic calendar data (licensed for private use only, never commit)
+mqvault_cal*.csv
+mqvault_calendar*.csv
+tools/econ-calendar/data/
