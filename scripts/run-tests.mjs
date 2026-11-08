@@ -40,6 +40,7 @@ const builds = [
   [["src/lib/time/trading-calendar.ts"], ".tmp-date-tests", [...dom, "--strict"]],
   [["src/lib/i18n/core.ts", "src/lib/i18n/uk.ts"], ".tmp-i18n-tests", ["--strict"]],
   [["src/lib/news/economic-calendar.ts"], ".tmp-economic-calendar-tests", ["--strict"]],
+  [["src/lib/news/news-trades.ts"], ".tmp-news-trades-tests", ["--strict"]],
 ];
 
 const tsc = join("node_modules", "typescript", "bin", "tsc");
