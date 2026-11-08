@@ -115,3 +115,20 @@ test("report: buckets, relations, per currency and per event with n", () => {
   assert.deepEqual(report.byCurrency.map(g => [g.key, g.trades]), [["USD", 3], ["EUR", 1]]);
   assert.deepEqual(report.byEvent.map(g => [g.key, g.label, g.trades]), [["USD:nonfarm-payrolls", "Nonfarm Payrolls", 3], ["EUR:ecb-rate", "ECB Rate Decision", 1]]);
 });
+
+test("upcoming releases: future only, soonest first, no all-day", () => {
+  const ev = (id, min, extra = {}) => ({ id, title: id, currency: "USD", impact: "high", time: at(min), ...extra });
+  const list = [ev("past", -1), ev("later", 90), ev("soon", 5), ev("allday", 1, { allDay: true }), ev("now", 0), ev("bad", 0, { time: "x" })];
+  assert.deepEqual(m.upcomingEvents(list, T).map(e => e.id), ["now", "soon", "later"]);
+  assert.deepEqual(m.upcomingEvents(list, T, 1).map(e => e.id), ["now"]);
+});
+
+test("active red-news window: ±N around high releases only", () => {
+  const ev = (id, min, impact = "high") => ({ id, title: id, currency: "USD", impact, time: at(min) });
+  assert.equal(m.activeNewsWindow([ev("a", 20)], T, 15), null, "starts 5 min from now");
+  assert.equal(m.activeNewsWindow([ev("a", 10, "medium")], T, 15), null);
+  const w = m.activeNewsWindow([ev("a", 10), ev("b", -14)], T, 15);
+  assert.equal(w.event.id, "a", "latest-ending window wins");
+  assert.equal(w.endsAt, at(25));
+  assert.equal(m.activeNewsWindow([ev("a", -15)], T, 15).endsAt, at(0), "edge is inside");
+});

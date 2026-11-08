@@ -244,3 +244,31 @@ export function newsImpactReport(trades: NewsTradeInput[], summaries: TradeNewsS
     byEvent: [...eventsMap].map(([k, v]) => group(k, v.label, v.currency, v.ids)).sort((a, b) => b.trades - a.trades || a.key.localeCompare(b.key)),
   };
 }
+
+// ---------- upcoming releases ----------
+
+export type UpcomingEvent = { id: string; title: string; currency: string | null; impact: string; time: string };
+
+/** Releases that have not happened yet (time ≥ now), soonest first; all-day items are skipped. */
+export function upcomingEvents<T extends UpcomingEvent & { allDay?: boolean }>(events: T[], now: number, limit = 3): T[] {
+  return events
+    .filter(e => !e.allDay && Number.isFinite(Date.parse(e.time)) && Date.parse(e.time) >= now)
+    .sort((a, b) => Date.parse(a.time) - Date.parse(b.time))
+    .slice(0, limit);
+}
+
+/**
+ * The red-news window the user is in right now, for the "±N minutes" rule: the release whose window
+ * [T − N, T + N] contains now (the latest-ending one when windows overlap), and when it ends. Null when clear.
+ */
+export function activeNewsWindow<T extends UpcomingEvent>(events: T[], now: number, minutes: number): { event: T; endsAt: string } | null {
+  let best: { event: T; end: number } | null = null;
+  for (const event of events) {
+    if (event.impact !== "high") continue;
+    const at = Date.parse(event.time);
+    if (!Number.isFinite(at)) continue;
+    const start = at - minutes * MIN, end = at + minutes * MIN;
+    if (now >= start && now <= end && (!best || end > best.end)) best = { event, end };
+  }
+  return best ? { event: best.event, endsAt: new Date(best.end).toISOString() } : null;
+}
