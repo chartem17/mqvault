@@ -10,7 +10,7 @@ import { defaultZonedPeriod, isInZonedPeriod } from "@/lib/time/trading-calendar
 import { useTimezone } from "@/components/providers/timezone-provider";
 import { ShieldCheck, AlertTriangle, TrendingUp, Target, Scale, X } from "lucide-react";
 import { useTrades } from "@/hooks/use-trades";
-import { useTradeNews } from "@/hooks/use-trade-news";
+import { tradeNewsKey, useTradeNews } from "@/hooks/use-trade-news";
 import { useStrategies } from "@/hooks/use-strategies";
 import { analyzeTrades } from "@/lib/strategy-control/engine";
 import { ruleEvaluators, ruleLibrary } from "@/lib/strategy-control/rule-library";
@@ -83,7 +83,7 @@ function StrategyDetailsModal({ strategy, open, onClose }: { strategy: StrategyP
   </div></div>;
 }
 export function StrategyControlTab() {
-  const { visibleTrades, loading: tradesLoading, error: tradesError, activeAccountId } = useTrades();
+  const { trades: allTrades, visibleTrades, loading: tradesLoading, error: tradesError, activeAccountId } = useTrades();
   const { strategies, activeStrategy, setSelectedStrategyId, loading: strategiesLoading, saving, error: strategiesError, canCreate, createStrategy, duplicateStrategy, requestDelete, confirmation } = useStrategies();
   const loading = tradesLoading || strategiesLoading;
   const error = tradesError || strategiesError;
@@ -97,7 +97,7 @@ export function StrategyControlTab() {
   useEffect(() => { accountRef.current = activeAccountId; setSelectedFinding(null); setStrategyDetailsOpen(false); setBuilderOpen(false); }, [activeAccountId]);
   const filteredTrades = useMemo(() => visibleTrades.filter(trade => isInZonedPeriod(trade.opened_at, period, timezone)), [visibleTrades, period, timezone]);
   // Refetch news links when the set of trades or their entry times change.
-  const newsKey = useMemo(() => visibleTrades.map(trade => `${trade.id}@${trade.opened_at}@${trade.closed_at ?? ""}`).join("|"), [visibleTrades]);
+  const newsKey = useMemo(() => tradeNewsKey(allTrades), [allTrades]);
   const { byTrade: tradeNews } = useTradeNews(newsKey);
   const strategyTrades = useMemo(() => filteredTrades.map(trade => {
     const base = toStrategyControlTrade(trade, timezone);
