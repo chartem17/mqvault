@@ -59,7 +59,7 @@ export function reviewFromInput(input: unknown, now = new Date()): TradeReview |
 const filled = (value?: string | null) => Boolean(value?.trim());
 
 /** A trade needs review until it is marked reviewed or already carries both a setup and an emotion. */
-export function needsReview(trade: ReviewTrade): boolean {
+export function needsReview(trade: Pick<ReviewTrade, "setup" | "emotion" | "review">): boolean {
   if (trade.review?.reviewed_at) return false;
   return !filled(trade.setup) || !filled(trade.emotion);
 }

@@ -4,6 +4,7 @@ import { Suspense, useMemo, type Dispatch, type SetStateAction } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AppShellLayout from "@/components/layout/app-shell-layout";
 import { HomeTab } from "@/components/tabs/home-tab";
+import { WeeklyReportView } from "@/components/home/weekly-report";
 import { OverviewTab } from "@/components/tabs/overview-tab";
 import { JournalTab } from "@/components/tabs/journal-tab";
 import { MarketTab } from "@/components/tabs/market-tab";
@@ -23,7 +24,7 @@ function HomeContent() {
     const next = typeof value === "function" ? value(activeTab) : value;
     if (next === activeTab && focus.kind === "none") return;
     const params = new URLSearchParams(search.toString());
-    params.delete("focusTradeIds"); params.delete("review"); params.delete("gallery"); params.set("tab", next);
+    params.delete("focusTradeIds"); params.delete("review"); params.delete("gallery"); params.delete("report"); params.delete("week"); params.set("tab", next);
     router.push(`/?${params.toString()}`, { scroll: false });
   };
   function clearFocus() {
@@ -48,7 +49,7 @@ function HomeContent() {
   }
   function renderTab() {
     switch (activeTab) {
-      case "home": return <HomeTab />;
+      case "home": return search.get("report") === "week" ? <WeeklyReportView week={search.get("week")} /> : <HomeTab />;
       case "overview": return <OverviewTab />;
       case "journal": return <JournalTab key={focus.kind === "ids" ? `ids:${focus.ids.join(",")}` : focus.kind} focus={focus} onClearFocus={clearFocus} review={review} onReviewChange={setReview} gallery={gallery} onGalleryChange={setGallery} />;
       case "strategy-control": return <StrategyControlTab />;

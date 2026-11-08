@@ -5,6 +5,7 @@ import { useTrades } from "@/hooks/use-trades";
 import { useStrategies } from "@/hooks/use-strategies";
 import { useTimezone } from "@/components/providers/timezone-provider";
 import { DayDial } from "@/components/home/day-dial";
+import { WeeklySummary } from "@/components/home/weekly-report";
 import { Button } from "@/components/ui/primitives";
 import { dailyLossRoom, greetingFor, lastDays, summarizeToday, unmarkedTrades, type StrategyLimits } from "@/lib/dashboard/home-summary";
 import { sessionStatus } from "@/lib/dashboard/session-status";
@@ -132,5 +133,7 @@ export function HomeTab() {
         <div className="flex justify-between text-xs tabular-nums text-muted-foreground"><span>{days[0]?.day.slice(5).replace("-", ".")}</span><span>{days[days.length - 1]?.day.slice(5).replace("-", ".")}</span></div>
       </section>
     </div>
+
+    <WeeklySummary />
   </div>;
 }
