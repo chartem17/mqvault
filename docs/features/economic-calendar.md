@@ -1,6 +1,8 @@
 # Економічний календар і «Новини ↔ угоди»: передача роботи
 
-Статус: **дані зібрано, реалізації ще немає.** Документ підготовлено 2026-11-08 у чаті з власником. Наступна сесія Claude Code продовжує роботу в гілці `feat/economic-calendar` за цим документом.
+Статус (2026-11-08, пізніше): **кроки 1–4 виконано в гілці; міграція й імпорт у production чекають погодження власника.** Деталі — розділ «Стан виконання» внизу.
+
+Початковий статус: дані зібрано, реалізації ще немає. Документ підготовлено 2026-11-08 у чаті з власником. Наступна сесія Claude Code продовжує роботу в гілці `feat/economic-calendar` за цим документом.
 
 Перед початком прочитай `CLAUDE.md`, `docs/roadmap/ROADMAP.md` (пункт 4 «Новини ↔ угоди», розділ «Market, новини, календар») і `docs/architecture/database.md`.
 
@@ -80,3 +82,10 @@ revised_previous, unit, multiplier (none|thousands|millions|billions|trillions),
 - `npm run lint` → `npx tsc --noEmit` → `npm test` → `npm run build` перед кожним push. Нові модулі `src/lib/<домен>` з тестами додавай у `scripts/run-tests.mjs`.
 - Draft PR, без merge у `main` і без force-push. Після пакета онови `docs/roadmap/ROADMAP.md`; нове рішення оформи окремим ADR («Джерело економічного календаря»).
 - Зміни БД, імпорт у production, merge — тільки після явного «так» власника на конкретну дію.
+
+## Стан виконання (2026-11-08)
+
+- **Фактична схема** збігається з міграцією `20261022210508`: у `news_events` вже є `country`, `unit`, `updated_at` (без тригера), `payload jsonb`; `actual/forecast/previous` — `text` (FF дає рядки на кшталт `-775M`). У БД 86 рядків `faireconomy`, `trade_news_links` порожня. `anon`/`authenticated` мають табличні гранти, але RLS без політик їх блокує.
+- **Міграція** `supabase/migrations/20261108180000_news_events_calendar_fields.sql` — лише додає колонки (тип наявних не змінює), check-обмеження, індекси `(currency, impact, event_time)` і `(source_series_id, event_time)`, RPC `import_news_events(jsonb)` (лише `service_role`, запис тільки змінених рядків). `event_time desc` уже покриває діапазони, тож окремий `(event_time)` не потрібен. Довідник `event_key` відкладено до другого джерела.
+- **Імпорт:** `node --experimental-strip-types tools/econ-calendar/import-calendar.mjs <clean.csv>` (dry-run) → `--apply` з `NEXT_PUBLIC_SUPABASE_URL` і `SUPABASE_SECRET_KEY`. Дві події MT5 без назви (King's Birthday NZ/AU 2026) отримують назву з `event_code`.
+- **Застереження:** прогноз NFP за 2024-01-05 = 1K не позначений як suspect (відомо з даних); для «сюрпризу» по NFP потрібен додатковий фільтр на кроці 5.
