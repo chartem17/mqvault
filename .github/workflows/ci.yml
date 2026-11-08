@@ -60,3 +60,33 @@ jobs:
         env:
           PGPORT: ${{ job.services.postgres.ports[5432] }}
         run: psql --set=ON_ERROR_STOP=1 --file=tests/prop-rule-settings-migration.sql
+
+  news-calendar-migration:
+    name: News calendar migration SQL (disposable Postgres)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-disposable-only
+          POSTGRES_DB: news_calendar_ci
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U postgres -d news_calendar_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGHOST: 127.0.0.1
+      PGUSER: postgres
+      PGPASSWORD: ci-disposable-only
+      PGDATABASE: news_calendar_ci
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply migration test script
+        env:
+          PGPORT: ${{ job.services.postgres.ports[5432] }}
+        run: psql --set=ON_ERROR_STOP=1 --file=tests/news-events-calendar-migration.sql
