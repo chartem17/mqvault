@@ -7,10 +7,11 @@ import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, ChevronDown, Clock3, RefreshCw } from "lucide-react";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { useTimezone } from "@/components/providers/timezone-provider";
+import { zonedWeekRange } from "@/lib/time/timezone";
+import type { CalendarEvent } from "@/lib/news/economic-calendar";
 type Impact = "high" | "medium" | "low";
 type ViewMode = "calendar" | "exposure";
 export type CalendarTrade = { id?: string | number; symbol: string; openedAt: string | Date; closedAt?: string | Date | null };
-type RawEvent = { title: string; country: string; date: string; impact: string; forecast?: string; previous?: string; actual?: string };
 type EventItem = { id: string; ts: number; currency: string; impact: Impact; title: string; forecast: string; previous: string; actual: string; trades: CalendarTrade[] };
 const EXPOSURE_WINDOW_MS = 60 * 60 * 1000;
 const INDEX_CURRENCY: Record<string, string> = { US30: "USD", US500: "USD", SPX500: "USD", NAS100: "USD", USTEC: "USD", GER40: "EUR", DE40: "EUR", UK100: "GBP", JP225: "JPY", AUS200: "AUD" };
@@ -40,7 +41,7 @@ function tradeTouchesEvent(trade: CalendarTrade, currency: string, ts: number) {
   return open - EXPOSURE_WINDOW_MS <= ts && close + EXPOSURE_WINDOW_MS >= ts;
 }
 export function CalendarTab({ trades }: { trades?: CalendarTrade[] }) {
-  const [raw, setRaw] = useState<RawEvent[] | null>(null);
+  const [raw, setRaw] = useState<CalendarEvent[] | null>(null);
   const [error, setError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [mode, setMode] = useState<ViewMode>("calendar");
@@ -55,20 +56,23 @@ export function CalendarTab({ trades }: { trades?: CalendarTrade[] }) {
     let cancelled = false;
     setError(false);
     setRaw(null);
-    fetch("/api/economic-calendar")
+    const week = zonedWeekRange(Date.now(), timezone);
+    const query = new URLSearchParams({ from: new Date(week.from).toISOString(), to: new Date(week.to).toISOString() });
+    fetch(`/api/economic-calendar?${query}`)
       .then(r => (r.ok ? r.json() : Promise.reject()))
-      .then(data => {
+      .then((data: { events?: CalendarEvent[] }) => {
         if (cancelled) return;
-        if (Array.isArray(data)) { setRaw(data); } else { setError(true); }
+        if (Array.isArray(data?.events)) { setRaw(data.events); } else { setError(true); }
       })
       .catch(() => { if (!cancelled) setError(true); });
     return () => { cancelled = true; };
-  }, [reloadKey]);
+  }, [reloadKey, timezone]);
   const events = useMemo<EventItem[]>(() => {
     if (!raw) return [];
-    return raw.map((e, i) => {
-      const ts = new Date(e.date).getTime();
-      return { id: `${e.date}-${e.country}-${i}`, ts, currency: e.country, impact: mapImpact(e.impact), title: e.title, forecast: e.forecast || "—", previous: e.previous || "—", actual: e.actual || "—", trades: (trades ?? []).filter(t => tradeTouchesEvent(t, e.country, ts)) };
+    return raw.map(e => {
+      const ts = new Date(e.time).getTime();
+      const currency = e.currency ?? "";
+      return { id: e.id, ts, currency, impact: mapImpact(e.impact), title: e.title, forecast: e.forecast || "—", previous: e.previous || "—", actual: e.actual || "—", trades: (trades ?? []).filter(t => tradeTouchesEvent(t, currency, ts)) };
     }).filter(e => !Number.isNaN(e.ts)).sort((a, b) => a.ts - b.ts);
   }, [raw, trades]);
   const currencies = useMemo(() => [...new Set(events.map(e => e.currency))].sort(), [events]);
@@ -88,7 +92,7 @@ export function CalendarTab({ trades }: { trades?: CalendarTrade[] }) {
   const hasTrades = !!trades && trades.length > 0;
   const loading = raw === null && !error;
   return <div className="min-h-full space-y-5 sm:p-6">
-    <div className="flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-xl font-bold">{t("Economic calendar")}</h1><p className="mt-1 text-xs text-muted-foreground">{t("Macro events · news exposure · Trade Vault analytics")}</p></div><div className="flex items-center gap-2"><div className={surfaceClass("flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground")}><Clock3 className="h-3.5 w-3.5" /> {timezone} <span className="text-primary">· {t("Forex Factory feed")}</span></div><Button variant="secondary" size="icon" type="button" aria-label={t("Reload calendar")} onClick={() => setReloadKey(k => k + 1)} ><RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /></Button></div></div>
+    <div className="flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-xl font-bold">{t("Economic calendar")}</h1><p className="mt-1 text-xs text-muted-foreground">{t("Macro events · news exposure · Trade Vault analytics")}</p></div><div className="flex items-center gap-2"><div className={surfaceClass("flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground")}><Clock3 className="h-3.5 w-3.5" /> {timezone} <span className="text-primary">· {t("MetaTrader 5 calendar")}</span></div><Button variant="secondary" size="icon" type="button" aria-label={t("Reload calendar")} onClick={() => setReloadKey(k => k + 1)} ><RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /></Button></div></div>
     <div className="grid grid-cols-2 gap-3 xl:grid-cols-4"><Summary label={t("Today")} value={loading ? "…" : tn(todayCount, "{count} event", "{count} events")} hint={t("{count} high impact", { count: events.filter(e => e.impact === "high" && dayKeyFmt.format(new Date(e.ts)) === todayKey).length })} /><Summary label={t("Next high impact")} value={nextHigh ? `${nextHigh.currency} · ${nextHigh.title}` : "—"} hint={nextHigh ? `${dayFmt.format(new Date(nextHigh.ts))} · ${timeFmt.format(new Date(nextHigh.ts))}` : t("None left this week")} /><Summary label={t("Your exposure")} value={hasTrades ? tn(exposedEvents.length, "{count} event", "{count} events") : "—"} hint={hasTrades ? t("Linked to your trades (±1h)") : t("Connect trades to see exposure")} /><Summary label={t("News risk this week")} value={t("{count} high impact", { count: highCount })} hint={hasTrades ? t("{count} with your trades", { count: exposedHigh }) : t("From the weekly feed")} /></div>
     <div className={surfaceClass("flex flex-wrap items-center gap-2 p-3")}><div className="flex rounded-lg border border-border bg-secondary/50 p-1">{(["calendar", "exposure"] as ViewMode[]).map(value => <button key={value} onClick={() => setMode(value)} className={`rounded-md px-3 py-1.5 text-xs ${mode === value ? "bg-primary/15 text-primary" : "text-muted-foreground"}`}>{value === "calendar" ? t("Calendar") : t("My trades")}</button>)}</div><div className="h-5 w-px bg-border" />{(["all", "high", "medium", "low"] as const).map(value => <button key={value} onClick={() => setImpact(value)} className={`rounded-lg border px-3 py-1.5 text-xs ${impact === value ? "border-primary/30 bg-primary/10 text-primary" : "border-border bg-secondary/50 text-muted-foreground"}`}>{value === "all" ? t("All impact") : t(IMPACT_LABEL[value])}</button>)}<Select value={currency} onChange={e => setCurrency(e.target.value)} aria-label={t("Filter calendar currency")} className="w-auto"><option value="all">{t("All currencies")}</option>{currencies.map(c => <option key={c} value={c}>{c}</option>)}</Select></div>
     <section className={surfaceClass("overflow-hidden")}><div className="flex items-center justify-between border-b border-border px-4 py-3"><div><h2 className="text-sm font-semibold">{mode === "calendar" ? t("This week") : t("News-exposed trades")}</h2><p className="mt-0.5 text-xs text-muted-foreground">{tn(filtered.length, "{count} event in current view", "{count} events in current view")}</p></div><CalendarDays className="h-4 w-4 text-primary" /></div>

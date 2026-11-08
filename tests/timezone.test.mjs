@@ -44,3 +44,14 @@ test("zone validation", () => {
   assert.equal(tz.isValidTimeZone("Mars/Base"), false);
   assert.equal(tz.isValidTimeZone(""), false);
 });
+
+test("week range runs Monday to Monday in the user's zone, across DST", () => {
+  // Sunday 2026-11-08 23:30 in Kyiv is still the week of Monday 2026-11-02
+  assert.deepEqual(tz.zonedWeekRange(Date.parse("2026-11-08T21:30:00Z"), "Europe/Kyiv"), { from: Date.parse("2026-11-01T22:00:00Z"), to: Date.parse("2026-11-08T22:00:00Z") });
+  // ...but already Monday in Tokyo
+  assert.equal(tz.zonedWeekRange(Date.parse("2026-11-08T21:30:00Z"), "Asia/Tokyo").from, Date.parse("2026-11-08T15:00:00Z"));
+  // week of the October DST change in Kyiv: 169 hours long
+  const r = tz.zonedWeekRange(Date.parse("2026-10-21T12:00:00Z"), "Europe/Kyiv");
+  assert.deepEqual(r, { from: Date.parse("2026-10-18T21:00:00Z"), to: Date.parse("2026-10-25T22:00:00Z") });
+  assert.equal(r.to - r.from, 169 * 3600_000);
+});

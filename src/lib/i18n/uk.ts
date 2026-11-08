@@ -218,6 +218,7 @@ export const uk: Dictionary = {
   "Forecast": "Прогноз",
   "Forecast {forecast} · Previous {previous}": "Прогноз {forecast} · Попереднє {previous}",
   "Forex Factory feed": "стрічка Forex Factory",
+  "MetaTrader 5 calendar": "календар MetaTrader 5",
   "from": "від",
   "From": "Від",
   "From the weekly feed": "Із тижневої стрічки",
