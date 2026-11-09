@@ -28,6 +28,10 @@ def single_instance() -> object | None:
     return handle
 
 
+def release(handle: object) -> None:
+    ctypes.WinDLL("kernel32").CloseHandle(handle)
+
+
 class Workers:
     """Process per terminal path, restarted with exponential delay (1 s → 5 min) if it dies while the terminal runs."""
 
