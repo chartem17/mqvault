@@ -26,4 +26,17 @@ python -I bridge/app/tests/test_bridge.py -v
 cd bridge/app && python -m mqvault_bridge --server http://localhost:3000 --no-browser
 ```
 
-Встановлена програма запускається без аргументів (адресу сервера вшиває інсталятор, етап 3). Дані програми: `%LOCALAPPDATA%\MQVault\Bridge` (`MQVAULT_BRIDGE_HOME` — для тестів).
+## Збірка й встановлення
+
+`build.ps1` збирає один файл `dist\MQVaultBridge.exe` (Nuitka, без вікна консолі); перед збіркою знову проганяється перевірка «лише читання».
+
+```bash
+powershell -ExecutionPolicy Bypass -File bridge/app/build.ps1 -Python <venv>\Scripts\python.exe
+```
+
+Користувачу — лише подвійний клік на `MQVaultBridge.exe` (`installer.py`):
+- копія в `%LOCALAPPDATA%\MQVault\Bridge\bin`, автозапуск при вході (`HKCU\...\Run`), запис у «Встановлені програми» (`HKCU\...\Uninstall`) — без прав адміністратора;
+- запускається встановлена копія, браузер відкриває `https://mqvault.vercel.app/bridge/connect?code=…` — підтвердити ПК;
+- видалення — «Встановлені програми → MQVault Bridge → Видалити» (`--uninstall`): прибирає автозапуск, ключ, чергу й логи; угоди в журналі лишаються.
+
+Адреса сервера — `config.DEFAULT_SERVER` (`https://mqvault.vercel.app`); для розробки `--server http://localhost:3000`. Дані програми: `%LOCALAPPDATA%\MQVault\Bridge` (`MQVAULT_BRIDGE_HOME` — для тестів).

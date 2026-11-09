@@ -8,8 +8,8 @@ from urllib.parse import urlsplit
 from . import __version__
 
 VERSION = __version__
-#: Server the installer bakes in. None until the owner fixes the production address (the installer sets it).
-DEFAULT_SERVER: str | None = None
+#: Production site (Vercel). Development runs pass --server http://localhost:3000.
+DEFAULT_SERVER = "https://mqvault.vercel.app"
 
 HEARTBEAT_SECONDS = 60
 TERMINAL_SCAN_SECONDS = 15

@@ -48,3 +48,7 @@ tools/econ-calendar/data/
 # Python
 __pycache__/
 *.pyc
+bridge/app/dist/
+bridge/app/launcher.build/
+bridge/app/launcher.dist/
+bridge/app/launcher.onefile-build/
