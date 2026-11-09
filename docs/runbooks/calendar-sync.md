@@ -2,7 +2,7 @@
 
 Робот `tools/mt5/MQVault_CalendarSync.mq5` працює, поки відкритий термінал MT5. Він надсилає нові й змінені значення календаря (actual, forecast, ревізії) на `POST /api/economic-calendar/sync`. Рішення — [ADR 0015](../decisions/0015-calendar-sync-from-owner-mt5.md).
 
-Ендпоінт є лише в коді гілки, яку задеплоєно. На production він з'явиться після merge `feat/economic-calendar` у `main`.
+Ендпоінт є в `main` (PR #32, 2026-11-09) і працює на production, щойно у Vercel задано `CALENDAR_SYNC_TOKEN`.
 
 ## Налаштування (один раз)
 

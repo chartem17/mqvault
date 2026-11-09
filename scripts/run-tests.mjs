@@ -42,6 +42,7 @@ const builds = [
   [["src/lib/i18n/core.ts", "src/lib/i18n/uk.ts"], ".tmp-i18n-tests", ["--strict"]],
   [["src/lib/news/economic-calendar.ts"], ".tmp-economic-calendar-tests", ["--strict"]],
   [["src/lib/news/news-trades.ts"], ".tmp-news-trades-tests", ["--strict"]],
+  [["src/lib/bridge/signature.ts", "src/lib/bridge/pairing.ts", "src/lib/bridge/broker-clock.ts", "src/lib/bridge/deals-to-trades.ts", "src/lib/bridge/trade-sync.ts", "src/lib/bridge/account-match.ts", "src/lib/bridge/device-payload.ts"], ".tmp-bridge-tests", [...dom, "--strict"]],
 ];
 
 const tsc = join("node_modules", "typescript", "bin", "tsc");

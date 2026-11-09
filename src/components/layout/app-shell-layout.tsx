@@ -2,7 +2,8 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { useTheme } from "next-themes";
-import { House, LayoutDashboard, BookOpen, Globe2, CalendarDays, TrendingUp, Sun, Moon, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { House, LayoutDashboard, BookOpen, Globe2, CalendarDays, TrendingUp, Sun, Moon, ShieldCheck, MonitorSmartphone } from "lucide-react";
 import type { TabId } from "@/app/page";
 import AccountSwitcher from "@/components/accounts/account-switcher";
 import { Button } from "@/components/ui/primitives";
@@ -53,6 +54,10 @@ export default function AppShellLayout({ children, activeTab, setActiveTab }: { 
               <AccountSwitcher />
               <TimezoneControl />
               <LanguageToggle />
+              <Link href="/bridge/connect" aria-label={t("MT5 Bridge: connected computers")} title={t("MT5 Bridge: connected computers")} className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-border bg-secondary px-2.5 text-sm font-medium text-secondary-foreground transition-colors hover:bg-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 sm:px-4">
+                <MonitorSmartphone aria-hidden="true" className="h-4 w-4 shrink-0" />
+                <span className="hidden xl:inline">{t("MT5 Bridge")}</span>
+              </Link>
               <Button variant="secondary" className="px-2.5 sm:px-4" aria-label={themeLabel} title={themeLabel} disabled={!mounted} onClick={() => mounted && setTheme(resolvedTheme === "light" ? "dark" : "light")}>
                 {light ? <Moon aria-hidden="true" className="h-4 w-4 shrink-0" /> : <Sun aria-hidden="true" className="h-4 w-4 shrink-0" />}
                 <span className="hidden xl:inline">{themeLabel}</span>

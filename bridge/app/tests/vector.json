@@ -1,0 +1,10 @@
+{
+  "method": "POST",
+  "path": "/api/bridge/device/heartbeat",
+  "time_ms": 1762600000000,
+  "seq": 1762600000000123,
+  "body": "{\"bridge_version\":\"0.1.0\",\"terminals\":[]}",
+  "canonical": "mqv-bridge-v1\nPOST\n/api/bridge/device/heartbeat\n1762600000000\n1762600000000123\nebe7b3fe1f07dc40759daddfb4b61196020d88721fc04eb34f09048f83908ff4",
+  "public_key": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEXoc9Wxyh/7Mg6esvX53WF4kSh6WA2dtAc5HMIppA0e02tH2b200P7icXs5GHMvP7CcA4SEm5iUOtfFFpVZ8XSg==",
+  "signature_der": "MEUCIDrFt7AMy+9IHoRZPZ3ZvyAd0uQvbx79EeaOfbrjyl3QAiEA2wCWQYew/31oGR7B7JSytidjOCJTbv/M8Nr2pYqfgCI="
+}

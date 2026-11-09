@@ -20,7 +20,7 @@ import { useTimezone } from "@/components/providers/timezone-provider";
 import { TimezoneSelect, zoneOptionLabel } from "@/components/settings/timezone-select";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { msg } from "@/lib/i18n/core";
-import { formatDateTimeOrDash, fromZonedInputValue, isValidTimeZone, toZonedInputValue } from "@/lib/time/timezone";
+import { formatDateTimeOrDash, fromZonedInputValue, isValidBrokerTimeZone, toZonedInputValue } from "@/lib/time/timezone";
 
 const SESSIONS = ["Asia", "London", "NY", "Overlap"] as const;
 
@@ -111,7 +111,7 @@ function sessionForTime(time: string) {
 /** Zone the typed trade times are read in: the account's broker zone, else the user's zone. */
 function accountZone(accounts: TradingAccount[], accountId: string, fallback: string) {
   const zone = accounts.find(account => account.id === accountId)?.brokerTimezone;
-  return zone && isValidTimeZone(zone) ? zone : fallback;
+  return zone && isValidBrokerTimeZone(zone) ? zone : fallback;
 }
 
 function timeFromDateTimeLocal(value: string) {
@@ -610,7 +610,7 @@ export function ManualTradeModal({
                 <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
                   {t("Times are entered in")}
                 </span>
-                <TimezoneSelect
+                <TimezoneSelect broker
                   aria-label={t("Time zone of the entered times")}
                   value={entryZone}
                   onChange={(zone) => { setEntryZone(zone); setZoneTouched(true); }}

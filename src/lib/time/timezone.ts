@@ -9,6 +9,44 @@
  */
 export const DEFAULT_TIMEZONE = "Europe/Kyiv";
 
+/**
+ * Broker server clock that is not in the IANA database: New York time + 7 hours, i.e. GMT+2 in winter and GMT+3
+ * in summer with the United States DST dates (ADR 0016, §9.3 of features/mt5-bridge.md). Most MT5 forex brokers
+ * run on it so that the daily candle closes at 17:00 New York. Europe/Kyiv differs from it for ~4 weeks a year.
+ */
+export const FX_NY7_ZONE = "FX/NewYork+7";
+const NEW_YORK = "America/New_York";
+
+const offsetFormatters = new Map<string, Intl.DateTimeFormat>();
+/** Offset of an IANA zone from UTC at an instant, in milliseconds. */
+function ianaOffsetMs(ms: number, tz: string): number {
+  let formatter = offsetFormatters.get(tz);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" });
+    offsetFormatters.set(tz, formatter);
+  }
+  const p = Object.fromEntries(formatter.formatToParts(new Date(ms)).map(part => [part.type, part.value]));
+  const wall = Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour), Number(p.minute), Number(p.second));
+  return wall - Math.floor(ms / 1000) * 1000;
+}
+
+/** Offset of `tz` (IANA or FX_NY7_ZONE) from UTC at an instant, in minutes. */
+export function zoneOffsetMinutes(input: number | Date, tz: string): number {
+  const ms = input instanceof Date ? input.getTime() : input;
+  if (tz === FX_NY7_ZONE) return Math.round(ianaOffsetMs(ms, NEW_YORK) / 60_000) + 7 * 60;
+  return Math.round(ianaOffsetMs(ms, tz) / 60_000);
+}
+
+/**
+ * Intl cannot format FX_NY7_ZONE: for it, returns the instant shifted to its wall clock and "UTC" as the zone,
+ * so `new Intl.DateTimeFormat(locale, { timeZone }).format(date)` shows the broker wall time. IANA zones pass through.
+ */
+export function intlInstant(input: number | Date, tz: string): { date: Date; timeZone: string } {
+  const date = input instanceof Date ? input : new Date(input);
+  if (tz !== FX_NY7_ZONE) return { date, timeZone: tz };
+  return { date: new Date(date.getTime() + zoneOffsetMinutes(date, tz) * 60_000), timeZone: "UTC" };
+}
+
 export function isValidTimeZone(tz: string): boolean {
   if (typeof tz !== "string" || !tz) return false;
   try {
@@ -17,6 +55,11 @@ export function isValidTimeZone(tz: string): boolean {
   } catch {
     return false;
   }
+}
+
+/** IANA zone or FX_NY7_ZONE: allowed for an account's broker clock, never for the user's own zone. */
+export function isValidBrokerTimeZone(tz: string): boolean {
+  return tz === FX_NY7_ZONE || isValidTimeZone(tz);
 }
 
 export function getBrowserTimeZone(): string {
@@ -33,6 +76,7 @@ export function getTimeZoneList(): string[] {
 }
 
 export function getOffsetLabel(tz: string, date = new Date()): string {
+  if (tz === FX_NY7_ZONE) return `GMT+${zoneOffsetMinutes(date, tz) / 60}`;
   const part = new Intl.DateTimeFormat("en-US", {
     timeZone: tz,
     timeZoneName: "shortOffset",
@@ -44,6 +88,7 @@ export function getOffsetLabel(tz: string, date = new Date()): string {
 
 /** "Europe/Kyiv" → "Kyiv", "America/New_York" → "New York". */
 export function shortZoneName(tz: string): string {
+  if (tz === FX_NY7_ZONE) return "New York +7";
   const last = tz.split("/").pop() ?? tz;
   return last.replace(/_/g, " ");
 }
@@ -51,8 +96,10 @@ export function shortZoneName(tz: string): string {
 const partFormatters = new Map<string, Intl.DateTimeFormat>();
 /** Calendar date and wall-clock time of an instant in `tz`. Throws RangeError on invalid input or zone. */
 export function zonedParts(input: string | number | Date, tz: string) {
-  const date = input instanceof Date ? input : new Date(input);
-  if (!Number.isFinite(date.getTime())) throw new RangeError("Invalid timestamp");
+  const raw = input instanceof Date ? input : new Date(input);
+  if (!Number.isFinite(raw.getTime())) throw new RangeError("Invalid timestamp");
+  const { date, timeZone } = intlInstant(raw, tz);
+  tz = timeZone;
   let formatter = partFormatters.get(tz);
   if (!formatter) {
     formatter = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
@@ -147,11 +194,12 @@ export function formatDateTime(
   tz: string,
   locale = "en-GB",
 ): string {
+  const { date, timeZone } = intlInstant(new Date(iso), tz);
   return new Intl.DateTimeFormat(locale, {
-    timeZone: tz,
+    timeZone,
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(new Date(iso));
+  }).format(date);
 }
 export function formatDateTimeOrDash(iso: string | null | undefined, tz: string, locale = "en-GB"): string {
   if (!iso) return "—";
