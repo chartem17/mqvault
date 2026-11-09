@@ -6,6 +6,7 @@ import { useStrategies } from "@/hooks/use-strategies";
 import { useTimezone } from "@/components/providers/timezone-provider";
 import { DayDial } from "@/components/home/day-dial";
 import { WeeklySummary } from "@/components/home/weekly-report";
+import { Mt5AccountReview } from "@/components/home/mt5-account-review";
 import { Button } from "@/components/ui/primitives";
 import { dailyLossRoom, greetingFor, lastDays, summarizeToday, unmarkedTrades, type StrategyLimits } from "@/lib/dashboard/home-summary";
 import { sessionStatus } from "@/lib/dashboard/session-status";
@@ -84,6 +85,7 @@ export function HomeTab() {
 
   if (loading) return <p role="status" className="text-sm text-muted-foreground">{t("Loading…")}</p>;
   return <div className="mx-auto max-w-6xl space-y-16 pb-10 pt-2">
+    <Mt5AccountReview />
     <section className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(320px,440px)] lg:gap-16" aria-label={t("Today")}>
       <div className="space-y-8">
         <div className="space-y-4">

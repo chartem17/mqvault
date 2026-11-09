@@ -1,4 +1,5 @@
 import { SESSION_COOKIE, safeEqual, verifySessionToken } from "./session-token";
+import { isDeviceSignedPath } from "../bridge/signature";
 
 const PUBLIC_PATHS = new Set(["/login", "/api/auth/login"]);
 
@@ -19,6 +20,9 @@ export async function checkPrivateAccess(request: Request): Promise<Response | n
   const url = new URL(request.url);
   const method = request.method.toUpperCase();
   const safeMethod = ["GET", "HEAD", "OPTIONS"].includes(method);
+  // MQVault Bridge calls from the owner's PC: no browser, no session. The route itself requires a valid device
+  // signature (src/lib/bridge/server.ts), so only these exact paths and methods skip the session check.
+  if (isDeviceSignedPath(url.pathname, method)) return null;
 
   if (!safeMethod) {
     try {

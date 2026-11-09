@@ -18,6 +18,7 @@ Supabase (Postgres 17), проєкт `mqvault-dev`. Схему знято з ж�
 | `market_instruments` | Список інструментів для вкладки Market | `provider` (binance/twelve-data), `provider_symbol`, `is_active`, `sort_order` |
 | `journal_layout_preferences` | Розкладка колонок журналу | PK `user_id`, `layout` jsonb ≤ 4 КБ, `revision` (оптимістичний контроль) |
 | `dashboard_layout_preferences` | Розкладка віджетів «Огляду» | PK `user_id`, `layout` jsonb ≤ 8 КБ, `revision` |
+| `bridge_*` (7 таблиць) | MQVault Bridge: підключені ПК, рахунки MT5, сирі deals/ордери, зв'язок позиція → угода | Застосовано 2026-11-08 (міграція `20261108204347 mt5_bridge`); порожні до підключення першого ПК; див. [features/mt5-bridge.md §6, §9.4](../features/mt5-bridge.md) |
 | `mt5_import_runs`, `mt5_deals_raw`, `broker_symbols` | Залишки MT5-імпорту | Порожні (0 рядків на 2026-11-07), у коді не використовуються: локальний міст виведено з експлуатації. Лишаються як основа майбутньої синхронізації; видаляти лише після рішення |
 
 ### Зв'язки
@@ -54,6 +55,7 @@ app_users ─┬─< accounts ─┬─< journal_trades ─┬─< strategy_chec
 | `20261031000150 journal_layout_preferences` | розкладка журналу |
 | `20261106165747 dashboard_layout_preferences` | розкладка дашборду |
 | `20261107120100 index_cleanup` | прибрано 4 дублікати індексів, індекси для 3 FK |
+| `20261108204347 mt5_bridge` | таблиці `bridge_*` і лічильник лімітів для MQVault Bridge (ADR 0016) |
 
 Що лишається:
 
