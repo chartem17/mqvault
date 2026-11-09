@@ -1,6 +1,6 @@
 # MQVault Bridge — прототип етапу 0
 
-Не продукт: дві утиліти, що перевіряють припущення [ADR 0015](../../docs/decisions/0015-mt5-desktop-bridge.md) на реальному ПК. Результати — у [features/mt5-bridge.md, розділ 9](../../docs/features/mt5-bridge.md#9-результати-етапу-0-прототип).
+Не продукт: дві утиліти, що перевіряють припущення [ADR 0016](../../docs/decisions/0016-mt5-desktop-bridge.md) на реальному ПК. Результати — у [features/mt5-bridge.md, розділ 9](../../docs/features/mt5-bridge.md#9-результати-етапу-0-прототип).
 
 | Файл | Що робить |
 |---|---|

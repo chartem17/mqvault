@@ -1,5 +1,5 @@
 /**
- * MQVault Bridge request signatures (ADR 0015, features/mt5-bridge.md §3.4).
+ * MQVault Bridge request signatures (ADR 0016, features/mt5-bridge.md §3.4).
  *
  * Every device request carries X-MQV-Device / X-MQV-Seq / X-MQV-Time / X-MQV-Sig. The signature is
  * ECDSA P-256 / SHA-256 over the canonical string

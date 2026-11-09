@@ -1,4 +1,4 @@
-"""Stage-0 prototype for MQVault Bridge (ADR 0015).
+"""Stage-0 prototype for MQVault Bridge (ADR 0016).
 
 Answers, on a real PC, the questions the design depends on:
   1. Can we attach to an already running, logged-in MT5 terminal with no login/password and no terminal settings?

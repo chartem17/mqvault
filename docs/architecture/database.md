@@ -55,7 +55,7 @@ app_users ─┬─< accounts ─┬─< journal_trades ─┬─< strategy_chec
 | `20261031000150 journal_layout_preferences` | розкладка журналу |
 | `20261106165747 dashboard_layout_preferences` | розкладка дашборду |
 | `20261107120100 index_cleanup` | прибрано 4 дублікати індексів, індекси для 3 FK |
-| `20261108204347 mt5_bridge` | таблиці `bridge_*` і лічильник лімітів для MQVault Bridge (ADR 0015) |
+| `20261108204347 mt5_bridge` | таблиці `bridge_*` і лічильник лімітів для MQVault Bridge (ADR 0016) |
 
 Що лишається:
 

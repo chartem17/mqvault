@@ -1,6 +1,6 @@
 # MQVault Bridge — програма для ПК (етап 2)
 
-Читає історію угод з **уже запущених** терміналів MT5 цього ПК і надсилає її в журнал. Дизайн і доказ безпеки — [ADR 0015](../../docs/decisions/0015-mt5-desktop-bridge.md), [features/mt5-bridge.md](../../docs/features/mt5-bridge.md) (§9.5 — стан цього етапу).
+Читає історію угод з **уже запущених** терміналів MT5 цього ПК і надсилає її в журнал. Дизайн і доказ безпеки — [ADR 0016](../../docs/decisions/0016-mt5-desktop-bridge.md), [features/mt5-bridge.md](../../docs/features/mt5-bridge.md) (§9.5 — стан цього етапу).
 
 | Модуль | Роль |
 |---|---|

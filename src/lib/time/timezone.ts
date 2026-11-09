@@ -11,7 +11,7 @@ export const DEFAULT_TIMEZONE = "Europe/Kyiv";
 
 /**
  * Broker server clock that is not in the IANA database: New York time + 7 hours, i.e. GMT+2 in winter and GMT+3
- * in summer with the United States DST dates (ADR 0015, §9.3 of features/mt5-bridge.md). Most MT5 forex brokers
+ * in summer with the United States DST dates (ADR 0016, §9.3 of features/mt5-bridge.md). Most MT5 forex brokers
  * run on it so that the daily candle closes at 17:00 New York. Europe/Kyiv differs from it for ~4 weeks a year.
  */
 export const FX_NY7_ZONE = "FX/NewYork+7";
