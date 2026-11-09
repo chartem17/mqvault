@@ -175,6 +175,14 @@ export function fromZonedInputValue(value: string | null | undefined, tz: string
   try { return new Date(zonedWallTime(match[1], match[2], tz)).toISOString(); } catch { return ""; }
 }
 
+/** Monday 00:00 → next Monday 00:00 of the week containing `now`, in `tz`, as UTC ms. */
+export function zonedWeekRange(now: number | Date, tz: string): { from: number; to: number } {
+  const today = dayKey(now, tz);
+  const weekday = new Date(`${today}T00:00:00.000Z`).getUTCDay();
+  const monday = shiftDay(today, -((weekday + 6) % 7));
+  return { from: zonedWallTime(monday, "00:00", tz), to: zonedWallTime(shiftDay(monday, 7), "00:00", tz) };
+}
+
 /** Start of a calendar day in `tz` as UTC ms; null for an empty/invalid day. */
 export function startOfZonedDay(day: string | null | undefined, tz: string): number | null {
   if (!day || !validDay(day.trim())) return null;

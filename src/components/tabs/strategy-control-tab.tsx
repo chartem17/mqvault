@@ -10,6 +10,7 @@ import { defaultZonedPeriod, isInZonedPeriod } from "@/lib/time/trading-calendar
 import { useTimezone } from "@/components/providers/timezone-provider";
 import { ShieldCheck, AlertTriangle, TrendingUp, Target, Scale, X } from "lucide-react";
 import { useTrades } from "@/hooks/use-trades";
+import { tradeNewsKey, useTradeNews } from "@/hooks/use-trade-news";
 import { useStrategies } from "@/hooks/use-strategies";
 import { analyzeTrades } from "@/lib/strategy-control/engine";
 import { ruleEvaluators, ruleLibrary } from "@/lib/strategy-control/rule-library";
@@ -40,6 +41,7 @@ function formatRuleParams(rule: RuleInstance, t: T) {
     case "min_planned_rr": return `(${rule.params.min_rr}R)`;
     case "high_risk_requires_rr": return `(${rule.params.risk_threshold_pct}% - ${rule.params.min_rr}%)`;
     case "risk_escalation_after_loss": return `(x${rule.params.escalation_factor})`;
+    case "news_blackout": return `(${t("±{minutes} min", { minutes: String(rule.params.minutes) })})`;
     case "emotion_filter": return `(${((rule.params.states as string[]) ?? []).join(", ")})`;
     default: return "";
   }
@@ -81,7 +83,7 @@ function StrategyDetailsModal({ strategy, open, onClose }: { strategy: StrategyP
   </div></div>;
 }
 export function StrategyControlTab() {
-  const { visibleTrades, loading: tradesLoading, error: tradesError, activeAccountId } = useTrades();
+  const { trades: allTrades, visibleTrades, loading: tradesLoading, error: tradesError, activeAccountId } = useTrades();
   const { strategies, activeStrategy, setSelectedStrategyId, loading: strategiesLoading, saving, error: strategiesError, canCreate, createStrategy, duplicateStrategy, requestDelete, confirmation } = useStrategies();
   const loading = tradesLoading || strategiesLoading;
   const error = tradesError || strategiesError;
@@ -94,7 +96,14 @@ export function StrategyControlTab() {
   const accountRef = useRef(activeAccountId);
   useEffect(() => { accountRef.current = activeAccountId; setSelectedFinding(null); setStrategyDetailsOpen(false); setBuilderOpen(false); }, [activeAccountId]);
   const filteredTrades = useMemo(() => visibleTrades.filter(trade => isInZonedPeriod(trade.opened_at, period, timezone)), [visibleTrades, period, timezone]);
-  const strategyTrades = useMemo(() => filteredTrades.map(trade => toStrategyControlTrade(trade, timezone)), [filteredTrades, timezone]);
+  // Refetch news links when the set of trades or their entry times change.
+  const newsKey = useMemo(() => tradeNewsKey(allTrades), [allTrades]);
+  const { byTrade: tradeNews } = useTradeNews(newsKey);
+  const strategyTrades = useMemo(() => filteredTrades.map(trade => {
+    const base = toStrategyControlTrade(trade, timezone);
+    const news = tradeNews?.get(trade.id);
+    return news ? { ...base, nearestHighNewsMinutes: news.nearestHighMinutes } : base;
+  }), [filteredTrades, timezone, tradeNews]);
   const analysis = useMemo(() => activeStrategy ? analyzeTrades(strategyTrades, activeStrategy, period, t) : null, [activeStrategy, strategyTrades, period, t]);
   const sortedFindings = useMemo(() => { if (!analysis) return []; const rank = { critical: 0, warning: 1, insufficient: 2, ok: 3 }; return [...analysis.findings].sort((a, b) => rank[a.status] - rank[b.status]); }, [analysis]);
   const cost = useMemo(() => activeStrategy ? violationCost(strategyTrades, activeStrategy.rules, (ruleType, trades, params) => ruleEvaluators[ruleType]({ trades, params }).evidenceTrades) : null, [activeStrategy, strategyTrades]);

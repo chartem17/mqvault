@@ -34,11 +34,14 @@ const builds = [
   [["src/lib/time/timezone.ts"], ".tmp-timezone-tests", [...dom, "--strict"]],
   [["src/lib/accounts/prop-rule-settings.ts", "src/lib/accounts/prop-rule-record.ts"], ".tmp-prop-rule-tests", [...dom, "--strict"]],
   [["src/lib/auth/session-token.ts"], ".tmp-session-token-tests", [...dom, "--strict"]],
+  [["src/lib/auth/private-access.ts", "src/lib/auth/session-token.ts"], ".tmp-private-access-tests", [...dom, "--strict"]],
   [["src/lib/time/session-selection.ts"], ".tmp-session-selection-tests", [...dom, "--strict"]],
   [["src/lib/time/sessions.ts"], ".tmp-session-tests", dom],
   [["src/lib/supabase/deletion-result.ts"], ".tmp-deletion-tests", [...dom, "--strict"]],
   [["src/lib/time/trading-calendar.ts"], ".tmp-date-tests", [...dom, "--strict"]],
   [["src/lib/i18n/core.ts", "src/lib/i18n/uk.ts"], ".tmp-i18n-tests", ["--strict"]],
+  [["src/lib/news/economic-calendar.ts"], ".tmp-economic-calendar-tests", ["--strict"]],
+  [["src/lib/news/news-trades.ts"], ".tmp-news-trades-tests", ["--strict"]],
   [["src/lib/bridge/signature.ts", "src/lib/bridge/pairing.ts", "src/lib/bridge/broker-clock.ts", "src/lib/bridge/deals-to-trades.ts", "src/lib/bridge/trade-sync.ts", "src/lib/bridge/account-match.ts", "src/lib/bridge/device-payload.ts"], ".tmp-bridge-tests", [...dom, "--strict"]],
 ];
 

@@ -43,7 +43,19 @@ function evaluateHighRiskRequiresRR({ trades, params }: EvaluationInput) { const
 function evaluateRiskEscalationAfterLoss({ trades, params }: EvaluationInput) { const factor = Number(params.escalation_factor ?? 1.2); const sorted = [...trades].filter(trade => typeof trade.resultR === "number" && typeof trade.riskPct === "number").sort((a, b) => (a.openedAt ?? a.date).localeCompare(b.openedAt ?? b.date)); const affected: Trade[] = [], compliant: Trade[] = [];
   for (let index = 1; index < sorted.length; index++) { const previous = sorted[index - 1], current = sorted[index]; if (previous.date !== current.date) continue; if ((previous.resultR ?? 0) < 0) { if ((current.riskPct as number) > (previous.riskPct as number) * factor) affected.push(current); else compliant.push(current); } }
   return result(affected.length, affected, compliant, affected.length + compliant.length); }
-export const ruleEvaluators: Record<RuleType, (input: EvaluationInput) => EvaluationOutput> = { max_trades_per_day: evaluateMaxTradesPerDay, max_losses_per_day: evaluateMaxLossesPerDay, allowed_sessions: evaluateAllowedSessions, core_instruments: evaluateCoreInstruments, model_confirmation: evaluateModelConfirmation, emotion_filter: evaluateEmotionFilter, risk_range: evaluateRiskRange, min_planned_rr: evaluateMinPlannedRR, high_risk_requires_rr: evaluateHighRiskRequiresRR, risk_escalation_after_loss: evaluateRiskEscalationAfterLoss };
+/**
+ * Red news: a trade opened within ±N minutes of a high-impact release of its currencies breaks the rule.
+ * Only trades checked against the calendar count (nearestHighNewsMinutes !== undefined).
+ */
+function evaluateNewsBlackout({ trades, params }: EvaluationInput) {
+  const minutes = Number(params.minutes ?? 15);
+  const known = trades.filter(trade => trade.nearestHighNewsMinutes !== undefined);
+  const inside = (trade: Trade) => typeof trade.nearestHighNewsMinutes === "number" && Math.abs(trade.nearestHighNewsMinutes) <= minutes;
+  const affected = known.filter(inside);
+  const compliant = known.filter(trade => !inside(trade));
+  return result(affected.length, affected, compliant, known.length);
+}
+export const ruleEvaluators: Record<RuleType, (input: EvaluationInput) => EvaluationOutput> = { max_trades_per_day: evaluateMaxTradesPerDay, max_losses_per_day: evaluateMaxLossesPerDay, allowed_sessions: evaluateAllowedSessions, core_instruments: evaluateCoreInstruments, model_confirmation: evaluateModelConfirmation, emotion_filter: evaluateEmotionFilter, risk_range: evaluateRiskRange, min_planned_rr: evaluateMinPlannedRR, high_risk_requires_rr: evaluateHighRiskRequiresRR, risk_escalation_after_loss: evaluateRiskEscalationAfterLoss, news_blackout: evaluateNewsBlackout };
 export const ruleLibrary: Record<RuleType, RuleDefinition> = {
   max_trades_per_day: { ruleType: "max_trades_per_day", title: msg("Max trades per day"), category: "discipline", description: msg("Checks that the daily entry limit was not exceeded."), paramsSchema: [{ key: "limit", label: msg("Maximum number of trades"), type: "number", min: 1, max: 50, step: 1 }], defaultParams: { limit: 3 } },
   max_losses_per_day: { ruleType: "max_losses_per_day", title: msg("Stop after losing trades"), category: "risk", description: msg("Checks that trading stopped after the set number of losses in a day."), paramsSchema: [{ key: "limit", label: msg("Maximum losses per day"), type: "number", min: 1, max: 20, step: 1 }], defaultParams: { limit: 2 } },
@@ -55,4 +67,5 @@ export const ruleLibrary: Record<RuleType, RuleDefinition> = {
   min_planned_rr: { ruleType: "min_planned_rr", title: msg("Minimum planned RR"), category: "setup", description: msg("Checks that the planned RR is not below the set minimum."), paramsSchema: [{ key: "min_rr", label: msg("Minimum RR"), type: "number", min: 0.5, max: 10, step: 0.1 }], defaultParams: { min_rr: 2 } },
   high_risk_requires_rr: { ruleType: "high_risk_requires_rr", title: msg("High risk requires RR"), category: "risk", description: msg("Checks that risk above the threshold is only used with an adequate RR."), paramsSchema: [{ key: "risk_threshold_pct", label: msg("Risk threshold %"), type: "number", min: 0.1, max: 5, step: 0.1 }, { key: "min_rr", label: msg("Minimum RR"), type: "number", min: 0.5, max: 10, step: 0.1 }], defaultParams: { risk_threshold_pct: 1, min_rr: 2.5 } },
   risk_escalation_after_loss: { ruleType: "risk_escalation_after_loss", title: msg("Risk escalation after a loss"), category: "psychology", description: msg("Detects increased risk after a losing trade on the same day."), paramsSchema: [{ key: "escalation_factor", label: msg("Growth factor"), type: "number", min: 1, max: 3, step: 0.1 }], defaultParams: { escalation_factor: 1.2 } },
+  news_blackout: { ruleType: "news_blackout", title: msg("No trading around red news"), category: "risk", description: msg("Checks that no trade was opened within ±N minutes of a high-impact release for the instrument's currencies (MetaTrader 5 calendar)."), paramsSchema: [{ key: "minutes", label: msg("Minutes before and after the release"), type: "number", min: 1, max: 240, step: 1 }], defaultParams: { minutes: 15 } },
 };

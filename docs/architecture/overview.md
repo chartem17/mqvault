@@ -15,7 +15,7 @@
 | Шар | Де | Відповідальність |
 |---|---|---|
 | Маршрути | `src/app/` | Єдина сторінка `/` із вкладками (`?tab=`), `/journal` (редирект-обгортка для посилань на угоди), `/login`; усі серверні ендпоінти в `src/app/api/` |
-| Доступ | `src/middleware.ts`, `src/lib/auth/` | Приватний доступ для всіх сторінок і API (див. [ADR 0006](../decisions/0006-private-access-single-password.md)); перенаправляє `DELETE /api/accounts` і `DELETE /api/journal/trades` на `/api/deletions` |
+| Доступ | `src/middleware.ts`, `src/lib/auth/` | Приватний доступ для всіх сторінок і API (див. [ADR 0006](../decisions/0006-private-access-single-password.md)); перенаправляє `DELETE /api/accounts` і `DELETE /api/journal/trades` на `/api/deletions`. Виняток — `TOKEN_PATHS` (`POST /api/economic-calendar/sync`, власний токен, [ADR 0015](../decisions/0015-calendar-sync-from-owner-mt5.md)) |
 | UI | `src/components/` | Екрани-вкладки (`tabs/`), фічі (`overview/`, `accounts/`, `journal/`, `strategy-control/`, `home/`, `settings/`), каркас (`layout/`), контексти (`providers/`), спільні примітиви (`ui/`) |
 | Стан і дані на клієнті | `src/hooks/` | `use-trades` (угоди й рахунки), `use-strategies`, `use-dashboard-layout`, `use-journal-layout`, `use-instruments`, `use-market-quotes`, `use-mt5` (вимкнений), `use-media-query` |
 | Доменна логіка | `src/lib/<домен>/` | Чисті функції без React: розрахунки, парсинг, правила. Тут живуть тести |
@@ -63,6 +63,7 @@ src/
     dashboard/        розкладка і реєстр віджетів, «Сьогодні», круговий день
     time/             пояс користувача, торгові сесії, календарні періоди
     market/           інструменти, котирування, watchlist, retirement MT5
+    news/             економічний календар (CSV MT5 → news_events, значення, «сюрприз») і зв'язки угод із новинами
     auth/             перевірка приватного доступу, підпис сесійного токена
     strategy-control/ рушій правил, бібліотека правил, збереження, адаптер угод
     i18n/             словник і ядро локалізації (en за замовчуванням, uk)

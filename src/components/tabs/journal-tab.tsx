@@ -9,6 +9,8 @@ import { ManualTradeModal } from '@/components/journal/manual-trade-modal';
 import { DayReview } from '@/components/journal/day-review';
 import { ScreenshotGallery } from '@/components/journal/screenshot-gallery';
 import { CsvImportModal } from '@/components/journal/csv-import-modal';
+import { NewsBadge, TradeNewsSection } from '@/components/journal/trade-news';
+import { tradeNewsKey, useTradeNews } from '@/hooks/use-trade-news';
 import { needsReview } from '@/lib/journal/trade-review';
 import { useTrades, type JournalTrade, type TradeInput, type UpdateTradeInput } from '@/hooks/use-trades';
 import { useJournalLayout } from '@/hooks/use-journal-layout';
@@ -26,7 +28,9 @@ const positive = 'var(--color-green)', negative = 'var(--color-red)';
 function session(trade: JournalTrade) { try { return getSessionLabel(trade.opened_at); } catch { return trade.session || '—'; } }
 const labelOf = (id: JournalColumnId) => JOURNAL_COLUMNS.find(c => c.id === id)!.label;
 export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus, review = false, onReviewChange, gallery = false, onGalleryChange }: { focus?: JournalFocus; onClearFocus?: () => void; review?: boolean; onReviewChange?: (open: boolean) => void; gallery?: boolean; onGalleryChange?: (open: boolean) => void } = {}) {
-  const { visibleTrades, accounts, activeAccountId, loading, saving, error, createTrade, updateTrade, deleteTrade, refreshTrades } = useTrades();
+  const { trades: allTrades, visibleTrades, accounts, activeAccountId, loading, saving, error, createTrade, updateTrade, deleteTrade, refreshTrades } = useTrades();
+  const newsKey = useMemo(() => tradeNewsKey(allTrades), [allTrades]);
+  const news = useTradeNews(newsKey);
   const [importOpen, setImportOpen] = useState(false);
   const prefs = useJournalLayout();
   const { t, intl } = useI18n();
@@ -143,11 +147,12 @@ export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus, review = fa
     if (id === 'id') return <Button variant="ghost" size="sm" title={trade.id} aria-label={t('Copy ID {id}', { id: trade.id })} onClick={() => void copy(trade.id)}>{trade.id.slice(0, 8)}</Button>;
     if (id === 'risk_percent') return typeof trade.risk_percent === 'number' ? `${trade.risk_percent}%` : '—';
     if (id === 'net_pnl' || id === 'result_r') { const value = trade[id]; return typeof value === 'number' ? <span style={{ color: value >= 0 ? positive : negative }}>{id === 'net_pnl' ? fmt.usd(value) : fmt.r(value)}</span> : '—'; }
+    if (id === 'symbol') return <span className="inline-flex items-center gap-1.5">{trade.symbol}<NewsBadge summary={news.byTrade?.get(trade.id)} /></span>;
     if (id === 'direction') return <span style={{ color: trade.direction === 'Long' ? positive : negative }}>{trade.direction}</span>;
     return raw(trade, id) ?? '—';
   }
   if (review && focus.kind === 'none') return <div className="space-y-4 sm:p-6">{loading ? <EmptyState title={t("Loading trades…")} role="status" /> : <DayReview key={activeAccountId} trades={visibleTrades} accounts={accounts} updateTrade={updateTrade} onExit={() => onReviewChange?.(false)} />}</div>;
-  const modal = <ManualTradeModal open={showModal} accounts={accounts} defaultAccountId={activeAccountId !== 'all' ? activeAccountId : undefined} initialTrade={editingTrade} submitting={saving} onClose={() => { setShowModal(false); setEditingTrade(null); }} onSubmit={submit} />;
+  const modal = <ManualTradeModal open={showModal} accounts={accounts} defaultAccountId={activeAccountId !== 'all' ? activeAccountId : undefined} initialTrade={editingTrade} submitting={saving} news={editingTrade ? <TradeNewsSection summary={news.byTrade?.get(editingTrade.id)} loading={news.loading} error={news.error} /> : null} onClose={() => { setShowModal(false); setEditingTrade(null); }} onSubmit={submit} />;
   if (gallery && focus.kind === 'none') return <div className="space-y-4 sm:p-6">{loading ? <EmptyState title={t("Loading trades…")} role="status" /> : <ScreenshotGallery trades={visibleTrades} accounts={accounts} onExit={() => onGalleryChange?.(false)} onOpenTrade={trade => { setEditingTrade(trade); setShowModal(true); }} />}{modal}</div>;
   return <div className="space-y-4 sm:p-6">
     <div className="flex flex-wrap items-center gap-2">
@@ -201,7 +206,7 @@ export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus, review = fa
           <button key={trade.id} type="button" onClick={() => { setEditingTrade(trade); setShowModal(true); }} className="group overflow-hidden rounded-2xl border border-border bg-card text-left transition hover:border-primary/40 hover:shadow-lg">
             {screenshotImageUrl(trade.screenshot_url) ? <img src={screenshotImageUrl(trade.screenshot_url) ?? undefined} alt="" loading="lazy" className="h-40 w-full object-cover" /> : <div className="hidden h-40 items-center justify-center bg-secondary/40 text-xs text-muted-foreground md:flex">{t("No screenshot")}</div>}
             <div className="space-y-1 p-3">
-              <div className="flex items-center justify-between"><span className="font-semibold">{trade.symbol}</span><span style={{ color: trade.direction === 'Long' ? positive : negative }}>{trade.direction}</span></div>
+              <div className="flex items-center justify-between"><span className="inline-flex items-center gap-1.5 font-semibold">{trade.symbol}<NewsBadge summary={news.byTrade?.get(trade.id)} /></span><span style={{ color: trade.direction === 'Long' ? positive : negative }}>{trade.direction}</span></div>
               <div className="flex items-center justify-between text-xs text-muted-foreground"><span>{date(trade.opened_at)}</span><span style={{ color: (trade.net_pnl ?? 0) >= 0 ? positive : negative }}>{typeof trade.net_pnl === 'number' ? fmt.usd(trade.net_pnl) : '—'}</span></div>
               <div className="flex items-center justify-between text-xs"><span>R: {typeof trade.result_r === 'number' ? fmt.r(trade.result_r) : '—'}</span><span>{session(trade)}</span></div>
             </div>

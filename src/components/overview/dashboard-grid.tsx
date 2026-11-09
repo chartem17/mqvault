@@ -12,7 +12,7 @@ import { addWidget, applyGridPositions, hiddenWidgets, moveMobile, removeWidget,
 
 const MOBILE_BREAKPOINT = 640;
 /** Phone heights (px): charts need a fixed box to draw into, lists scroll inside it. */
-const MOBILE_HEIGHT: Record<string, number> = { equity: 300, calendar: 480, drawdown: 560, r_distribution: 340, streaks: 120, monthly: 340, symbols: 360, sessions: 360, risk: 260, emotions: 320 };
+const MOBILE_HEIGHT: Record<string, number> = { equity: 300, calendar: 480, drawdown: 560, r_distribution: 340, streaks: 120, monthly: 340, symbols: 360, sessions: 360, risk: 260, emotions: 320, earn_lose: 520, weekday_hour: 380, news_impact: 600 };
 const STAT_HEIGHT = 118;
 
 function RemoveButton({ title, onClick }: { title: string; onClick: () => void }) {

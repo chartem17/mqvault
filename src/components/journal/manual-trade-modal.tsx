@@ -2,7 +2,7 @@
 import { dialogSurface, DIALOG_BACKDROP } from "@/components/ui/dialog-styles";
 import { screenshotImageUrl } from "@/lib/journal/screenshot-gallery";
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Camera, ChevronDown, X } from "lucide-react";
 import { type JournalTrade, type TradeInput } from "@/hooks/use-trades";
 import type { TradingAccount } from "@/lib/accounts/account-data";
@@ -73,6 +73,8 @@ type ManualTradeModalProps = {
   defaultAccountId?: string;
   initialTrade?: JournalTrade | null;
   submitting?: boolean;
+  /** Calendar releases around the edited trade; the section is shown only for existing trades. */
+  news?: ReactNode;
   onClose: () => void;
   onSubmit: (values: ManualTradeSubmit) => Promise<void> | void;
 };
@@ -228,6 +230,7 @@ export function ManualTradeModal({
   defaultAccountId,
   initialTrade = null,
   submitting = false,
+  news,
   onClose,
   onSubmit,
 }: ManualTradeModalProps) {
@@ -572,6 +575,8 @@ export function ManualTradeModal({
               </a>
             ) : null}
           </div>
+
+          {initialTrade ? news : null}
 
           <Panel className="p-4 space-y-4">
             <div>
