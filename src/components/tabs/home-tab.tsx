@@ -14,6 +14,9 @@ import { formatDateTimeOrDash, zonedParts } from "@/lib/time/timezone";
 import { fmt } from "@/lib/journal/utils-trade";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { NewsWindowWarning, NextNewsRow, useRedNews } from "@/components/home/next-news";
+import { Onboarding } from "@/components/home/onboarding";
+import { PreSessionChecklist } from "@/components/home/pre-session-checklist";
+import { MonthlyGoals } from "@/components/home/monthly-goals";
 
 const POS = "var(--color-green)", NEG = "var(--color-red)";
 const DISPLAY = { fontFamily: "var(--font-home-display), var(--font-ui), system-ui, sans-serif" } as const;
@@ -93,6 +96,7 @@ export function HomeTab() {
   if (loading) return <p role="status" className="text-sm text-muted-foreground">{t("Loading…")}</p>;
   return <div className="mx-auto max-w-6xl space-y-16 pb-10 pt-2">
     <Mt5AccountReview />
+    <Onboarding />
     <section className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(320px,440px)] lg:gap-16" aria-label={t("Today")}>
       <div className="space-y-8">
         <div className="space-y-4">
@@ -116,6 +120,11 @@ export function HomeTab() {
       </div>
       <DayDial trades={todayDots} timezone={timezone} now={now} netToday={today.netPnl} />
     </section>
+
+    <div className="grid gap-12 sm:gap-16 lg:grid-cols-2">
+      <PreSessionChecklist today={todayKey} />
+      <MonthlyGoals timezone={timezone} now={now} />
+    </div>
 
     <section aria-label={t("Summary")} className="flex flex-wrap gap-x-14 gap-y-8">
       <Figure value={fmt.usd(net)} label={t("Net P&L")} color={net === 0 ? undefined : net > 0 ? POS : NEG} />
