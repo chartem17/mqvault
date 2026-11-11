@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { Check, ChevronDown, ChevronsLeft, ChevronsRight, Layers3, Moon, Search, Sun, TrendingUp } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, Languages, Moon, Search, Sun, TrendingUp } from "lucide-react";
+import { LOCALE_LABEL } from "@/lib/i18n/core";
 import type { TabId } from "@/app/page";
 import { SECTION_LABEL, visiblePages, type NavPage } from "./nav-pages";
 import { useTrades } from "@/hooks/use-trades";
@@ -25,14 +26,13 @@ function Avatar({ url, initial, size }: { url: string | null; initial: string; s
 }
 
 export function AppSidebar({ activeTab, setActiveTab, onSearch }: { activeTab: TabId; setActiveTab: (tab: TabId) => void; onSearch: () => void }) {
-  const { t } = useI18n();
+  const { t, locale, setLocale } = useI18n();
   const { resolvedTheme, setTheme } = useTheme();
   const { profile, loading: profileLoading } = useProfile();
   const pages = visiblePages(profile?.plan === "owner");
-  const { trades, accounts, activeAccountId, activeAccount, setActiveAccountId } = useTrades();
+  const { trades, activeAccount } = useTrades();
   const [mounted, setMounted] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const [accountsOpen, setAccountsOpen] = useState(false);
   const [hoverKey, setHoverKey] = useState<string | null>(null);
   const [bridgePending, setBridgePending] = useState(false);
   const navRef = useRef<HTMLElement>(null);
@@ -60,7 +60,7 @@ export function AppSidebar({ activeTab, setActiveTab, onSearch }: { activeTab: T
   const reviewCount = useMemo(() => trades.filter(trade => trade.closed_at && needsReview(trade)).length, [trades]);
   const badges: Record<string, number> = { journal: reviewCount };
   const overview = activeAccount ? buildAccountOverview(activeAccount, trades) : null;
-  const activeKey = pages.find(page => page.target.kind === "tab" && page.target.tab === activeTab && page.key !== "accounts")?.key ?? null;
+  const activeKey = pages.find(page => page.target.kind === "tab" && page.target.tab === activeTab)?.key ?? null;
 
   /** The light pill glides to the hovered item, resting on the active one. */
   const movePill = useCallback(() => {
@@ -76,7 +76,7 @@ export function AppSidebar({ activeTab, setActiveTab, onSearch }: { activeTab: T
     movePill();
     const id = window.setTimeout(movePill, 480); // once more after the width spring settles
     return () => window.clearTimeout(id);
-  }, [movePill, collapsed, accountsOpen]);
+  }, [movePill, collapsed]);
 
   const register = (key: string) => (element: HTMLElement | null) => { if (element) items.current.set(key, element); else items.current.delete(key); };
   const itemProps = (key: string) => ({ ref: register(key), onMouseEnter: () => setHoverKey(key), onMouseLeave: () => setHoverKey(current => (current === key ? null : current)), onFocus: () => setHoverKey(key), onBlur: () => setHoverKey(current => (current === key ? null : current)) });
@@ -92,35 +92,6 @@ export function AppSidebar({ activeTab, setActiveTab, onSearch }: { activeTab: T
       {dot ? <span className="sb-dot sb-hide" aria-hidden="true" /> : null}
       {collapsed && <span className="sb-tip" aria-hidden="true">{t(page.label)}{badge ? <span className="sb-badge">{badge > 99 ? "99+" : badge}</span> : null}{dot ? <span className="sb-dot" /> : null}</span>}
     </>;
-    if (page.key === "accounts") {
-      return <div key={page.key} className="relative">
-        <button type="button" {...itemProps(page.key)} className="sb-item" aria-expanded={accountsOpen}
-          data-active={accountsOpen || undefined} onClick={() => { if (collapsed) { toggleCollapsed(); setAccountsOpen(true); } else setAccountsOpen(value => !value); }}>
-          <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-          <span className="sb-label sb-hide min-w-0 flex-1 truncate">{t(page.label)}</span>
-          {activeAccount && <span className="sb-hide h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: activeAccount.color }} aria-hidden="true" />}
-          <ChevronDown className={`sb-hide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform ${accountsOpen ? "rotate-180" : ""}`} aria-hidden="true" />
-          {collapsed && <span className="sb-tip" aria-hidden="true">{t(page.label)}<span className="sb-badge">{accounts.length}</span></span>}
-        </button>
-        <div className="sb-sub sb-hide" data-open={accountsOpen}>
-          <div>
-            <ul className="mb-1 ml-4 space-y-0.5 border-l border-border pl-2 pt-1">
-              <li><button type="button" onClick={() => setActiveAccountId("all")} className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] ${activeAccountId === "all" ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-                <Layers3 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /><span className="sb-label min-w-0 flex-1 truncate text-left">{t("All accounts")}</span>
-                {activeAccountId === "all" && <Check className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />}
-              </button></li>
-              {accounts.map(account => <li key={account.id}>
-                <button type="button" onClick={() => setActiveAccountId(account.id)} className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] ${activeAccountId === account.id ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: account.color }} aria-hidden="true" />
-                  <span className="sb-label min-w-0 flex-1 truncate text-left">{account.name}</span>
-                  {activeAccountId === account.id && <Check className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />}
-                </button>
-              </li>)}
-            </ul>
-          </div>
-        </div>
-      </div>;
-    }
     if (page.target.kind === "href") {
       return <div key={page.key} className="relative">
         <Link href={page.target.href} {...itemProps(page.key)} className="sb-item">{label}</Link>
@@ -135,6 +106,7 @@ export function AppSidebar({ activeTab, setActiveTab, onSearch }: { activeTab: T
   const sections: NavPage["section"][] = ["main", "markets", "workspace"];
   const light = mounted && resolvedTheme === "light";
   const themeLabel = light ? t("Dark theme") : t("Light theme");
+  const languageLabel = t("Switch language to {language}", { language: LOCALE_LABEL[locale === "en" ? "uk" : "en"] });
 
   return <div className="sb-wrap hidden md:block" data-open={!collapsed} style={{ "--sb-width": collapsed ? "4.75rem" : "17.5rem" } as React.CSSProperties}>
     <aside className="sb-panel" aria-label={t("Main navigation")}>
@@ -186,13 +158,23 @@ export function AppSidebar({ activeTab, setActiveTab, onSearch }: { activeTab: T
       </nav>
 
       <div className="border-t border-[rgb(var(--ink)/0.08)] px-3 py-2.5">
-        <div className="relative">
-          <button type="button" {...(collapsed ? {} : {})} disabled={!mounted} onClick={() => mounted && setTheme(light ? "dark" : "light")} aria-label={themeLabel}
-            className={`sb-item ${collapsed ? "" : "!min-h-9"}`}>
-            {light ? <Moon className="h-4 w-4 shrink-0" aria-hidden="true" /> : <Sun className="h-4 w-4 shrink-0" aria-hidden="true" />}
-            <span className="sb-label sb-hide min-w-0 flex-1 truncate text-left">{themeLabel}</span>
-            {collapsed && <span className="sb-tip" aria-hidden="true">{themeLabel}</span>}
-          </button>
+        <div className={`flex gap-1 ${collapsed ? "flex-col" : "items-center"}`}>
+          <div className="relative min-w-0 flex-1">
+            <button type="button" disabled={!mounted} onClick={() => mounted && setTheme(light ? "dark" : "light")} aria-label={themeLabel}
+              className={`sb-item ${collapsed ? "" : "!min-h-9"}`}>
+              {light ? <Moon className="h-4 w-4 shrink-0" aria-hidden="true" /> : <Sun className="h-4 w-4 shrink-0" aria-hidden="true" />}
+              <span className="sb-label sb-hide min-w-0 flex-1 truncate text-left">{themeLabel}</span>
+              {collapsed && <span className="sb-tip" aria-hidden="true">{themeLabel}</span>}
+            </button>
+          </div>
+          <div className="relative">
+            <button type="button" onClick={() => setLocale(locale === "en" ? "uk" : "en")} aria-label={languageLabel}
+              className={`sb-item ${collapsed ? "" : "!min-h-9 !w-auto !px-2.5"}`}>
+              <Languages className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span className="text-xs font-semibold uppercase tracking-wide">{locale === "en" ? "EN" : "UA"}</span>
+              {collapsed && <span className="sb-tip" aria-hidden="true">{languageLabel}</span>}
+            </button>
+          </div>
         </div>
         <div className="relative mt-1">
           <Link href="/profile" className={`sb-item ${collapsed ? "" : "!px-2"}`} aria-label={t("Profile")}>

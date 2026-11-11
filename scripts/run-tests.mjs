@@ -40,6 +40,8 @@ const builds = [
   [["src/lib/time/sessions.ts"], ".tmp-session-tests", dom],
   [["src/lib/supabase/deletion-result.ts"], ".tmp-deletion-tests", [...dom, "--strict"]],
   [["src/lib/time/trading-calendar.ts"], ".tmp-date-tests", [...dom, "--strict"]],
+  [["src/lib/journal/trades-csv.ts"], ".tmp-trades-csv-tests", ["--strict"]],
+  [["src/lib/journal/trader-summary.ts", "src/lib/time/timezone.ts"], ".tmp-trader-summary-tests", [...dom, "--strict"]],
   [["src/lib/auth/password-strength.ts", "src/lib/auth/request-guard.ts", "src/lib/bridge/signature.ts"], ".tmp-password-strength-tests", [...dom, "--strict"]],
   [["src/lib/i18n/core.ts", "src/lib/i18n/uk.ts"], ".tmp-i18n-tests", ["--strict"]],
   [["src/lib/news/economic-calendar.ts"], ".tmp-economic-calendar-tests", ["--strict"]],

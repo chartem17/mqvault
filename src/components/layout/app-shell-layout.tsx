@@ -8,6 +8,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { UserMenu } from "@/components/layout/user-menu";
+import { LanguageToggle } from "@/components/settings/language-toggle";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { OWNER_ONLY_TABS } from "@/lib/auth/beta-access";
 import { msg } from "@/lib/i18n/core";
@@ -50,7 +51,7 @@ export default function AppShellLayout({ children, activeTab, setActiveTab }: { 
             <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:flex-none sm:gap-3">
               <AccountSwitcher />
               {/* Phone: the sidebar is hidden, so the account menu leads to the profile, settings and sign-out. */}
-              <div className="md:hidden"><UserMenu /></div>
+              <div className="flex items-center gap-2 md:hidden"><LanguageToggle /><UserMenu /></div>
             </div>
           </div>
           <div className="px-3 py-4 sm:px-6 sm:py-5 xl:px-8 xl:py-6">{children}</div>

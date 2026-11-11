@@ -22,7 +22,7 @@ export function CommandPalette({ open, onClose, setActiveTab }: { open: boolean;
 
   const pages = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return visiblePages(isOwner).filter(page => page.key !== "accounts")
+    return visiblePages(isOwner)
       .filter(page => !needle || page.label.toLowerCase().includes(needle) || t(page.label).toLowerCase().includes(needle));
   }, [query, t, isOwner]);
 

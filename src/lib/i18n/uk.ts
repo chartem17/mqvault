@@ -3,6 +3,22 @@ import type { Dictionary } from "./core";
 /** Ukrainian translations keyed by the English source text. Keep keys identical to the `t()` / `tn()` / `msg()` calls. */
 export const uk: Dictionary = {
   // Sidebar, profile, settings and the e-mail code step (package 2)
+  "All accounts, closed trades. Days follow your time zone.": "Усі рахунки, закриті угоди. Дні — у вашому часовому поясі.",
+  "Best day": "Найкращий день",
+  "Close your first trade and your lifetime numbers will appear here.": "Закрийте першу угоду — і тут зʼявляться ваші загальні показники.",
+  "Could not prepare the export": "Не вдалося підготувати експорт",
+  "Download a copy of everything you keep here. JSON holds accounts, trades, strategies and layouts; CSV holds trades and opens in Excel or Google Sheets.": "Завантажте копію всього, що ви тут зберігаєте. JSON містить рахунки, угоди, стратегії й розкладки; CSV — угоди, відкривається в Excel або Google Sheets.",
+  "Everything (JSON)": "Усе (JSON)",
+  "Journaling since": "Журнал ведеться з",
+  "Most traded": "Найчастіший інструмент",
+  "Reviewed trades": "Розібрані угоди",
+  "Start page": "Стартова сторінка",
+  "Trader card": "Картка трейдера",
+  "Trades (CSV)": "Угоди (CSV)",
+  "What opens when you come to the site. Applies to this device.": "Що відкривається, коли ви заходите на сайт. Діє на цьому пристрої.",
+  "Win rate": "Відсоток виграшних",
+  "Worst day": "Найгірший день",
+  "Your data": "Ваші дані",
   "Accounts": "Рахунки",
   "Active sessions": "Активні сесії",
   "Active {time}": "Активна {time}",

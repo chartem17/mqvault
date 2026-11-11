@@ -3,7 +3,8 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { ArrowLeft, KeyRound, Languages, LogOut, MonitorSmartphone, Moon, Palette, ShieldCheck, Sun, Trash2, UserRound } from "lucide-react";
+import { ArrowLeft, Download, KeyRound, Languages, LogOut, MonitorSmartphone, Moon, Palette, ShieldCheck, Sun, Trash2, UserRound } from "lucide-react";
+import { START_TAB_KEY, START_TABS, readStartTab } from "@/lib/start-page";
 import { Button, Input, Panel, Select } from "@/components/ui/primitives";
 import { PasswordStrength } from "@/components/ui/otp-input";
 import { TimezoneSelect } from "@/components/settings/timezone-select";
@@ -40,7 +41,12 @@ export default function SettingsPage() {
   const { timezone, saving: zoneSaving, setTimezone } = useTimezone();
   const { profile, hasPassword, googleLinked, refresh } = useProfile();
   const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  const [startTab, setStartTab] = useState("home");
+  useEffect(() => { setMounted(true); setStartTab(readStartTab()); }, []);
+  function chooseStartTab(value: string) {
+    setStartTab(value);
+    try { localStorage.setItem(START_TAB_KEY, value); } catch { /* storage may be blocked */ }
+  }
 
   // Security: password change
   const [current, setCurrent] = useState("");
@@ -110,6 +116,12 @@ export default function SettingsPage() {
             </button>)}
         </div>
       </div>
+      <div className={`${row} mt-4`}>
+        <div><label htmlFor="settings-start" className={labelCls}>{t("Start page")}</label><p className={hintCls}>{t("What opens when you come to the site. Applies to this device.")}</p></div>
+        <Select id="settings-start" value={startTab} onChange={event => chooseStartTab(event.target.value)} className="sm:w-56">
+          {START_TABS.filter(tab => profile?.plan === "owner" || !tab.ownerOnly).map(tab => <option key={tab.id} value={tab.id}>{t(tab.label)}</option>)}
+        </Select>
+      </div>
     </Section>
 
     <Section icon={<Languages className="h-4 w-4" aria-hidden="true" />} title={t("Language & time")}>
@@ -169,6 +181,14 @@ export default function SettingsPage() {
       <div className={row}>
         <p className="text-sm text-muted-foreground sm:max-w-[60%]">{t("Connected computers sync MT5 trades into the journal automatically.")}</p>
         <Link href="/bridge/connect" className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-border bg-secondary px-4 text-sm font-medium text-secondary-foreground transition-colors hover:bg-accent">{t("Manage computers")}</Link>
+      </div>
+    </Section>
+
+    <Section icon={<Download className="h-4 w-4" aria-hidden="true" />} title={t("Your data")}>
+      <p className="text-sm text-muted-foreground">{t("Download a copy of everything you keep here. JSON holds accounts, trades, strategies and layouts; CSV holds trades and opens in Excel or Google Sheets.")}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <a href="/api/profile/export?format=csv" download className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border bg-secondary px-4 text-sm font-medium text-secondary-foreground transition-colors hover:bg-accent"><Download className="h-4 w-4" aria-hidden="true" />{t("Trades (CSV)")}</a>
+        <a href="/api/profile/export?format=json" download className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border bg-secondary px-4 text-sm font-medium text-secondary-foreground transition-colors hover:bg-accent"><Download className="h-4 w-4" aria-hidden="true" />{t("Everything (JSON)")}</a>
       </div>
     </Section>
 

@@ -7,14 +7,20 @@ import { Button, Input, Panel } from "@/components/ui/primitives";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { useProfile, avatarInitial } from "@/components/providers/profile-provider";
 import { useTrades } from "@/hooks/use-trades";
-import { accountOverviewLabel } from "@/lib/accounts/account-overview";
+import { traderSummary } from "@/lib/journal/trader-summary";
+import { useTimezone } from "@/components/providers/timezone-provider";
+import { useMemo } from "react";
 import { fmt } from "@/lib/journal/utils-trade";
 
 /** Profile: who is signed in, counters and the account list. Editing is limited to the display name (ADR 0017). */
 export default function ProfilePage() {
   const { t } = useI18n();
   const { profile, counters, loading, saveName } = useProfile();
-  const { accounts } = useTrades();
+  const { trades } = useTrades();
+  const { timezone } = useTimezone();
+  const { intl } = useI18n();
+  const summary = useMemo(() => traderSummary(trades, timezone), [trades, timezone]);
+  const day = (key: string) => new Date(`${key}T12:00:00Z`).toLocaleDateString(intl, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -70,18 +76,24 @@ export default function ProfilePage() {
     </Panel>
 
     <Panel className="mt-4 p-5 sm:p-6">
-      <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">{t("Your accounts")}</h2>
-      {accounts.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">{t("No accounts yet. Create one from the account manager in the header.")}</p>
-        : <ul className="mt-3 divide-y divide-border">
-          {accounts.map(account => <li key={account.id} className="flex items-center gap-3 py-2.5">
-            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: account.color }} aria-hidden="true" />
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-medium">{account.name}</div>
-              <div className="truncate text-xs text-muted-foreground">{accountOverviewLabel(account, t)}</div>
-            </div>
-            <div className="shrink-0 text-sm tabular-nums text-muted-foreground">{fmt.num(account.initialBalance)} {account.currency}</div>
-          </li>)}
-        </ul>}
+      <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">{t("Trader card")}</h2>
+      {summary.closed === 0 ? <p className="mt-3 text-sm text-muted-foreground">{t("Close your first trade and your lifetime numbers will appear here.")}</p>
+        : <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {[
+            [t("Journaling since"), summary.firstDay ? day(summary.firstDay) : "—"],
+            [t("Trading days"), String(summary.tradingDays)],
+            [t("Win rate"), summary.winRate === null ? "—" : `${summary.winRate}%`],
+            [t("Average R"), summary.averageR === null ? "—" : `${summary.averageR > 0 ? "+" : ""}${summary.averageR}R`],
+            [t("Most traded"), summary.topSymbol ? `${summary.topSymbol.symbol} · ${summary.topSymbol.count}` : "—"],
+            [t("Reviewed trades"), summary.reviewedShare === null ? "—" : `${summary.reviewedShare}%`],
+            [t("Best day"), summary.bestDay ? `${day(summary.bestDay.day)} · +${fmt.num(summary.bestDay.net)}` : "—"],
+            [t("Worst day"), summary.worstDay ? `${day(summary.worstDay.day)} · ${fmt.num(summary.worstDay.net)}` : "—"],
+          ].map(([label, value]) => <div key={label} className="rounded-xl border border-border bg-background/40 p-3">
+            <dt className="text-xs text-muted-foreground">{label}</dt>
+            <dd className="mt-1 truncate text-sm font-semibold tabular-nums">{value}</dd>
+          </div>)}
+        </dl>}
+      <p className="mt-3 text-xs text-muted-foreground">{t("All accounts, closed trades. Days follow your time zone.")}</p>
     </Panel>
 
     <div className="mt-4 flex justify-end">
