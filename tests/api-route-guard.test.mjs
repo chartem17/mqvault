@@ -72,7 +72,7 @@ test("the service-role client is not reachable from client components", () => {
   for (const path of walk("src")) {
     const source = readFileSync(path, "utf8");
     if (!/^\s*["']use client["']/.test(source)) continue;
-    if (/@\/lib\/supabase\/(?:server|auth-server|private-owner|current-user)|SUPABASE_SECRET_KEY|@supabase\//.test(source)) offenders.push(path);
+    if (/@\/lib\/supabase\/(?:server|auth-server)|@\/lib\/auth\/(?:current-user|sign-in|auth-api)|SUPABASE_SECRET_KEY|@supabase\//.test(source)) offenders.push(path);
   }
   assert.deepEqual(offenders, []);
 });
