@@ -7,7 +7,7 @@ const json = (body: unknown, status = 200) => NextResponse.json(body, { status, 
 
 /**
  * GET → the caller's active sign-in sessions (Settings → Security). Reads auth.sessions through
- * `list_auth_sessions`, a service-role-only function from migration 20261112090000. Until that migration is
+ * `list_auth_sessions`, a service-role-only function from migration 20261111190319. Until that migration is
  * applied the list is reported as unavailable instead of failing the page.
  */
 export async function GET(request: Request) {
