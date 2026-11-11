@@ -3,6 +3,11 @@ import type { Dictionary } from "./core";
 /** Ukrainian translations keyed by the English source text. Keep keys identical to the `t()` / `tn()` / `msg()` calls. */
 export const uk: Dictionary = {
   // Sidebar, profile, settings and the e-mail code step (package 2)
+  "What opens when you come to the site.": "Що відкривається, коли ви заходите на сайт.",
+  "Could not load settings": "Не вдалося завантажити налаштування",
+  "Could not save settings": "Не вдалося зберегти налаштування",
+  "Invalid settings": "Неприпустимі налаштування",
+  "Settings are too large": "Налаштування завеликі",
   "All accounts, closed trades. Days follow your time zone.": "Усі рахунки, закриті угоди. Дні — у вашому часовому поясі.",
   "Best day": "Найкращий день",
   "Close your first trade and your lifetime numbers will appear here.": "Закрийте першу угоду — і тут зʼявляться ваші загальні показники.",
@@ -15,7 +20,6 @@ export const uk: Dictionary = {
   "Start page": "Стартова сторінка",
   "Trader card": "Картка трейдера",
   "Trades (CSV)": "Угоди (CSV)",
-  "What opens when you come to the site. Applies to this device.": "Що відкривається, коли ви заходите на сайт. Діє на цьому пристрої.",
   "Win rate": "Відсоток виграшних",
   "Worst day": "Найгірший день",
   "Your data": "Ваші дані",

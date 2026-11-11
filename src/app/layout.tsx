@@ -9,6 +9,7 @@ import { UndoProvider } from "@/components/ui/undo-toast";
 import { TimezoneProvider } from "@/components/providers/timezone-provider";
 import { I18nProvider } from "@/components/providers/i18n-provider";
 import { ProfileProvider } from "@/components/providers/profile-provider";
+import { PreferencesProvider } from "@/components/providers/preferences-provider";
 import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale } from "@/lib/i18n/core";
 
 const unbounded = Unbounded({ subsets: ["latin", "cyrillic"], variable: "--font-home-display", display: "swap" });
@@ -20,7 +21,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const locale = isLocale(saved) ? saved : DEFAULT_LOCALE;
   return <html lang={locale} className={`${inter.variable} ${unbounded.variable}`} suppressHydrationWarning><body style={{ margin: 0, minHeight: "100dvh", backgroundColor: "var(--page-bg)" }}>
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
-      <I18nProvider initialLocale={locale}><ProfileProvider><TimezoneProvider><UndoProvider><TradesProvider>{children}</TradesProvider></UndoProvider></TimezoneProvider></ProfileProvider></I18nProvider>
+      <I18nProvider initialLocale={locale}><ProfileProvider><PreferencesProvider><TimezoneProvider><UndoProvider><TradesProvider>{children}</TradesProvider></UndoProvider></TimezoneProvider></PreferencesProvider></ProfileProvider></I18nProvider>
     </ThemeProvider>
   </body></html>;
 }

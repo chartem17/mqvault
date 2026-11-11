@@ -4,14 +4,23 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { ArrowLeft, Download, KeyRound, Languages, LogOut, MonitorSmartphone, Moon, Palette, ShieldCheck, Sun, Trash2, UserRound } from "lucide-react";
-import { START_TAB_KEY, START_TABS, readStartTab } from "@/lib/start-page";
+import { usePreferences } from "@/components/providers/preferences-provider";
+
+
+const START_TAB_OPTIONS = [
+  { id: "home", label: msg("Home"), ownerOnly: false },
+  { id: "overview", label: msg("Overview"), ownerOnly: false },
+  { id: "journal", label: msg("Journal"), ownerOnly: false },
+  { id: "strategy-control", label: msg("Strategy control"), ownerOnly: false },
+  { id: "calendar", label: msg("Calendar"), ownerOnly: true },
+] as const;
 import { Button, Input, Panel, Select } from "@/components/ui/primitives";
 import { PasswordStrength } from "@/components/ui/otp-input";
 import { TimezoneSelect } from "@/components/settings/timezone-select";
 import { useTimezone } from "@/components/providers/timezone-provider";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { useProfile } from "@/components/providers/profile-provider";
-import { LOCALE_LABEL, LOCALES, isLocale } from "@/lib/i18n/core";
+import { LOCALE_LABEL, LOCALES, isLocale, msg } from "@/lib/i18n/core";
 import { PASSWORD_MIN_LENGTH as PASSWORD_MIN } from "@/lib/auth/request-guard";
 import { passwordStrength } from "@/lib/auth/password-strength";
 import { formatDateTimeOrDash } from "@/lib/time/timezone";
@@ -41,12 +50,8 @@ export default function SettingsPage() {
   const { timezone, saving: zoneSaving, setTimezone } = useTimezone();
   const { profile, hasPassword, googleLinked, refresh } = useProfile();
   const [mounted, setMounted] = useState(false);
-  const [startTab, setStartTab] = useState("home");
-  useEffect(() => { setMounted(true); setStartTab(readStartTab()); }, []);
-  function chooseStartTab(value: string) {
-    setStartTab(value);
-    try { localStorage.setItem(START_TAB_KEY, value); } catch { /* storage may be blocked */ }
-  }
+  const { preferences, update } = usePreferences();
+  useEffect(() => { setMounted(true); }, []);
 
   // Security: password change
   const [current, setCurrent] = useState("");
@@ -117,9 +122,9 @@ export default function SettingsPage() {
         </div>
       </div>
       <div className={`${row} mt-4`}>
-        <div><label htmlFor="settings-start" className={labelCls}>{t("Start page")}</label><p className={hintCls}>{t("What opens when you come to the site. Applies to this device.")}</p></div>
-        <Select id="settings-start" value={startTab} onChange={event => chooseStartTab(event.target.value)} className="sm:w-56">
-          {START_TABS.filter(tab => profile?.plan === "owner" || !tab.ownerOnly).map(tab => <option key={tab.id} value={tab.id}>{t(tab.label)}</option>)}
+        <div><label htmlFor="settings-start" className={labelCls}>{t("Start page")}</label><p className={hintCls}>{t("What opens when you come to the site.")}</p></div>
+        <Select id="settings-start" value={preferences.startTab} onChange={event => update({ startTab: event.target.value as typeof preferences.startTab })} className="sm:w-56">
+          {START_TAB_OPTIONS.filter(tab => profile?.plan === "owner" || !tab.ownerOnly).map(tab => <option key={tab.id} value={tab.id}>{t(tab.label)}</option>)}
         </Select>
       </div>
     </Section>
