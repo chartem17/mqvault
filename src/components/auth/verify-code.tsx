@@ -58,7 +58,7 @@ export function VerifyCode({ email, onVerified, onStatus }: { email: string; onV
   const done = status === "success";
   return <div className="space-y-5 text-center">
     <p id="otp-hint" className="text-sm text-muted-foreground">
-      {done ? t("Opening your workspace…") : t("Enter the {count}-digit code we sent to {email}. The link in the same letter works too.", { count: OTP_LENGTH, email })}
+      {done ? t("Opening your workspace…") : t("We sent a letter to {email}. Open the link in it in this browser, or enter the {count}-digit code if the letter has one.", { count: OTP_LENGTH, email })}
     </p>
     <OtpInput ref={input} length={OTP_LENGTH} value={code} onChange={value => { setCode(value); if (error) setError(""); }} onComplete={value => void verify(value)}
       status={status} autoFocus aria-label={t("Verification code")} aria-describedby="otp-hint" />

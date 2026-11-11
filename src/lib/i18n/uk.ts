@@ -24,7 +24,7 @@ export const uk: Dictionary = {
   "Display name": "Імʼя",
   "Edit name": "Редагувати імʼя",
   "Email": "Email",
-  "Enter the {count}-digit code we sent to {email}. The link in the same letter works too.": "Введіть {count}-значний код, який ми надіслали на {email}. Посилання з того самого листа теж працює.",
+  "We sent a letter to {email}. Open the link in it in this browser, or enter the {count}-digit code if the letter has one.": "Ми надіслали лист на {email}. Відкрийте посилання з нього в цьому браузері або введіть {count}-значний код, якщо він є в листі.",
   "Expand sidebar": "Розгорнути панель",
   "Fair password": "Посередній пароль",
   "Good password": "Добрий пароль",
