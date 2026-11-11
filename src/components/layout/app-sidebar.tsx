@@ -14,6 +14,7 @@ import { buildAccountOverview, accountOverviewLabel } from "@/lib/accounts/accou
 import { needsReview } from "@/lib/journal/trade-review";
 import { fmt } from "@/lib/journal/utils-trade";
 import { usePreferences } from "@/components/providers/preferences-provider";
+import { LATEST_CHANGE } from "@/lib/help/content";
 import "./app-sidebar.css";
 
 const COLLAPSE_KEY = "mq_sidebar_collapsed";
@@ -36,6 +37,7 @@ export function AppSidebar({ activeTab, setActiveTab, onSearch }: { activeTab: T
   const [collapsed, setCollapsed] = useState(false);
   const [hoverKey, setHoverKey] = useState<string | null>(null);
   const [bridgePending, setBridgePending] = useState(false);
+  const [unseenChanges, setUnseenChanges] = useState(false);
   const navRef = useRef<HTMLElement>(null);
   const items = useRef(new Map<string, HTMLElement>());
   const [pill, setPill] = useState<{ top: number; height: number } | null>(null);
@@ -43,7 +45,7 @@ export function AppSidebar({ activeTab, setActiveTab, onSearch }: { activeTab: T
 
   useEffect(() => {
     setMounted(true);
-    try { setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1"); } catch { /* storage may be blocked */ }
+    try { setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1"); setUnseenChanges((localStorage.getItem("mq_seen_changes") ?? "") < LATEST_CHANGE); } catch { /* storage may be blocked */ }
     if (/Mac|iP(hone|ad|od)/.test(navigator.platform)) setMetaKey("⌘");
   }, []);
   const toggleCollapsed = () => setCollapsed(value => {
@@ -86,7 +88,7 @@ export function AppSidebar({ activeTab, setActiveTab, onSearch }: { activeTab: T
   function renderItem(page: NavPage) {
     const Icon = page.icon;
     const badge = badges[page.key];
-    const dot = page.key === "bridge" && bridgePending;
+    const dot = (page.key === "bridge" && bridgePending) || (page.key === "help" && unseenChanges);
     const label = <>
       <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
       <span className="sb-label sb-hide min-w-0 flex-1 truncate">{t(page.label)}</span>

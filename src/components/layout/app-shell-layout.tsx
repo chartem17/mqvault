@@ -6,6 +6,7 @@ import type { TabId } from "@/app/page";
 import AccountSwitcher from "@/components/accounts/account-switcher";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { CommandPalette } from "@/components/layout/command-palette";
+import { Shortcuts } from "@/components/layout/shortcuts";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { usePreferences } from "@/components/providers/preferences-provider";
 import { DefaultAccount } from "@/components/layout/default-account";
@@ -63,6 +64,7 @@ export default function AppShellLayout({ children, activeTab, setActiveTab }: { 
           <div className="px-3 py-4 sm:px-6 sm:py-5 xl:px-8 xl:py-6">{children}</div>
         </main>
       </div>
+      <Shortcuts />
       <CommandPalette open={search} onClose={() => setSearch(false)} setActiveTab={setActiveTab} />
       <nav aria-label={t("Main navigation")} style={{ gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))` }} className="fixed inset-x-0 bottom-0 z-40 grid border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
         {TABS.map((tab) => {

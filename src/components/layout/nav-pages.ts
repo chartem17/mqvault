@@ -1,4 +1,4 @@
-import { BookOpen, CalendarDays, Globe2, House, LayoutDashboard, MonitorSmartphone, Settings, ShieldCheck, UserRound, type LucideIcon } from "lucide-react";
+import { BookOpen, CalendarDays, Globe2, House, LayoutDashboard, LifeBuoy, MonitorSmartphone, Settings, ShieldCheck, UserRound, type LucideIcon } from "lucide-react";
 import type { TabId } from "@/app/page";
 import { msg } from "@/lib/i18n/core";
 import { OWNER_ONLY_TABS } from "@/lib/auth/beta-access";
@@ -16,6 +16,7 @@ export const NAV_PAGES: NavPage[] = [
   { key: "calendar", label: msg("Calendar"), icon: CalendarDays, section: "markets", target: { kind: "tab", tab: "calendar" } },
   { key: "bridge", label: msg("MT5 Bridge"), icon: MonitorSmartphone, section: "workspace", target: { kind: "href", href: "/bridge/connect" } },
   { key: "settings", label: msg("Settings"), icon: Settings, section: "workspace", target: { kind: "href", href: "/settings" } },
+  { key: "help", label: msg("Help"), icon: LifeBuoy, section: "workspace", target: { kind: "href", href: "/help" } },
   { key: "profile", label: msg("Profile"), icon: UserRound, section: "workspace", target: { kind: "href", href: "/profile" } },
 ];
 
