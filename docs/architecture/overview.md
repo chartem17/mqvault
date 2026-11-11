@@ -54,10 +54,10 @@ src/
     journal/          форма ручної угоди
     strategy-control/ конструктор стратегії і спільні контроли Strategy Control
     home/             круговий «день» (day-dial)
-    settings/         мова, часовий пояс
-    layout/           каркас застосунку, навігація
-    providers/        theme, i18n, timezone
-    ui/               примітиви: Button/Input/Select/Panel, Field, Checkbox, DateTimeField, діалоги, Undo-тости, MetricCard
+    settings/         мова, часовий пояс (контроли для /settings), підключення Bridge
+    layout/           каркас: плаваючий сайдбар (app-sidebar), пошук Ctrl/⌘K (command-palette), меню акаунта, нижня панель на телефоні
+    providers/        theme, i18n, timezone, profile
+    ui/               примітиви: Button/Input/Select/Panel, Field, Checkbox, DateTimeField, діалоги, Undo-тости, MetricCard, OtpInput + PasswordStrength, TagInput, GhostInput, AutoTextarea
   hooks/              див. таблицю вище
   lib/
     accounts/         модель рахунку, парсинг/валідація, гілки Phase1→2→Funded, Overview-розрахунки, умови проп

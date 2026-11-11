@@ -6,7 +6,9 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNod
 import { Camera, ChevronDown, X } from "lucide-react";
 import { type JournalTrade, type TradeInput } from "@/hooks/use-trades";
 import type { TradingAccount } from "@/lib/accounts/account-data";
-import { Button, Input, Panel, Select, Textarea } from "@/components/ui/primitives";
+import { Button, Input, Panel, Select } from "@/components/ui/primitives";
+import { GhostInput } from "@/components/ui/ghost-input";
+import { AutoTextarea } from "@/components/ui/auto-textarea";
 import { Field } from "@/components/ui/field";
 import { EmptyState } from "@/components/ui/empty-state";
 import "@/components/ui/field.css";
@@ -630,9 +632,11 @@ export function ManualTradeModal({
                 </span>
 
                 <div className="relative">
-                  <Input
+                  <GhostInput
                     data-trade-field="symbol"
                     value={symbolQuery}
+                    suggestion={symbolQuery.trim() ? matchingAssets[0]?.symbol : null}
+                    onAccept={chooseSymbol}
                     onChange={(event) => {
                       const value = event.target.value;
                       setSymbolQuery(value);
@@ -823,10 +827,10 @@ export function ManualTradeModal({
                 <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
                   {t("Notes")}
                 </span>
-                <Textarea
+                <AutoTextarea
                   value={form.notes}
                   onChange={(event) => setField("notes", event.target.value)}
-                  rows={5}
+                  rows={3}
                   className="ui-field-control"
                 />
               </label>

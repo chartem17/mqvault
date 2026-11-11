@@ -8,7 +8,7 @@ import { isDeviceSignedPath } from "../bridge/signature";
 /** Pages a signed-out visitor may open. Signed-in visitors are sent to the app instead. */
 export const PUBLIC_PAGES = new Set(["/login", "/signup", "/forgot-password"]);
 /** Sign-in endpoints: POST, same-origin JSON, no session yet. */
-export const PUBLIC_API = new Set(["/api/auth/login", "/api/auth/signup", "/api/auth/reset", "/api/auth/logout"]);
+export const PUBLIC_API = new Set(["/api/auth/login", "/api/auth/signup", "/api/auth/reset", "/api/auth/logout", "/api/auth/verify", "/api/auth/resend"]);
 /** GET handlers that finish an e-mail link or OAuth round trip and create the session themselves. */
 export const PUBLIC_CALLBACKS = new Set(["/auth/confirm", "/auth/callback", "/api/auth/google"]);
 /**

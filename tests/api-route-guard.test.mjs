@@ -15,6 +15,8 @@ const EXEMPT = {
   "api/auth/logout/route.ts": { reason: "ends the session", proof: /auth\.signOut\(/ },
   "api/auth/google/route.ts": { reason: "starts OAuth", proof: /signInWithOAuth\(/ },
   "api/auth/password/route.ts": { reason: "acts on the verified session's own Auth user", proof: /auth\.getClaims\(\)/ },
+  "api/auth/verify/route.ts": { reason: "confirms an e-mail with its one-time code, then admits the session", proof: /verifyOtp\(/ },
+  "api/auth/resend/route.ts": { reason: "re-sends the confirmation letter, rate-limited", proof: /auth\.resend\(/ },
   "auth/callback/route.ts": { reason: "finishes a PKCE flow", proof: /exchangeCodeForSession\(/ },
   "auth/confirm/route.ts": { reason: "verifies a one-time e-mail token", proof: /verifyOtp\(/ },
   "api/bridge/device/deals/route.ts": { reason: "device signature", proof: /authenticateDevice\(/ },

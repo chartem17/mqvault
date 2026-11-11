@@ -1,27 +1,35 @@
 "use client";
 
 import { useId, useState, type FormEvent, type InputHTMLAttributes, type ReactNode } from "react";
+import Link from "next/link";
 import { TrendingUp } from "lucide-react";
 import { LanguageToggle } from "@/components/settings/language-toggle";
 import { useI18n } from "@/components/providers/i18n-provider";
+import "./auth-card.css";
 
-/** Page frame shared by sign-in, sign-up and the password forms. Works from 320px up. */
-export function AuthCard({ title, subtitle, children, footer }: { title: string; subtitle?: ReactNode; children: ReactNode; footer?: ReactNode }) {
+/** Page frame shared by sign-in, sign-up and the password forms: a glass card on the site background. Works from 320px up. */
+export function AuthCard({ title, subtitle, children, footer, tabs, tone }: { title: string; subtitle?: ReactNode; children: ReactNode; footer?: ReactNode; tabs?: "signin" | "signup"; tone?: "success" }) {
+  const { t } = useI18n();
   return (
-    <main className="relative flex min-h-dvh items-center justify-center px-4 py-16">
+    <main className="login-stage">
       <div className="absolute right-4 top-4"><LanguageToggle /></div>
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-[26rem]">
         <div className="mb-5 flex items-center justify-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10"><TrendingUp aria-hidden="true" className="h-4.5 w-4.5 text-primary" /></div>
           <span className="text-base font-semibold tracking-tight">Trade Vault</span>
         </div>
-        <div className="space-y-4 rounded-2xl border border-border bg-card p-6 shadow-2xl">
-          <div>
-            <h1 className="text-lg font-semibold">{title}</h1>
+        <section className="glass-card space-y-4" data-tone={tone}>
+          {tabs && <nav className="login-tabs" aria-label={t("Sign in or sign up")} data-mode={tabs}>
+            <span className="login-tabs-pill" aria-hidden="true" style={tabs === "signup" ? { transform: "translateX(100%)" } : undefined} />
+            <Link href="/login" aria-current={tabs === "signin" ? "page" : undefined}>{t("Sign in")}</Link>
+            <Link href="/signup" aria-current={tabs === "signup" ? "page" : undefined}>{t("Sign up")}</Link>
+          </nav>}
+          <div className="login-step">
+            <h1 className="text-xl font-semibold">{title}</h1>
             {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
           </div>
           {children}
-        </div>
+        </section>
         {footer && <div className="mt-4 text-center text-sm text-muted-foreground">{footer}</div>}
       </div>
     </main>
@@ -33,14 +41,14 @@ export function AuthInput({ label, hint, ...props }: InputHTMLAttributes<HTMLInp
   return (
     <div className="space-y-1.5">
       <label htmlFor={id} className="block text-sm font-medium">{label}</label>
-      <input id={id} aria-describedby={hint ? `${id}-hint` : undefined} {...props} className="h-11 w-full rounded-lg border border-border bg-background px-3 text-base outline-none focus:ring-2 focus:ring-ring sm:text-sm" />
+      <input id={id} aria-describedby={hint ? `${id}-hint` : undefined} {...props} className="h-11 w-full rounded-xl border border-border bg-background px-3 text-base outline-none sm:text-sm" />
       {hint && <p id={`${id}-hint`} className="text-xs text-muted-foreground">{hint}</p>}
     </div>
   );
 }
 
 export function AuthSubmit({ busy, children }: { busy: boolean; children: ReactNode }) {
-  return <button type="submit" disabled={busy} aria-busy={busy} className="h-11 w-full rounded-lg bg-primary text-sm font-medium text-primary-foreground disabled:opacity-60">{children}</button>;
+  return <button type="submit" disabled={busy} aria-busy={busy} className="h-11 w-full rounded-xl bg-primary text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60">{children}</button>;
 }
 
 export function AuthMessage({ tone, children }: { tone: "error" | "info"; children: ReactNode }) {
