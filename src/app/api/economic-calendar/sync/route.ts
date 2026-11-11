@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase/server";
-import { safeEqual } from "@/lib/auth/session-token";
+import { createServiceSupabase } from "@/lib/supabase/server";
+import { safeEqual } from "@/lib/auth/request-guard";
 import { CALENDAR_CURRENCIES, calendarRowFromCsv, cleanRecordFromMt5, forecastLooksSuspect, type Mt5RawValue, type NewsEventImportRow } from "@/lib/news/economic-calendar";
 
 export const dynamic = "force-dynamic";
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
   // One row per value id (the last one wins, as in the import RPC).
   const unique = [...new Map(rows.map(row => [row.external_id, row])).values()];
 
-  const db = createServerSupabase();
+  const db = createServiceSupabase();
   const suspect = await flagSuspectForecasts(db, unique);
   if (suspect instanceof Response) return suspect;
 
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
   return json({ received: body.rows.length, ...totals, skipped, invalid: Object.fromEntries(errors), suspect });
 }
 
-type Db = ReturnType<typeof createServerSupabase>;
+type Db = ReturnType<typeof createServiceSupabase>;
 
 /**
  * Sets forecast_suspect on incoming rows with the same rule as the CSV cleaner, using the series'

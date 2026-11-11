@@ -1,14 +1,27 @@
 # База даних
 
-Supabase (Postgres 17), проєкт `mqvault-dev`. Схему знято з живої бази 2026-11-07; на всіх таблицях `public` увімкнено RLS. Застосунок ходить у БД лише з сервера (`createServerSupabase()`, сервісний ключ), браузер напряму не звертається.
+Supabase (Postgres 17), проєкт `mqvault-dev`. Схему знято з живої бази 2026-11-07; на всіх таблицях `public` увімкнено RLS. Застосунок ходить у БД лише з сервера; браузер напряму не звертається. Запити користувача йдуть клієнтом із його JWT (діє RLS), сервісний ключ — лише для Bridge, календаря й лімітів ([ADR 0017](../decisions/0017-supabase-auth-multi-user.md)).
 
-Усі таблиці користувача мають `user_id → app_users.id`; власник робочого простору визначається як єдиний `app_users.is_owner = true` ([ADR 0006](../decisions/0006-private-access-single-password.md)).
+Усі таблиці користувача мають `user_id → app_users.id`, а `app_users.id = auth.users.id` (після міграції `20261110120000`). Рядок профілю створює тригер `handle_auth_user`; наявний рядок власника переходить на новий auth-id під час першого входу з підтвердженим email.
+
+### Доступ (RLS) — після міграції `20261110120000`
+
+| Таблиці | `authenticated` | `anon` |
+|---|---|---|
+| `accounts`, `journal_trades`, `strategy_rules`, `strategy_checks`, `*_layout_preferences`, `mt5_import_runs`, `mt5_deals_raw`, `broker_symbols` | select/insert/update/delete лише де `user_id = auth.uid()`; `account_id` / `parent_account_id` — лише власний рахунок | — |
+| `app_users` | select власного рядка; update лише `display_name`, `timezone`, `locale`, `country_code` | — |
+| `trade_news_links` | через власну угоду | — |
+| `news_events`, `market_instruments` | лише select; запис — сервісний ключ | — |
+| `bridge_devices`, `bridge_terminal_accounts`, `bridge_deals` | select власних; update лише `revoked_at` / `needs_review`, `ignored_at` | — |
+| `bridge_orders`, `bridge_positions`, `bridge_pairings`, `bridge_rate_limits` | немає (лише сервісний ключ) | — |
+
+Функції: `vault_delete_entity` (invoker, лише від свого імені), `owns_account`, `list_my_sessions` — `authenticated`; `import_news_events`, `link_trades_to_news`, `bridge_rate_limit_*` — лише `service_role`. View `news_impact_stats` — `security_invoker`.
 
 ## Таблиці
 
 | Таблиця | Призначення | Ключове |
 |---|---|---|
-| `app_users` | Користувачі | `timezone` (за замовчуванням `Europe/Kyiv`), `locale` (`uk`/`en`), `country_code`, `is_owner` |
+| `app_users` | Користувачі | `timezone` (за замовчуванням `Europe/Kyiv`), `locale` (`uk`/`en`), `country_code`, `avatar_url`, `plan` (`free`/`pro`); `is_owner` — застаріла, код не читає |
 | `accounts` | Торгові рахунки | `platform` (manual/mt5/binance/bybit/other), `account_type` (personal/prop), `broker_timezone` (за замовч. `Etc/UTC`), `phase`, `parent_account_id` (гілка Phase 1 → 2 → Funded), `target_percent`, `max_loss_percent`, `daily_loss_percent`, `min_trading_days`, `prop_*_state`, `prop_rules_revision` |
 | `journal_trades` | Угоди | `source`, `opened_at`/`closed_at` (timestamptz), `gross_pnl`, `commission`, `swap`, `fee`, `net_pnl`, `result_r`, `session`, `setup`, `emotion`, `mistake`, `screenshot_url`, поля нормалізації символу (`normalized_symbol`, `asset_class`, …), `meta` |
 | `strategy_rules` | Стратегії (правила) | `account_id`, `definition` (jsonb), `source_strategy_id` (копія зі стратегії) |
@@ -57,10 +70,11 @@ app_users ─┬─< accounts ─┬─< journal_trades ─┬─< strategy_chec
 | `20261107120100 index_cleanup` | прибрано 4 дублікати індексів, індекси для 3 FK |
 | `20261108171403 news_events_calendar_fields` | застосовано 2026-11-08 за погодженням власника (гілка `feat/economic-calendar`): поля календаря MT5, числові значення, `license_scope`, RPC `import_news_events` ([ADR 0013](../decisions/0013-economic-calendar-source.md)) |
 | `20261108204347 mt5_bridge` | таблиці `bridge_*` і лічильник лімітів для MQVault Bridge (ADR 0016) |
+| `20261110120000 auth_users_rls` | **чекає погодження власника.** `app_users` ↔ `auth.users` (тригер, перенесення власника), RLS-політики й права, прибрано публічну політику читання угод, перевірка власника у `vault_delete_entity`, `list_my_sessions` ([ADR 0017](../decisions/0017-supabase-auth-multi-user.md)) |
 
 Що лишається:
 
 - **Базова схема не в міграціях.** Таблиці `app_users`, `accounts`, `journal_trades`, `strategy_rules`, `strategy_checks`, `news_events`, `trade_news_links`, `mt5_*`, `broker_symbols` створені до ведення історії. Для чистого відтворення з нуля потрібен baseline-дамп (`supabase db dump --schema public`, потребує пароля БД) з версією, меншою за `20261011210225`.
 - Тому **`supabase db push` на порожню БД не спрацює**; на робочу — не потрібен. Нова зміна = новий файл, застосовується після погодження; **вже застосовані файли не редагувати**.
-- Advisor «RLS enabled, no policy» (11 таблиць) — свідомо: клієнт не ходить у БД, доступ лише через `/api/*` з `SUPABASE_SECRET_KEY`.
+- Тест міграції авторизації та ізоляції користувачів: `tests/auth-users-rls-migration.sql` (CI-джоба `auth-rls-migration`).
 - Тест реальної SQL-міграції проп-правил на тимчасовому Postgres: `tests/prop-rule-settings-migration.sql` (запускається в CI).

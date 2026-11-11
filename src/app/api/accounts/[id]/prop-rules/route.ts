@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { resolvePrivateOwner } from "@/lib/supabase/private-owner";
+import { requireUser } from "@/lib/supabase/session";
 import { AccountSetupError } from "@/lib/accounts/account-setup";
 import { PROP_RULE_SELECT, RuleRevisionConflict, preparePropRuleUpdate, ruleRecordFromColumns } from "@/lib/accounts/prop-rule-record";
 export const dynamic = "force-dynamic";
@@ -19,11 +19,11 @@ function failure(error: unknown) {
 }
 export async function GET(request: Request, context: Context) {
   try {
-    const owner = await resolvePrivateOwner(request);
+    const owner = await requireUser(request);
     if (owner instanceof Response) return owner;
     const { id } = await context.params;
     if (!UUID.test(id)) return json({ error: "Invalid account id" }, 400);
-    const { data, error } = await owner.db.from("accounts").select(PROP_RULE_SELECT).eq("id", id).eq("user_id", owner.ownerId).eq("is_active", true).maybeSingle();
+    const { data, error } = await owner.db.from("accounts").select(PROP_RULE_SELECT).eq("id", id).eq("user_id", owner.userId).eq("is_active", true).maybeSingle();
     if (error) return databaseError(error.code);
     if (!data) return json({ error: "Account not found" }, 404);
     if (data.account_type !== "prop") return json({ error: "Rules are available only for prop accounts" }, 400);
@@ -32,7 +32,7 @@ export async function GET(request: Request, context: Context) {
 }
 export async function PATCH(request: Request, context: Context) {
   try {
-    const owner = await resolvePrivateOwner(request);
+    const owner = await requireUser(request);
     if (owner instanceof Response) return owner;
     const { id } = await context.params;
     if (!UUID.test(id)) return json({ error: "Invalid account id" }, 400);
@@ -40,11 +40,11 @@ export async function PATCH(request: Request, context: Context) {
     if (text.length > 16384) return json({ error: "Rule payload is too large" }, 413);
     let body: unknown;
     try { body = JSON.parse(text); } catch { return json({ error: "Invalid JSON body" }, 400); }
-    const { data: current, error: readError } = await owner.db.from("accounts").select(PROP_RULE_SELECT).eq("id", id).eq("user_id", owner.ownerId).eq("is_active", true).maybeSingle();
+    const { data: current, error: readError } = await owner.db.from("accounts").select(PROP_RULE_SELECT).eq("id", id).eq("user_id", owner.userId).eq("is_active", true).maybeSingle();
     if (readError) return databaseError(readError.code);
     if (!current) return json({ error: "Account not found" }, 404);
     const { expectedRevision, payload } = preparePropRuleUpdate(body, current);
-    const { data, error } = await owner.db.from("accounts").update(payload).eq("id", id).eq("user_id", owner.ownerId).eq("is_active", true).eq("account_type", "prop").eq("prop_rules_revision", expectedRevision).select(PROP_RULE_SELECT).maybeSingle();
+    const { data, error } = await owner.db.from("accounts").update(payload).eq("id", id).eq("user_id", owner.userId).eq("is_active", true).eq("account_type", "prop").eq("prop_rules_revision", expectedRevision).select(PROP_RULE_SELECT).maybeSingle();
     if (error) return databaseError(error.code);
     if (!data) return json({ error: "The account or its rules changed. Reload before saving." }, 409);
     return json({ data: ruleRecordFromColumns(data) });

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { resolvePrivateOwner } from "@/lib/supabase/private-owner";
+import { requireUser } from "@/lib/supabase/session";
 import { splitDuplicates, type ImportedTrade } from "@/lib/journal/csv-import";
 import { derivedFinancials } from "@/lib/journal/trade-financials";
 
@@ -37,22 +37,22 @@ function clean(raw: unknown): ImportedTrade | null {
  * never changed. dryRun only reports what would happen. Net P&L and R are computed here, as for any trade.
  */
 export async function POST(request: Request) {
-  const context = await resolvePrivateOwner(request);
+  const context = await requireUser(request);
   if (context instanceof Response) return context;
-  const { db, ownerId } = context;
+  const { db, userId } = context;
   const body = await request.json().catch(() => null) as { account_id?: unknown; trades?: unknown; dryRun?: unknown } | null;
   if (!body || typeof body.account_id !== "string" || !UUID.test(body.account_id)) return json({ error: "account_id is required" }, 400);
   if (!Array.isArray(body.trades) || body.trades.length === 0) return json({ error: "No trades to import" }, 400);
   if (body.trades.length > MAX_ROWS) return json({ error: "Too many rows in one import" }, 400);
 
-  const { data: account } = await db.from("accounts").select("id").eq("id", body.account_id).eq("user_id", ownerId).maybeSingle();
+  const { data: account } = await db.from("accounts").select("id").eq("id", body.account_id).eq("user_id", userId).maybeSingle();
   if (!account) return json({ error: "Unknown account_id" }, 400);
 
   const cleaned = body.trades.map(clean);
   const invalid = cleaned.filter(trade => trade === null).length;
   const candidates = cleaned.filter((trade): trade is ImportedTrade => trade !== null);
 
-  const { data: existing, error: readError } = await db.from("journal_trades").select("symbol, direction, opened_at, entry_price, external_id, ticket").eq("account_id", body.account_id).eq("user_id", ownerId).limit(20000);
+  const { data: existing, error: readError } = await db.from("journal_trades").select("symbol, direction, opened_at, entry_price, external_id, ticket").eq("account_id", body.account_id).eq("user_id", userId).limit(20000);
   if (readError) return json({ error: "Failed to read existing trades" }, 500);
   const known = (existing ?? []).flatMap(row => [row, ...(row.ticket && row.ticket !== row.external_id ? [{ ...row, external_id: row.ticket }] : [])]);
   const { fresh, duplicates, shifted } = splitDuplicates(candidates, known);
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
   const rows = fresh.map(({ followed_plan, ...trade }) => {
     const payload = {
       ...trade, gross_pnl: trade.gross_pnl ?? 0, commission: Math.abs(trade.commission ?? 0), swap: trade.swap ?? 0, fee: Math.abs(trade.fee ?? 0),
-      source: "import", ticket: trade.external_id, user_id: ownerId, account_id: body.account_id as string,
+      source: "import", ticket: trade.external_id, user_id: userId, account_id: body.account_id as string,
       meta: { imported_at: importedAt, ...(followed_plan === null ? {} : { review: { reviewed_at: importedAt, followed_plan } }) },
     };
     return { ...payload, ...derivedFinancials(payload) };

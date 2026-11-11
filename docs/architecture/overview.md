@@ -15,15 +15,15 @@
 | Шар | Де | Відповідальність |
 |---|---|---|
 | Маршрути | `src/app/` | Єдина сторінка `/` із вкладками (`?tab=`), `/journal` (редирект-обгортка для посилань на угоди), `/login`; усі серверні ендпоінти в `src/app/api/` |
-| Доступ | `src/middleware.ts`, `src/lib/auth/` | Приватний доступ для всіх сторінок і API (див. [ADR 0006](../decisions/0006-private-access-single-password.md)); перенаправляє `DELETE /api/accounts` і `DELETE /api/journal/trades` на `/api/deletions`. Виняток — `TOKEN_PATHS` (`POST /api/economic-calendar/sync`, власний токен, [ADR 0015](../decisions/0015-calendar-sync-from-owner-mt5.md)) |
+| Доступ | `src/middleware.ts`, `src/lib/auth/`, `src/lib/supabase/session.ts` | Вхід через Supabase Auth, сесія в httpOnly-cookie, оновлюється в middleware ([ADR 0017](../decisions/0017-supabase-auth-multi-user.md)); кожен `/api/*` бере користувача з `requireUser()`. Перенаправляє `DELETE /api/accounts` і `DELETE /api/journal/trades` на `/api/deletions`. Без сесії — лише `PUBLIC_PATHS` (вхід), `TOKEN_PATHS` (`POST /api/economic-calendar/sync`, [ADR 0015](../decisions/0015-calendar-sync-from-owner-mt5.md)) і підписані шляхи Bridge |
 | UI | `src/components/` | Екрани-вкладки (`tabs/`), фічі (`overview/`, `accounts/`, `journal/`, `strategy-control/`, `home/`, `settings/`), каркас (`layout/`), контексти (`providers/`), спільні примітиви (`ui/`) |
 | Стан і дані на клієнті | `src/hooks/` | `use-trades` (угоди й рахунки), `use-strategies`, `use-dashboard-layout`, `use-journal-layout`, `use-instruments`, `use-market-quotes`, `use-mt5` (вимкнений), `use-media-query` |
 | Доменна логіка | `src/lib/<домен>/` | Чисті функції без React: розрахунки, парсинг, правила. Тут живуть тести |
-| Сервер → БД | `src/lib/supabase/` | `createServerSupabase()` (сервісний ключ, тільки на сервері), `resolvePrivateOwner()` (власник робочого простору), видалення, типи |
+| Сервер → БД | `src/lib/supabase/` | `requireUser()` — клієнт із JWT користувача (діє RLS); `createServiceSupabase()` — сервісний ключ лише для Bridge, календаря, лімітів (перелік в ADR 0017); видалення, типи |
 
 ### Правила залежностей
 
-- `src/lib` **не імпортує** `src/components` і React. Єдині зв'язки назовні: `import type { JournalTrade }` з `hooks/use-trades` (`journal/advanced-stats`, `journal/utils-trade`, `strategy-control/trade-adapter`) і `NextResponse` у серверних хелперах (`accounts/account-api`, `supabase/private-owner`).
+- `src/lib` **не імпортує** `src/components` і React. Єдині зв'язки назовні: `import type { JournalTrade }` з `hooks/use-trades` (`journal/advanced-stats`, `journal/utils-trade`, `strategy-control/trade-adapter`) і `NextResponse` у серверних хелперах (`accounts/account-api`, `supabase/session`, `auth/auth-api`).
 - Модулі в `src/lib/<домен>`, які покриті юніт-тестами, імпортують сусідів **відносними шляхами** (`../time/timezone`), а не `@/…`: тести компілюють їх окремо через `tsc` без `tsconfig`-аліасів (`scripts/run-tests.mjs`).
 - `src/components/ui/` — лише спільні примітиви, що використовуються в кількох фічах. Файл, потрібний одній фічі, лежить у теці цієї фічі.
 - Клієнт ніколи не бачить `SUPABASE_SECRET_KEY` і напряму БД не викликає: усе через `/api/*`.
@@ -42,7 +42,7 @@ src/
       strategies/               правила стратегій
       deletions/                відкладене остаточне видалення (RPC), сюди middleware перенаправляє DELETE
       preferences/              timezone, journal-layout, dashboard-layout
-      auth/                     login, logout
+      auth/                     login, signup, verify, resend, reset, password, oauth, logout  (+ app/auth/callback)
       instruments/, market/quotes/, news/     ринок, котирування, економічні новини
       mt5/{health,history,positions}/         виведені з експлуатації (повертають відповідь про retirement)
   components/
@@ -64,10 +64,10 @@ src/
     time/             пояс користувача, торгові сесії, календарні періоди
     market/           інструменти, котирування, watchlist, retirement MT5
     news/             економічний календар (CSV MT5 → news_events, значення, «сюрприз») і зв'язки угод із новинами
-    auth/             перевірка приватного доступу, підпис сесійного токена
+    auth/             перша перевірка запиту (request-guard), ліміти спроб, спільне для /api/auth/*
     strategy-control/ рушій правил, бібліотека правил, збереження, адаптер угод
     i18n/             словник і ядро локалізації (en за замовчуванням, uk)
-    supabase/         серверний клієнт, власник, видалення, типи
+    supabase/         клієнт сесії користувача (requireUser), сервісний клієнт, видалення, типи
     utils.ts          cn() та дрібні утиліти
 supabase/migrations/  SQL-міграції (див. [database.md](database.md))
 tests/                юніт-тести логіки (`npm test`)
@@ -88,15 +88,15 @@ docs/                 ця документація
 | Фінанси угоди | `net = gross − |commission| − |fee| + swap`, рахує сервер; брокерський результат не перераховується | [0003](../decisions/0003-trade-financials.md) |
 | Проп-рахунки | Лише ціль, ліміти збитку, мінімум днів, фаза; без EOD/trailing; гілки через `parent_account_id` | [0004](../decisions/0004-prop-rules-simplified.md) |
 | Видалення | 10 с на Undo, потім остаточне видалення; не soft delete і не кошик | [0005](../decisions/0005-deferred-deletion-with-undo.md) |
-| Доступ | Один приватний пароль, не багатокористувацька авторизація | [0006](../decisions/0006-private-access-single-password.md) |
+| Доступ | Акаунти Supabase Auth (email + пароль, Google), ізоляція даних через RLS | [0017](../decisions/0017-supabase-auth-multi-user.md) |
 | Мови | English за замовчуванням, українська — друга | [0007](../decisions/0007-interface-languages.md) |
 | Адаптивність | Сайт повноцінно працює на телефонах і будь-якому екрані | [0008](../decisions/0008-responsive-layout.md) |
 | Дашборд | Користувач сам збирає сітку віджетів у «Огляді» | [0009](../decisions/0009-customizable-overview-dashboard.md) |
 
 ## Середовище
 
-Змінні: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SECRET_KEY` (лише сервер), `VAULT_ACCESS_PASSWORD` (≥ 20 символів). Значень у репозиторії немає; `.env*` у `.gitignore`.
+Змінні: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SECRET_KEY` (лише сервер), `CALENDAR_SYNC_TOKEN`; необов'язково `VAULT_SITE_ORIGIN`. Значень у репозиторії немає; `.env*` у `.gitignore`.
 
 Деплой: Vercel, проєкт підключений до цього репозиторію. Production-гілка — `main` (перевірити в налаштуваннях Vercel, див. roadmap). База: Supabase, проєкт `mqvault-dev`. Preview-деплої користуються тією самою БД, тому не ізолюють дані.
 
-CI (`.github/workflows/ci.yml`) на кожен PR у `main` і push у `main`: lint → типи (`tsc --noEmit`) → `npm test` → `npm run build`; окремо — SQL-міграція проп-правил на тимчасовому Postgres 17.
+CI (`.github/workflows/ci.yml`) на кожен PR у `main` і push у `main`: lint → типи (`tsc --noEmit`) → `npm test` → `npm run build`; окремо — SQL-міграції (проп-правила, календар, авторизація й RLS з тестом ізоляції) на тимчасовому Postgres 17.

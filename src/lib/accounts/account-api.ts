@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
-import { resolvePrivateOwner } from "@/lib/supabase/private-owner";
+import { requireUser, type UserContext } from "@/lib/supabase/session";
 import { permanentlyDeleteOwnedEntity } from "@/lib/supabase/permanent-delete";
 import { AccountSetupError } from "./account-setup";
 import { buildAccountPayload, type AccountRecord } from "./account-payload";
 import { linkError } from "./account-chain";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const FIELDS = "id,name,broker,platform,account_type,currency,mt5_login,mt5_server,initial_balance,phase,target_percent,max_loss_percent,daily_loss_percent,min_trading_days,is_active,status,color,parent_account_id,broker_timezone,prop_target_state";
-type OwnerContext = Exclude<Awaited<ReturnType<typeof resolvePrivateOwner>>, Response>;
+type OwnerContext = UserContext;
 /** Checks a prop-branch link against the owner's accounts only (existence, prop type, no loops, one next stage per parent). */
 async function parentError(context: OwnerContext, accountId: string | null, parentId: string): Promise<string | null> {
-  const { data, error } = await context.db.from("accounts").select("id,account_type,parent_account_id").eq("user_id", context.ownerId).eq("is_active", true);
+  const { data, error } = await context.db.from("accounts").select("id,account_type,parent_account_id").eq("user_id", context.userId).eq("is_active", true);
   if (error) throw new Error(error.code);
   const rows = (data ?? []).map(row => ({ id: row.id as string, accountType: row.account_type as string, parentAccountId: row.parent_account_id as string | null }));
   if (!rows.some(row => row.id === parentId)) return "Previous stage not found";
@@ -35,16 +35,16 @@ function failure(error: unknown) {
 }
 export async function GET(request: Request) {
   try {
-    const context = await resolvePrivateOwner(request);
+    const context = await requireUser(request);
     if (context instanceof Response) return context;
-    const { data, error } = await context.db.from("accounts").select(FIELDS).eq("user_id", context.ownerId).eq("is_active", true).order("created_at", { ascending: true });
+    const { data, error } = await context.db.from("accounts").select(FIELDS).eq("user_id", context.userId).eq("is_active", true).order("created_at", { ascending: true });
     if (error) throw new Error(error.code);
     return json({ data: data ?? [] });
   } catch (error) { return failure(error); }
 }
 export async function POST(request: Request) {
   try {
-    const context = await resolvePrivateOwner(request);
+    const context = await requireUser(request);
     if (context instanceof Response) return context;
     const body = await readBody(request);
     const payload = buildAccountPayload(body);
@@ -53,18 +53,18 @@ export async function POST(request: Request) {
       const message = await parentError(context, null, String(payload.parent_account_id));
       if (message) return json({ error: message }, 400);
     }
-    const { data, error } = await context.db.from("accounts").insert({ ...payload, user_id: context.ownerId, is_active: true }).select(FIELDS).single();
+    const { data, error } = await context.db.from("accounts").insert({ ...payload, user_id: context.userId, is_active: true }).select(FIELDS).single();
     if (error) { if (error.code === "23505") return json({ error: "This account already exists" }, 409); throw new Error(error.code); }
     return json({ data }, 201);
   } catch (error) { return failure(error); }
 }
 export async function PATCH(request: Request) {
   try {
-    const context = await resolvePrivateOwner(request);
+    const context = await requireUser(request);
     if (context instanceof Response) return context;
     const body = await readBody(request);
     if (typeof body.id !== "string" || !UUID.test(body.id)) throw new AccountSetupError("Invalid account id");
-    const { data: current, error: readError } = await context.db.from("accounts").select(FIELDS).eq("id", body.id).eq("user_id", context.ownerId).maybeSingle();
+    const { data: current, error: readError } = await context.db.from("accounts").select(FIELDS).eq("id", body.id).eq("user_id", context.userId).maybeSingle();
     if (readError) throw new Error(readError.code);
     if (!current) return json({ error: "Account not found" }, 404);
     const payload = buildAccountPayload(body, current);
@@ -76,7 +76,7 @@ export async function PATCH(request: Request) {
         if (message) return json({ error: message }, 400);
       }
     }
-    const { data, error } = await context.db.from("accounts").update(payload).eq("id", body.id).eq("user_id", context.ownerId).select(FIELDS).maybeSingle();
+    const { data, error } = await context.db.from("accounts").update(payload).eq("id", body.id).eq("user_id", context.userId).select(FIELDS).maybeSingle();
     if (error) throw new Error(error.code);
     if (!data) return json({ error: "Account not found" }, 404);
     return json({ data });
@@ -84,11 +84,11 @@ export async function PATCH(request: Request) {
 }
 export async function DELETE(request: Request) {
   try {
-    const context = await resolvePrivateOwner(request);
+    const context = await requireUser(request);
     if (context instanceof Response) return context;
     const body = await readBody(request);
     if (typeof body.id !== "string" || !UUID.test(body.id)) throw new AccountSetupError("Invalid account id");
-    const result = await permanentlyDeleteOwnedEntity(context.ownerId, "account", body.id);
+    const result = await permanentlyDeleteOwnedEntity(context.db, context.userId, "account", body.id);
     return json({ success: true, ...result });
   } catch (error) { return failure(error); }
 }

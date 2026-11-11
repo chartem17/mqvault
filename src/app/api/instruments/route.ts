@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/supabase/session";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const supabase = createServerSupabase();
+export async function GET(request: Request) {
+  const context = await requireUser(request);
+    if (context instanceof Response) return context;
+    const supabase = context.db;
   const { data, error } = await supabase
     .from("market_instruments")
     .select(

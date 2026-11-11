@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { resolvePrivateOwner } from "@/lib/supabase/private-owner";
+import { requireUser } from "@/lib/supabase/session";
 import { newsCurrenciesForSymbol, newsImpactReport, summarizeTradesNews, NEWS_NEAR_MINUTES, NEWS_RULE_HORIZON_MINUTES, NEWS_WIDE_MINUTES, type NewsEventInput, type NewsTradeInput } from "@/lib/news/news-trades";
 
 export const dynamic = "force-dynamic";
@@ -15,9 +15,9 @@ const json = (body: unknown, status = 200) => NextResponse.json(body, { status, 
  * red release (for the Strategy Control rule), plus near/around/clear statistics with n.
  */
 export async function GET(request: Request) {
-  const context = await resolvePrivateOwner(request);
+  const context = await requireUser(request);
   if (context instanceof Response) return context;
-  const { db, ownerId } = context;
+  const { db, userId } = context;
 
   const params = new URL(request.url).searchParams;
   const accountId = params.get("account_id");
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
   let tradesQuery = db
     .from("journal_trades")
     .select("id, account_id, symbol, base_asset, quote_asset, opened_at, closed_at, net_pnl, result_r")
-    .eq("user_id", ownerId)
+    .eq("user_id", userId)
     .order("opened_at", { ascending: true })
     .limit(20000);
   if (accountId) tradesQuery = tradesQuery.eq("account_id", accountId);

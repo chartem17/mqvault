@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { requireUser } from "@/lib/supabase/session";
 import { parseTradeReview, reviewFromInput } from "@/lib/journal/trade-review";
 import { derivedFinancials, financialsChanged } from "@/lib/journal/trade-financials";
 
@@ -31,7 +32,7 @@ const NULLABLE_NUM_KEYS = [
 const COST_KEYS = ["commission", "fee"] as const;
 
 type Body = Record<string, unknown>;
-type Db = ReturnType<typeof createServerSupabase>;
+type Db = SupabaseClient;
 
 function fail(status: number, error: string, detail?: string) {
   return NextResponse.json(
@@ -60,18 +61,6 @@ function validDate(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
-}
-
-async function getOwnerId(db: Db): Promise<string | null> {
-  const { data, error } = await db
-    .from("app_users")
-    .select("id")
-    .eq("is_owner", true)
-    .limit(1)
-    .maybeSingle();
-
-  if (error) console.error("owner lookup error:", error);
-  return data?.id ?? null;
 }
 
 async function accountBelongsToOwner(
@@ -177,11 +166,11 @@ async function readBody(request: NextRequest): Promise<Body | null> {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const db = createServerSupabase();
-    const ownerId = await getOwnerId(db);
-    if (!ownerId) return fail(500, "Owner not found");
+    const context = await requireUser(request);
+    if (context instanceof Response) return context;
+    const { db, userId: ownerId } = context;
 
     const { data, error } = await db
       .from("journal_trades")
@@ -207,9 +196,9 @@ export async function POST(request: NextRequest) {
     const body = await readBody(request);
     if (!body) return fail(400, "Invalid JSON body");
 
-    const db = createServerSupabase();
-    const ownerId = await getOwnerId(db);
-    if (!ownerId) return fail(500, "Owner not found");
+    const context = await requireUser(request);
+    if (context instanceof Response) return context;
+    const { db, userId: ownerId } = context;
 
     const fields = fieldsFrom(body);
 
@@ -267,9 +256,9 @@ export async function PATCH(request: NextRequest) {
       return fail(400, "id is required");
     }
 
-    const db = createServerSupabase();
-    const ownerId = await getOwnerId(db);
-    if (!ownerId) return fail(500, "Owner not found");
+    const context = await requireUser(request);
+    if (context instanceof Response) return context;
+    const { db, userId: ownerId } = context;
 
     const fields = fieldsFrom(body);
 
@@ -358,9 +347,9 @@ export async function DELETE(request: NextRequest) {
       return fail(400, "id is required");
     }
 
-    const db = createServerSupabase();
-    const ownerId = await getOwnerId(db);
-    if (!ownerId) return fail(500, "Owner not found");
+    const context = await requireUser(request);
+    if (context instanceof Response) return context;
+    const { db, userId: ownerId } = context;
 
     const { error } = await db
       .from("journal_trades")

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { resolvePrivateOwner } from "@/lib/supabase/private-owner";
+import { requireUser } from "@/lib/supabase/session";
 import { currenciesFromTrades, parseCalendarQuery, toCalendarEvent, type NewsEventRecord } from "@/lib/news/economic-calendar";
 
 export const dynamic = "force-dynamic";
@@ -13,9 +13,9 @@ const json = (body: unknown, status = 200) => NextResponse.json(body, { status, 
  * pairs; when there are no trades yet, all calendar currencies are returned.
  */
 export async function GET(request: Request) {
-  const context = await resolvePrivateOwner(request);
+  const context = await requireUser(request);
   if (context instanceof Response) return context;
-  const { db, ownerId } = context;
+  const { db, userId } = context;
 
   const params = new URL(request.url).searchParams;
   const parsed = parseCalendarQuery(params);
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
   let currencies = query.currencies;
   let tradedCurrencies: string[] = [];
   if (scope === "mine") {
-    const { data: trades, error } = await db.from("journal_trades").select("symbol, base_asset, quote_asset").eq("user_id", ownerId).limit(20000);
+    const { data: trades, error } = await db.from("journal_trades").select("symbol, base_asset, quote_asset").eq("user_id", userId).limit(20000);
     if (error) return json({ error: "Failed to read trades" }, 500);
     tradedCurrencies = currenciesFromTrades(trades ?? []);
     if (tradedCurrencies.length) currencies = currencies ? currencies.filter(c => tradedCurrencies.includes(c)) : tradedCurrencies;

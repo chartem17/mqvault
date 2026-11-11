@@ -17,7 +17,7 @@ CI (`.github/workflows/ci.yml`) на кожен PR у `main`: lint, типи, т
 
 ## Змінні середовища
 
-`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SECRET_KEY` (лише сервер), `VAULT_ACCESS_PASSWORD` (≥ 20 символів). Значення не зберігаються в репозиторії.
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SECRET_KEY` (лише сервер). Значення не зберігаються в репозиторії.
 
 ## Структура
 

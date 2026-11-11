@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { parseReviewChips } from "@/lib/journal/trade-review";
-import { resolvePrivateOwner } from "@/lib/supabase/private-owner";
+import { requireUser } from "@/lib/supabase/session";
 import { permanentlyDeleteOwnedEntity } from "@/lib/supabase/permanent-delete";
 import { isRecord, parseStrategyRules, StrategyInputError, STRATEGY_UUID, toStrategyProfile } from "@/lib/strategy-control/strategy-storage";
 
@@ -37,11 +37,11 @@ function failure(error: unknown) {
 
 export async function GET(request: Request) {
   try {
-    const context = await resolvePrivateOwner(request);
+    const context = await requireUser(request);
     if (context instanceof Response) return context;
     const accountId = new URL(request.url).searchParams.get("accountId");
     if (accountId && accountId !== "all" && !STRATEGY_UUID.test(accountId)) return json({ error: "Invalid accountId" }, 400);
-    let query = context.db.from("strategy_rules").select("*").eq("user_id", context.ownerId).order("created_at", { ascending: false }).limit(1000);
+    let query = context.db.from("strategy_rules").select("*").eq("user_id", context.userId).order("created_at", { ascending: false }).limit(1000);
     if (accountId && accountId !== "all") query = query.eq("account_id", accountId);
     const { data, error } = await query;
     if (error) return json({ error: "Could not load strategies" }, 500);
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const context = await resolvePrivateOwner(request);
+    const context = await requireUser(request);
     if (context instanceof Response) return context;
     const body = await readBody(request);
     if (typeof body.account_id !== "string" || !STRATEGY_UUID.test(body.account_id)) return json({ error: "Choose a specific account before saving a strategy" }, 400);
@@ -61,15 +61,15 @@ export async function POST(request: Request) {
     const definition = definitionOf(body);
     const source = body.source_strategy_id ?? null;
     if (source !== null && (typeof source !== "string" || !STRATEGY_UUID.test(source))) return json({ error: "Invalid source strategy" }, 400);
-    const { data: account, error: accountError } = await context.db.from("accounts").select("id").eq("id", body.account_id).eq("user_id", context.ownerId).eq("is_active", true).maybeSingle();
+    const { data: account, error: accountError } = await context.db.from("accounts").select("id").eq("id", body.account_id).eq("user_id", context.userId).eq("is_active", true).maybeSingle();
     if (accountError) return json({ error: "Failed to verify account" }, 500);
     if (!account) return json({ error: "Account not found" }, 404);
     if (source) {
-      const { data: original, error: sourceError } = await context.db.from("strategy_rules").select("id").eq("id", source).eq("user_id", context.ownerId).maybeSingle();
+      const { data: original, error: sourceError } = await context.db.from("strategy_rules").select("id").eq("id", source).eq("user_id", context.userId).maybeSingle();
       if (sourceError) return json({ error: "Failed to verify source strategy" }, 500);
       if (!original) return json({ error: "Source strategy not found" }, 404);
     }
-    const { data, error } = await context.db.from("strategy_rules").insert({ user_id: context.ownerId, account_id: body.account_id, name, description, definition, source_strategy_id: source }).select("*").single();
+    const { data, error } = await context.db.from("strategy_rules").insert({ user_id: context.userId, account_id: body.account_id, name, description, definition, source_strategy_id: source }).select("*").single();
     if (error) return json({ error: "Could not save the strategy" }, error.code === "23505" ? 409 : 500);
     return json({ strategy: data, profile: toStrategyProfile(data) }, 201);
   } catch (error) { return failure(error); }
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const context = await resolvePrivateOwner(request);
+    const context = await requireUser(request);
     if (context instanceof Response) return context;
     const body = await readBody(request);
     if (typeof body.id !== "string" || !STRATEGY_UUID.test(body.id)) return json({ error: "Invalid strategy id" }, 400);
@@ -86,7 +86,7 @@ export async function PATCH(request: Request) {
     if (body.description !== undefined) fields.description = descriptionOf(body.description);
     if (body.definition !== undefined || body.rules !== undefined) fields.definition = definitionOf(body);
     if (Object.keys(fields).length === 1) return json({ error: "No editable fields supplied" }, 400);
-    const { data, error } = await context.db.from("strategy_rules").update(fields).eq("id", body.id).eq("user_id", context.ownerId).select("*").maybeSingle();
+    const { data, error } = await context.db.from("strategy_rules").update(fields).eq("id", body.id).eq("user_id", context.userId).select("*").maybeSingle();
     if (error) return json({ error: "Could not update the strategy" }, 500);
     if (!data) return json({ error: "Strategy not found" }, 404);
     return json({ strategy: data, profile: toStrategyProfile(data) });
@@ -95,11 +95,11 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const context = await resolvePrivateOwner(request);
+    const context = await requireUser(request);
     if (context instanceof Response) return context;
     const body = await readBody(request);
     if (typeof body.id !== "string" || !STRATEGY_UUID.test(body.id)) return json({ error: "Invalid strategy id" }, 400);
-    const result = await permanentlyDeleteOwnedEntity(context.ownerId, "strategy", body.id);
+    const result = await permanentlyDeleteOwnedEntity(context.db, context.userId, "strategy", body.id);
     return json({ success: true, ...result });
   } catch (error) { return failure(error); }
 }

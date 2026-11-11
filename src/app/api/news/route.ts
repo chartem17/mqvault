@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/supabase/session";
 
 export const dynamic = "force-dynamic";
 const DAY = 86_400_000;
@@ -16,7 +16,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const supabase = createServerSupabase();
+    const context = await requireUser(request);
+    if (context instanceof Response) return context;
+    const supabase = context.db;
     const { data, error } = await supabase
       .from("news_events")
       .select(

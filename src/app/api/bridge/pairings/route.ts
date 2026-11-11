@@ -1,4 +1,4 @@
-import { createServerSupabase } from "@/lib/supabase/server";
+import { createServiceSupabase } from "@/lib/supabase/server";
 import { json, parseJson, readBody } from "@/lib/bridge/server";
 import { importPublicKey, keyFingerprint, sha256Hex } from "@/lib/bridge/signature";
 import { generateUserCode, MAX_PAIRINGS_PER_IP_HOUR, PAIRING_TTL_MS, parsePairingRequest } from "@/lib/bridge/pairing";
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
  * confirmed by the owner on /bridge/connect; only its hash is stored.
  */
 export async function POST(request: Request) {
-  const db = createServerSupabase();
+  const db = createServiceSupabase();
   const ip = (request.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "unknown";
   const { data: allowed, error: limitError } = await db.rpc("bridge_rate_limit_hit", { p_key: `pair:${await sha256Hex(ip)}`, p_window_seconds: 3600, p_max: MAX_PAIRINGS_PER_IP_HOUR });
   if (limitError) return json({ error: "unavailable" }, 503);

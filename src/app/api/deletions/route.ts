@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { checkPrivateAccess } from "@/lib/auth/private-access";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/supabase/session";
 import { permanentlyDeleteOwnedEntity, type DeletionKind } from "@/lib/supabase/permanent-delete";
 
 export const dynamic = "force-dynamic";
@@ -10,20 +9,16 @@ function json(body: Record<string, unknown>, status = 200) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const denied = await checkPrivateAccess(request);
-  if (denied) return denied;
+  // The user comes only from the verified session. Never read user_id or owner_id from client input.
+  const context = await requireUser(request);
+  if (context instanceof Response) return context;
   const kind = request.nextUrl.searchParams.get("kind");
   if (!kind || !["trade", "account", "strategy"].includes(kind)) return json({ error: "Invalid deletion kind" }, 400);
   let body: unknown;
   try { body = await request.json(); } catch { return json({ error: "Invalid JSON body" }, 400); }
   if (!body || typeof body !== "object" || Array.isArray(body) || !("id" in body) || typeof body.id !== "string" || !UUID.test(body.id)) return json({ error: "A valid id is required" }, 400);
   try {
-    // Private workspace login represents one owner, resolved only on the server.
-    // Never read user_id or owner_id from client input.
-    const db = createServerSupabase();
-    const { data: owners, error } = await db.from("app_users").select("id").eq("is_owner", true).limit(2);
-    if (error || !owners || owners.length !== 1) return json({ error: "Private workspace owner must be uniquely configured" }, 503);
-    const result = await permanentlyDeleteOwnedEntity(owners[0].id, kind as DeletionKind, body.id);
+    const result = await permanentlyDeleteOwnedEntity(context.db, context.userId, kind as DeletionKind, body.id);
     return json({ success: true, ...result });
   } catch (error) {
     console.error("DELETE /api/deletions failed", error instanceof Error ? error.message : "Unknown error");

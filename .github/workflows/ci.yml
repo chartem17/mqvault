@@ -91,6 +91,36 @@ jobs:
           PGPORT: ${{ job.services.postgres.ports[5432] }}
         run: psql --set=ON_ERROR_STOP=1 --file=tests/news-events-calendar-migration.sql
 
+  auth-rls-migration:
+    name: Auth + RLS migration and user isolation SQL (disposable Postgres)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-disposable-only
+          POSTGRES_DB: auth_rls_ci
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U postgres -d auth_rls_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGHOST: 127.0.0.1
+      PGUSER: postgres
+      PGPASSWORD: ci-disposable-only
+      PGDATABASE: auth_rls_ci
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply migration test script
+        env:
+          PGPORT: ${{ job.services.postgres.ports[5432] }}
+        run: psql --set=ON_ERROR_STOP=1 --file=tests/auth-users-rls-migration.sql
+
   bridge:
     name: MQVault Bridge (Windows, Python)
     runs-on: windows-latest

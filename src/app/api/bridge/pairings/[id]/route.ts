@@ -1,4 +1,4 @@
-import { createServerSupabase } from "@/lib/supabase/server";
+import { createServiceSupabase } from "@/lib/supabase/server";
 import { json, verifySignedRequest } from "@/lib/bridge/server";
 import { pairingStatus } from "@/lib/bridge/pairing";
 
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const db = createServerSupabase();
+  const db = createServiceSupabase();
   type Pairing = { public_key: string; expires_at: string; approved_at: string | null; device_id: string | null; consumed_at: string | null };
   const found: { row: Pairing | null } = { row: null };
   const verified = await verifySignedRequest(request, async signedId => {

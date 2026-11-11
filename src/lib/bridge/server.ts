@@ -3,14 +3,14 @@
  * Server-only (service-key database client); not part of the unit-test build — the logic it calls is.
  */
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { createServiceSupabase } from "@/lib/supabase/server";
 import { derivedFinancials } from "@/lib/journal/trade-financials";
 import { canonicalString, clockSkewOk, MAX_BODY_BYTES, parseSignedHeaders, sha256Hex, verifySignature } from "./signature";
 import { buildTrades, type Mt5Deal, type Mt5Order } from "./deals-to-trades";
 import { planSync, type JournalTradeRef, type PositionLink } from "./trade-sync";
 import { depositsTotal } from "./account-match";
 
-export type Db = ReturnType<typeof createServerSupabase>;
+export type Db = ReturnType<typeof createServiceSupabase>;
 export const json = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: { "Cache-Control": "no-store" } });
 /** Every authentication failure looks the same to the caller. */
 const denied = () => json({ error: "unauthorized" }, 401);
@@ -48,7 +48,7 @@ export type DeviceContext = { db: Db; device: { id: string; user_id: string }; b
 
 /** Full device authentication (§3.4): known, not revoked, valid signature, fresh time, strictly increasing seq. */
 export async function authenticateDevice(request: Request): Promise<DeviceContext | Response> {
-  const db = createServerSupabase();
+  const db = createServiceSupabase();
   const verified = await verifySignedRequest(request, async id => {
     const { data } = await db.from("bridge_devices").select("public_key").eq("id", id).is("revoked_at", null).maybeSingle();
     return (data?.public_key as string | undefined) ?? null;

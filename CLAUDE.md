@@ -6,7 +6,7 @@
 ## Спершу прочитай
 1. [`docs/architecture/overview.md`](docs/architecture/overview.md) — шари, карта `src/`, правила залежностей.
 2. [`docs/roadmap/ROADMAP.md`](docs/roadmap/ROADMAP.md) — що зроблено, що далі, порядок робіт, стан гілок.
-3. [`docs/decisions/`](docs/decisions/) — ухвалені рішення (час, сесії, фінанси, проп, видалення, доступ, мови, адаптивність, дашборд). Не переглядай їх без запиту власника.
+3. [`docs/decisions/`](docs/decisions/) — ухвалені рішення (час, сесії, фінанси, проп, видалення, авторизація, мови, адаптивність, дашборд). Не переглядай їх без запиту власника.
 4. [`docs/architecture/database.md`](docs/architecture/database.md) — схема БД і застереження щодо міграцій.
 
 ## Команди
@@ -15,7 +15,7 @@ npm run dev      # локально
 npm run lint     # ESLint (має бути 0 помилок)
 npx tsc --noEmit # типи
 npm test         # юніт-тести (scripts/run-tests.mjs компілює модулі з src/lib і запускає tests/*.test.mjs)
-npm run build    # production-збірка; потрібні NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SECRET_KEY, VAULT_ACCESS_PASSWORD (≥20 символів) — для перевірки підійдуть заглушки
+npm run build    # production-збірка; потрібні NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SECRET_KEY — для перевірки підійдуть заглушки
 ```
 Це саме те, що виконує CI (`.github/workflows/ci.yml`). Перед PR прожени lint → tsc → test → build.
 Пісочниця без мережі не дістає Google Fonts: для `next build` задай `NEXT_FONT_GOOGLE_MOCKED_RESPONSES=<js-модуль із заглушкою>`.
@@ -31,6 +31,7 @@ npm run build    # production-збірка; потрібні NEXT_PUBLIC_SUPABAS
 - **Адаптивність.** Новий UI одразу працює на телефоні (`useMediaQuery`/`PHONE_QUERY`). → ADR 0008
 - **Тестовані модулі `src/lib/<домен>`** імпортують сусідів відносними шляхами (`../time/timezone`), не `@/…`: тести компілюють їх окремо `tsc`-ом без аліасів. Новий модуль із тестом додай у `scripts/run-tests.mjs`.
 - **`lib` не імпортує компоненти й React.** Клієнт не бачить `SUPABASE_SECRET_KEY` і не ходить у БД напряму — тільки через `/api/*`.
+- **Доступ.** Кожен `/api/*` починається з `requireUser(request)` і працює його `db` (JWT користувача, діє RLS) з фільтром `user_id`. `createServiceSupabase()` — лише в місцях, перелічених в ADR 0017. Нова таблиця = RLS + політики в тій самій міграції. → ADR 0017
 - **Міграції.** Вже застосовані файли не редагувати; нова зміна схеми = новий файл у `supabase/migrations/`, застосовувати лише після погодження власника. Історія файлів збігається з Supabase, але базової схеми в міграціях немає, тож `supabase db push` не запускати (див. database.md).
 - **Секрети** не читати без потреби, не друкувати, не комітити. `.env*` у `.gitignore`.
 
