@@ -4,7 +4,7 @@ Supabase (Postgres 17), проєкт `mqvault-dev`. Схему знято з ж�
 
 Усі таблиці користувача мають `user_id → app_users.id`. Користувача визначає сесія Supabase Auth: `app_users.auth_user_id → auth.users.id` ([ADR 0017](../decisions/0017-user-accounts-supabase-auth.md)); `is_owner` — адміністратор інсталяції (рівно один).
 
-> Стан на 2026-11-11: міграція `20261109180000 user_auth` написана, але **ще не застосована** — рядки про `auth_user_id` і `beta_invites` нижче описують схему після неї.
+> Міграцію `20261111182306 user_auth` застосовано 2026-11-11 (погодження власника). Код, який нею користується, — у гілці `feat/user-auth` (PR #39), ще не в `main`: production поки входить старим паролем і `auth_user_id` не читає.
 
 ## Таблиці
 
@@ -60,7 +60,7 @@ app_users ─┬─< accounts ─┬─< journal_trades ─┬─< strategy_chec
 | `20261107120100 index_cleanup` | прибрано 4 дублікати індексів, індекси для 3 FK |
 | `20261108171403 news_events_calendar_fields` | застосовано 2026-11-08 за погодженням власника (гілка `feat/economic-calendar`): поля календаря MT5, числові значення, `license_scope`, RPC `import_news_events` ([ADR 0013](../decisions/0013-economic-calendar-source.md)) |
 | `20261108204347 mt5_bridge` | таблиці `bridge_*` і лічильник лімітів для MQVault Bridge (ADR 0016) |
-| `20261109180000 user_auth` | **не застосовано**: `app_users.auth_user_id`, `beta_invites`, єдиний власник; усі права на `public` забрано в `anon`/`authenticated` (ADR 0017) |
+| `20261111182306 user_auth` | застосовано 2026-11-11 за погодженням власника (гілка `feat/user-auth`): `app_users.auth_user_id`, `beta_invites`, єдиний власник; усі права на `public` забрано в `anon`/`authenticated` (ADR 0017) |
 
 Що лишається:
 

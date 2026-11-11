@@ -39,7 +39,7 @@ GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated, service_
 INSERT INTO public.app_users (id, email, is_owner) VALUES ('00000000-0000-4000-8000-000000000001', 'owner@example.test', true);
 INSERT INTO public.accounts (user_id, name) VALUES ('00000000-0000-4000-8000-000000000001', 'Owner account');
 
-\ir ../supabase/migrations/20261109180000_user_auth.sql
+\ir ../supabase/migrations/20261111182306_user_auth.sql
 
 -- Existing data is untouched and the owner is not linked to anybody yet.
 DO $$ BEGIN
