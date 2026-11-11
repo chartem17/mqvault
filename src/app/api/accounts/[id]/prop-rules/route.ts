@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { resolvePrivateOwner } from "@/lib/supabase/private-owner";
+import { resolveUser } from "@/lib/auth/current-user";
 import { AccountSetupError } from "@/lib/accounts/account-setup";
 import { PROP_RULE_SELECT, RuleRevisionConflict, preparePropRuleUpdate, ruleRecordFromColumns } from "@/lib/accounts/prop-rule-record";
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ function failure(error: unknown) {
 }
 export async function GET(request: Request, context: Context) {
   try {
-    const owner = await resolvePrivateOwner(request);
+    const owner = await resolveUser(request);
     if (owner instanceof Response) return owner;
     const { id } = await context.params;
     if (!UUID.test(id)) return json({ error: "Invalid account id" }, 400);
@@ -32,7 +32,7 @@ export async function GET(request: Request, context: Context) {
 }
 export async function PATCH(request: Request, context: Context) {
   try {
-    const owner = await resolvePrivateOwner(request);
+    const owner = await resolveUser(request);
     if (owner instanceof Response) return owner;
     const { id } = await context.params;
     if (!UUID.test(id)) return json({ error: "Invalid account id" }, 400);

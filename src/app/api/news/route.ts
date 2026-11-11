@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ownerOnly, resolvePrivateOwner } from "@/lib/supabase/private-owner";
+import { ownerOnly, resolveUser } from "@/lib/auth/current-user";
 
 export const dynamic = "force-dynamic";
 const DAY = 86_400_000;
 
 export async function GET(request: NextRequest) {
   try {
-    const context = await resolvePrivateOwner(request);
+    const context = await resolveUser(request);
     if (context instanceof Response) return context;
     const closed = ownerOnly(context);
     if (closed) return closed;

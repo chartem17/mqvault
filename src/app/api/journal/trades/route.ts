@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { resolvePrivateOwner, type UserContext } from "@/lib/supabase/private-owner";
+import { resolveUser, type UserContext } from "@/lib/auth/current-user";
 import { parseTradeReview, reviewFromInput } from "@/lib/journal/trade-review";
 import { derivedFinancials, financialsChanged } from "@/lib/journal/trade-financials";
 
@@ -167,7 +167,7 @@ async function readBody(request: NextRequest): Promise<Body | null> {
 
 export async function GET(request: NextRequest) {
   try {
-    const context = await resolvePrivateOwner(request);
+    const context = await resolveUser(request);
     if (context instanceof Response) return context;
     const { db, ownerId } = context;
 
@@ -192,7 +192,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const context = await resolvePrivateOwner(request);
+    const context = await resolveUser(request);
     if (context instanceof Response) return context;
     const body = await readBody(request);
     if (!body) return fail(400, "Invalid JSON body");
@@ -250,7 +250,7 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const context = await resolvePrivateOwner(request);
+    const context = await resolveUser(request);
     if (context instanceof Response) return context;
     const body = await readBody(request);
     if (!body || typeof body.id !== "string") {
@@ -341,7 +341,7 @@ export async function PATCH(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const context = await resolvePrivateOwner(request);
+    const context = await resolveUser(request);
     if (context instanceof Response) return context;
     const body = await readBody(request);
     if (!body || typeof body.id !== "string") {

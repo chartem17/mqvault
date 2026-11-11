@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { resolvePrivateOwner } from "@/lib/supabase/private-owner";
+import { resolveUser } from "@/lib/auth/current-user";
 
 export const dynamic = "force-dynamic";
 
 /** The shared list of tradable symbols (reference data, the same for every signed-in user). */
 export async function GET(request: Request) {
-  const context = await resolvePrivateOwner(request);
+  const context = await resolveUser(request);
   if (context instanceof Response) return context;
   const supabase = context.db;
   const { data, error } = await supabase

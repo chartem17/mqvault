@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { resolvePrivateOwner } from "@/lib/supabase/private-owner";
+import { resolveUser } from "@/lib/auth/current-user";
 import { defaultDashboardLayout } from "@/lib/dashboard/dashboard-widgets";
 import { parseDashboardLayout, readStoredDashboardLayout } from "@/lib/dashboard/dashboard-layout";
 
@@ -10,7 +10,7 @@ function failure(code?: string) { console.error("Dashboard layout database opera
 
 export async function GET(request: Request) {
   try {
-    const owner = await resolvePrivateOwner(request); if (owner instanceof Response) return owner;
+    const owner = await resolveUser(request); if (owner instanceof Response) return owner;
     const { data, error } = await owner.db.from(TABLE).select("layout,revision").eq("user_id", owner.ownerId).maybeSingle();
     if (error) return failure(error.code);
     return json({ layout: data ? readStoredDashboardLayout(data.layout) : defaultDashboardLayout(), revision: data?.revision ?? 0 });
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const owner = await resolvePrivateOwner(request); if (owner instanceof Response) return owner;
+    const owner = await resolveUser(request); if (owner instanceof Response) return owner;
     const text = await request.text(); if (text.length > 8192) return json({ error: "Request too large" }, 413);
     let layout: ReturnType<typeof parseDashboardLayout>; let revision: number;
     try {

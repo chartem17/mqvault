@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { resolvePrivateOwner } from "@/lib/supabase/private-owner";
+import { resolveUser } from "@/lib/auth/current-user";
 import { permanentlyDeleteOwnedEntity, type DeletionKind } from "@/lib/supabase/permanent-delete";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ function json(body: Record<string, unknown>, status = 200) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const context = await resolvePrivateOwner(request);
+  const context = await resolveUser(request);
   if (context instanceof Response) return context;
   const kind = request.nextUrl.searchParams.get("kind");
   if (!kind || !["trade", "account", "strategy"].includes(kind)) return json({ error: "Invalid deletion kind" }, 400);

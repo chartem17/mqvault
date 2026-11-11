@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { resolvePrivateOwner } from '@/lib/supabase/private-owner';
+import { resolveUser } from '@/lib/auth/current-user';
 import { isValidTimeZone } from '@/lib/time/timezone';
 export const dynamic = 'force-dynamic';
 function json(body: unknown, status = 200) { return NextResponse.json(body, { status, headers: { 'Cache-Control': 'no-store' } }); }
@@ -8,7 +8,7 @@ function failure(code?: string) { console.error('Timezone preference database op
 /** The owner's display time zone, or null when it was never chosen (the client then uses the browser zone). */
 export async function GET(request: Request) {
   try {
-    const owner = await resolvePrivateOwner(request); if (owner instanceof Response) return owner;
+    const owner = await resolveUser(request); if (owner instanceof Response) return owner;
     const { data, error } = await owner.db.from('app_users').select('timezone').eq('id', owner.ownerId).maybeSingle();
     if (error) return failure(error.code);
     const timezone = typeof data?.timezone === 'string' && isValidTimeZone(data.timezone) ? data.timezone : null;
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const owner = await resolvePrivateOwner(request); if (owner instanceof Response) return owner;
+    const owner = await resolveUser(request); if (owner instanceof Response) return owner;
     const text = await request.text(); if (text.length > 512) return json({ error: 'Request too large' }, 413);
     let timezone: string;
     try {

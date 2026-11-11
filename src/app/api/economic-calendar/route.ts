@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ownerOnly, resolvePrivateOwner } from "@/lib/supabase/private-owner";
+import { ownerOnly, resolveUser } from "@/lib/auth/current-user";
 import { currenciesFromTrades, parseCalendarQuery, toCalendarEvent, type NewsEventRecord } from "@/lib/news/economic-calendar";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ const json = (body: unknown, status = 200) => NextResponse.json(body, { status, 
  * pairs; when there are no trades yet, all calendar currencies are returned.
  */
 export async function GET(request: Request) {
-  const context = await resolvePrivateOwner(request);
+  const context = await resolveUser(request);
   if (context instanceof Response) return context;
   const closed = ownerOnly(context);
   if (closed) return closed;

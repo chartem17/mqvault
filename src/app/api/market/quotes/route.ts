@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ownerOnly, resolvePrivateOwner } from "@/lib/supabase/private-owner";
+import { ownerOnly, resolveUser } from "@/lib/auth/current-user";
 import { fetchMarketQuotes } from "@/lib/market/market-live";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(request: NextRequest) {
-  const context = await resolvePrivateOwner(request);
+  const context = await resolveUser(request);
   if (context instanceof Response) return context;
   const closed = ownerOnly(context);
   if (closed) return closed;

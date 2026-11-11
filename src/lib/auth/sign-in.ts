@@ -1,5 +1,5 @@
 import { createRouteAuthClient } from "@/lib/supabase/auth-server";
-import { WORKSPACE_DENIAL, workspaceFor } from "@/lib/supabase/private-owner";
+import { WORKSPACE_DENIAL, workspaceFor } from "@/lib/auth/current-user";
 import { createServerSupabase } from "@/lib/supabase/server";
 
 type AuthClient = Awaited<ReturnType<typeof createRouteAuthClient>>;

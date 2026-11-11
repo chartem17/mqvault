@@ -4,7 +4,7 @@ import { normalizeEmail, passwordProblem } from "@/lib/auth/request-guard";
 import { admitSession } from "@/lib/auth/sign-in";
 import { isValidTimeZone } from "@/lib/time/timezone";
 import { createRouteAuthClient } from "@/lib/supabase/auth-server";
-import { WORKSPACE_DENIAL } from "@/lib/supabase/private-owner";
+import { WORKSPACE_DENIAL } from "@/lib/auth/current-user";
 import { createServerSupabase } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";

@@ -2,7 +2,7 @@ import { LOGIN_PER_EMAIL, LOGIN_PER_IP, authJson, clientIp, rateLimited, readAut
 import { normalizeEmail, PASSWORD_MAX_LENGTH } from "@/lib/auth/request-guard";
 import { admitSession } from "@/lib/auth/sign-in";
 import { createRouteAuthClient } from "@/lib/supabase/auth-server";
-import { WORKSPACE_DENIAL } from "@/lib/supabase/private-owner";
+import { WORKSPACE_DENIAL } from "@/lib/auth/current-user";
 
 export const dynamic = "force-dynamic";
 

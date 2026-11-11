@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { guardRequest } from "@/lib/auth/request-guard";
-import { findOrProvisionUser, signupMode, type AppUser, type AuthIdentity, type UserStore } from "@/lib/auth/provision";
+import { guardRequest } from "./request-guard";
+import { findOrProvisionUser, signupMode, type AppUser, type AuthIdentity, type UserStore } from "./provision";
 import { isValidTimeZone } from "@/lib/time/timezone";
 import { createRouteAuthClient, readSessionIdentity } from "@/lib/supabase/auth-server";
 import { createServerSupabase } from "@/lib/supabase/server";
@@ -90,7 +90,7 @@ export const WORKSPACE_DENIAL = {
  * The signed-in user for an API route. `ownerId` is the app_users.id every query must be scoped by;
  * it comes from the verified session only — never from the URL, a header or the request body.
  */
-export async function resolvePrivateOwner(request: Request): Promise<UserContext | Response> {
+export async function resolveUser(request: Request): Promise<UserContext | Response> {
   const guard = guardRequest(request);
   if (guard.access === "denied") return guard.response;
   const session = await readSessionIdentity(await createRouteAuthClient());

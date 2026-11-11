@@ -6,7 +6,7 @@ import { join, relative, sep } from "node:path";
 // Static safety net for user isolation (ADR 0017): a new API route cannot ship without saying who may call it.
 // Every route handler must resolve the signed-in user, or be listed here with the reason it does not.
 
-const USER_RESOLVER = /\bresolvePrivateOwner\(/;
+const USER_RESOLVER = /\bresolveUser\(/;
 const EXEMPT = {
   "api/accounts/route.ts": { reason: "re-exports handlers that resolve the user", proof: /from "@\/lib\/accounts\/account-api"/, file: "src/lib/accounts/account-api.ts" },
   "api/auth/login/route.ts": { reason: "creates the session", proof: /signInWithPassword\(/ },
