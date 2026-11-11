@@ -17,6 +17,7 @@ import { NewsWindowWarning, NextNewsRow, useRedNews } from "@/components/home/ne
 import { Onboarding } from "@/components/home/onboarding";
 import { PreSessionChecklist } from "@/components/home/pre-session-checklist";
 import { MonthlyGoals } from "@/components/home/monthly-goals";
+import { usePreferences } from "@/components/providers/preferences-provider";
 
 const POS = "var(--color-green)", NEG = "var(--color-red)";
 const DISPLAY = { fontFamily: "var(--font-home-display), var(--font-ui), system-ui, sans-serif" } as const;
@@ -46,6 +47,7 @@ export function HomeTab() {
   const { visibleTrades, activeAccount, activeAccountId, loading } = useTrades();
   const { timezone } = useTimezone();
   const { activeStrategy } = useStrategies();
+  const { preferences } = usePreferences();
   // Ticks every minute so the session status and the dial stay current while the page is open.
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const id = window.setInterval(() => setNow(new Date()), 60_000); return () => window.clearInterval(id); }, []);
@@ -97,6 +99,10 @@ export function HomeTab() {
   return <div className="mx-auto max-w-6xl space-y-16 pb-10 pt-2">
     <Mt5AccountReview />
     <Onboarding />
+    {preferences.reviewReminder && unmarked.length > 0 && <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gold/40 bg-gold/10 px-4 py-3 text-sm">
+      <span>{tn(unmarked.length, "{count} closed trade waits for setup and emotion.", "{count} closed trades wait for setup and emotion.")}</span>
+      <Button size="sm" variant="secondary" onClick={() => router.push("/?tab=journal&review=1", { scroll: false })}>{t("Start review")}</Button>
+    </div>}
     <section className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(320px,440px)] lg:gap-16" aria-label={t("Today")}>
       <div className="space-y-8">
         <div className="space-y-4">
@@ -113,7 +119,7 @@ export function HomeTab() {
             {status.nextAllowed && <span className="block">{t("Next allowed: {session} at {time}", { session: t(status.nextAllowed.label), time: when(status.nextAllowed.startsAt) })}</span>}
           </dd></div>
           <NextNewsRow now={now} news={redNews} />
-          {activeAccount?.accountType === "prop" && <div className="flex items-baseline justify-between gap-6"><dt className="text-sm text-foreground">{t("Room to daily limit")}</dt><dd className="m-0 text-sm tabular-nums text-muted-foreground">{room ? t("≈ {room} of {limit} {currency}", { room: fmt.num(room.room, 2), limit: fmt.num(room.limit, 2), currency: activeAccount.currency }) : t("not set in the rules")}</dd></div>}
+          {activeAccount?.accountType === "prop" && <div className="flex items-baseline justify-between gap-6"><dt className="text-sm text-foreground">{t("Room to daily limit")}</dt><dd className="m-0 text-sm tabular-nums text-muted-foreground">{room ? t("≈ {room} of {limit} {currency}", { room: fmt.money(room.room, 2), limit: fmt.money(room.limit, 2), currency: activeAccount.currency }) : t("not set in the rules")}</dd></div>}
         </dl>
         <NewsWindowWarning now={now} news={redNews} />
         {(limitHit || (room !== null && room.room <= 0)) && <p role="status" className="m-0 max-w-md rounded-xl border px-4 py-3 text-sm" style={{ borderColor: NEG, color: NEG }}>{t("Daily limit reached — the strategy says stop for today.")}</p>}

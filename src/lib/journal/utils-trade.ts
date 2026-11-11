@@ -142,9 +142,16 @@ export function computeMonthly(trades: JournalTrade[], tz: string = DEFAULT_TIME
     .map(([month, pnl]) => ({ month, pnl: +pnl.toFixed(2) }));
 }
 
+import { HIDDEN_AMOUNT, formatNumber, isPrivacyOn } from "./number-format";
+export { HIDDEN_AMOUNT, formatNumber, setDisplayOptions, type DisplayOptions } from "./number-format";
+
 export const fmt = {
-  usd: (v: number) => `${v > 0 ? "+" : ""}${v.toFixed(2)}$`,
-  pct: (v: number) => `${v.toFixed(1)}%`,
-  r: (v: number) => `${v > 0 ? "+" : ""}${v.toFixed(2)}R`,
-  num: (v: number, d = 2) => v.toFixed(d),
+  /** Money with sign and $; hidden in privacy mode. */
+  usd: (v: number) => isPrivacyOn() ? HIDDEN_AMOUNT : `${v > 0 ? "+" : ""}${formatNumber(v, 2)}$`,
+  pct: (v: number) => `${formatNumber(v, 1)}%`,
+  r: (v: number) => `${v > 0 ? "+" : ""}${formatNumber(v, 2)}R`,
+  /** Any number (prices, ratios); never hidden. */
+  num: (v: number, d = 2) => formatNumber(v, d),
+  /** A money amount without sign or currency; hidden in privacy mode. */
+  money: (v: number, d = 2) => isPrivacyOn() ? HIDDEN_AMOUNT : formatNumber(v, d),
 };

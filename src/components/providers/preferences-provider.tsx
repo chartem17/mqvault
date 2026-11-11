@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { DEFAULT_PREFERENCES, mergePreferences, sanitizePreferences, type UserPreferences } from "@/lib/preferences/user-preferences";
+import { setDisplayOptions } from "@/lib/journal/number-format";
 
 const CACHE_KEY = "mq_prefs";
 type Value = { preferences: UserPreferences; ready: boolean; update: (patch: Partial<UserPreferences>) => void };
@@ -57,6 +58,8 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     setPreferences(next); writeCache(next);
     if (stored.current) void save(patch);
   }, []);
+  // Number format and privacy are read by the formatting helpers during render, so they are set before children render.
+  setDisplayOptions({ numberFormat: preferences.numberFormat, privacy: preferences.privacy });
   const value = useMemo(() => ({ preferences, ready, update }), [preferences, ready, update]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }

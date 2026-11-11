@@ -8,6 +8,7 @@ import { type JournalTrade, type TradeInput } from "@/hooks/use-trades";
 import type { TradingAccount } from "@/lib/accounts/account-data";
 import { Button, Input, Panel, Select } from "@/components/ui/primitives";
 import { GhostInput } from "@/components/ui/ghost-input";
+import { usePreferences } from "@/components/providers/preferences-provider";
 import { AutoTextarea } from "@/components/ui/auto-textarea";
 import { Field } from "@/components/ui/field";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -158,6 +159,7 @@ function computeR(form: FormTrade): number | null {
 function buildInitialForm(
   accounts: TradingAccount[],
   defaultAccountId?: string,
+  defaultRiskPercent?: number | null,
 ): FormTrade {
   return {
     account_id: defaultAccountId || accounts[0]?.id || "",
@@ -172,7 +174,7 @@ function buildInitialForm(
     take_profit: "",
     exit_price: "",
     volume: "",
-    risk_percent: "",
+    risk_percent: defaultRiskPercent == null ? "" : String(defaultRiskPercent),
     risk_amount: "",
     gross_pnl: "",
     commission: "0",
@@ -237,8 +239,10 @@ export function ManualTradeModal({
   onSubmit,
 }: ManualTradeModalProps) {
   const { t, intl } = useI18n();
+  // Settings → Default risk per trade: prefilled for new trades only.
+  const { preferences } = usePreferences();
   const [form, setForm] = useState<FormTrade>(
-    buildInitialForm(accounts, defaultAccountId),
+    buildInitialForm(accounts, defaultAccountId, preferences.defaultRiskPercent),
   );
   const [errors, setErrors] = useState<FormErrors>({});
   const [warningFields, setWarningFields] = useState<Set<WarningField>>(
@@ -265,7 +269,7 @@ export function ManualTradeModal({
   useEffect(() => {
     if (!open) return;
 
-    const initialForm = buildInitialForm(accounts, defaultAccountId);
+    const initialForm = buildInitialForm(accounts, defaultAccountId, preferences.defaultRiskPercent);
     const zone = accountZone(accounts, initialTrade?.account_id ?? initialForm.account_id, userZone);
     setEntryZone(zone);
     setZoneTouched(false);

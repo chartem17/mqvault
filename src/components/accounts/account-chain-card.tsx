@@ -19,7 +19,7 @@ export function AccountChainCard({ account }: { account: TradingAccount }) {
   const chain = useMemo(() => chainOf(account.id, accounts), [account.id, accounts]);
   const total = useMemo(() => summarizeChain(chain, trades, timezone), [chain, trades, timezone]);
   const candidates = useMemo(() => accounts.filter(item => item.id !== account.id && item.accountType === "prop" && (item.id === account.parentAccountId || linkError(account.id, item.id, accounts) === null)), [accounts, account.id, account.parentAccountId]);
-  const money = (value: number | null) => value === null ? "—" : `${fmt.num(value, 2)} ${account.currency}`;
+  const money = (value: number | null) => value === null ? "—" : `${fmt.money(value, 2)} ${account.currency}`;
 
   async function changeParent(parentId: string) {
     setSaving(true); setError(null);

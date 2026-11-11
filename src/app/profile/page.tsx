@@ -86,8 +86,8 @@ export default function ProfilePage() {
             [t("Average R"), summary.averageR === null ? "—" : `${summary.averageR > 0 ? "+" : ""}${summary.averageR}R`],
             [t("Most traded"), summary.topSymbol ? `${summary.topSymbol.symbol} · ${summary.topSymbol.count}` : "—"],
             [t("Reviewed trades"), summary.reviewedShare === null ? "—" : `${summary.reviewedShare}%`],
-            [t("Best day"), summary.bestDay ? `${day(summary.bestDay.day)} · +${fmt.num(summary.bestDay.net)}` : "—"],
-            [t("Worst day"), summary.worstDay ? `${day(summary.worstDay.day)} · ${fmt.num(summary.worstDay.net)}` : "—"],
+            [t("Best day"), summary.bestDay ? `${day(summary.bestDay.day)} · +${fmt.money(summary.bestDay.net)}` : "—"],
+            [t("Worst day"), summary.worstDay ? `${day(summary.worstDay.day)} · ${fmt.money(summary.worstDay.net)}` : "—"],
           ].map(([label, value]) => <div key={label} className="rounded-xl border border-border bg-background/40 p-3">
             <dt className="text-xs text-muted-foreground">{label}</dt>
             <dd className="mt-1 truncate text-sm font-semibold tabular-nums">{value}</dd>

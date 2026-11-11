@@ -9,7 +9,7 @@ import { kindLabel } from "@/lib/accounts/account-data";
 import { fmt } from "@/lib/journal/utils-trade";
 import { useI18n } from "@/components/providers/i18n-provider";
 
-function currencyAmount(value: number, currency: "USD" | "USDT") { return `${fmt.num(value)} ${currency}`; }
+function currencyAmount(value: number, currency: "USD" | "USDT") { return `${fmt.money(value)} ${currency}`; }
 function badgeBackground(color: string) { return `color-mix(in oklab, ${color} 13%, transparent)`; }
 export default function AccountSwitcher() {
   const { accounts, activeAccountId, activeAccount, setActiveAccountId, includedAccountIds, toggleAccountIncluded, deleteAccount, upsertAccount } = useTrades();

@@ -13,6 +13,7 @@ import { useProfile, avatarInitial } from "@/components/providers/profile-provid
 import { buildAccountOverview, accountOverviewLabel } from "@/lib/accounts/account-overview";
 import { needsReview } from "@/lib/journal/trade-review";
 import { fmt } from "@/lib/journal/utils-trade";
+import { usePreferences } from "@/components/providers/preferences-provider";
 import "./app-sidebar.css";
 
 const COLLAPSE_KEY = "mq_sidebar_collapsed";
@@ -58,7 +59,8 @@ export function AppSidebar({ activeTab, setActiveTab, onSearch }: { activeTab: T
   }, []);
 
   const reviewCount = useMemo(() => trades.filter(trade => trade.closed_at && needsReview(trade)).length, [trades]);
-  const badges: Record<string, number> = { journal: reviewCount };
+  const { preferences } = usePreferences();
+  const badges: Record<string, number> = { journal: preferences.reviewReminder ? reviewCount : 0 };
   const overview = activeAccount ? buildAccountOverview(activeAccount, trades) : null;
   const activeKey = pages.find(page => page.target.kind === "tab" && page.target.tab === activeTab)?.key ?? null;
 
@@ -133,7 +135,7 @@ export function AppSidebar({ activeTab, setActiveTab, onSearch }: { activeTab: T
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: activeAccount.color }} aria-hidden="true" />
             <span className="min-w-0 flex-1 truncate text-sm font-medium">{activeAccount.name}</span>
-            {overview.netPnl !== null && <span className={`shrink-0 text-xs font-medium ${overview.netPnl >= 0 ? "text-green" : "text-red"}`}>{overview.netPnl >= 0 ? "+" : ""}{fmt.num(overview.netPnl)}</span>}
+            {overview.netPnl !== null && <span className={`shrink-0 text-xs font-medium ${overview.netPnl >= 0 ? "text-green" : "text-red"}`}>{overview.netPnl >= 0 ? "+" : ""}{fmt.money(overview.netPnl)}</span>}
           </div>
           <div className="mt-1 truncate text-[11px] text-muted-foreground">{accountOverviewLabel(activeAccount, t)}</div>
           {overview.isProp && overview.progressPercent !== null && <div className="mt-2">

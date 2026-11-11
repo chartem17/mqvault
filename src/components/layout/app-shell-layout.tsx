@@ -7,6 +7,8 @@ import AccountSwitcher from "@/components/accounts/account-switcher";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { useI18n } from "@/components/providers/i18n-provider";
+import { usePreferences } from "@/components/providers/preferences-provider";
+import { DefaultAccount } from "@/components/layout/default-account";
 import { UserMenu } from "@/components/layout/user-menu";
 import { LanguageToggle } from "@/components/settings/language-toggle";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -29,6 +31,9 @@ export default function AppShellLayout({ children, activeTab, setActiveTab }: { 
   const owner = useCurrentUser()?.isOwner === true;
   const TABS = ALL_TABS.filter(tab => owner || !OWNER_ONLY_TABS.includes(tab.id));
   const [search, setSearch] = useState(false);
+  // Screens format numbers through shared helpers; a new format or privacy mode re-renders them all at once.
+  const { preferences } = usePreferences();
+  const displayKey = `${preferences.numberFormat}:${preferences.privacy ? 1 : 0}`;
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); setSearch(value => !value); }
@@ -39,7 +44,8 @@ export default function AppShellLayout({ children, activeTab, setActiveTab }: { 
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="flex min-h-screen">
+      <DefaultAccount />
+      <div key={displayKey} className="flex min-h-screen">
         <AppSidebar activeTab={activeTab} setActiveTab={setActiveTab} onSearch={() => setSearch(true)} />
         <main className="min-w-0 flex-1 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0">
           <div className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-border bg-background/85 px-3 py-2.5 backdrop-blur sm:gap-4 sm:px-6 sm:py-4 md:border-transparent md:bg-transparent md:backdrop-blur-none xl:px-8">

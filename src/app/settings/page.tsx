@@ -3,8 +3,10 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { ArrowLeft, Download, KeyRound, Languages, LogOut, MonitorSmartphone, Moon, Palette, ShieldCheck, Sun, Trash2, UserRound } from "lucide-react";
+import { ArrowLeft, Download, EyeOff, SlidersHorizontal, KeyRound, Languages, LogOut, MonitorSmartphone, Moon, Palette, ShieldCheck, Sun, Trash2, UserRound } from "lucide-react";
 import { usePreferences } from "@/components/providers/preferences-provider";
+import { useTrades } from "@/hooks/use-trades";
+import { formatNumber } from "@/lib/journal/number-format";
 
 
 const START_TAB_OPTIONS = [
@@ -39,6 +41,15 @@ function Section({ icon, title, children }: { icon: ReactNode; title: string; ch
     <div className="mt-4">{children}</div>
   </Panel>;
 }
+function Toggle({ label, hint, on, onChange }: { label: string; hint: string; on: boolean; onChange: (value: boolean) => void }) {
+  return <div className="flex items-center justify-between gap-4">
+    <div><div className="text-sm font-medium">{label}</div><p className="mt-0.5 text-xs text-muted-foreground">{hint}</p></div>
+    <button type="button" role="switch" aria-checked={on} aria-label={label} onClick={() => onChange(!on)}
+      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${on ? "bg-primary" : "bg-[rgb(var(--ink)/0.18)]"}`}>
+      <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${on ? "translate-x-[1.375rem]" : "translate-x-0.5"}`} />
+    </button>
+  </div>;
+}
 const row = "flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between";
 const labelCls = "text-sm font-medium";
 const hintCls = "mt-0.5 text-xs text-muted-foreground";
@@ -51,6 +62,7 @@ export default function SettingsPage() {
   const { profile, hasPassword, googleLinked, refresh } = useProfile();
   const [mounted, setMounted] = useState(false);
   const { preferences, update } = usePreferences();
+  const { accounts } = useTrades();
   useEffect(() => { setMounted(true); }, []);
 
   // Security: password change
@@ -142,6 +154,49 @@ export default function SettingsPage() {
             <p className={hintCls}>{t("Trade times, calendar days, daily and monthly P&L and Strategy Control periods use this zone. Sessions (Asia, London, New York) follow the markets' own clocks and do not change with it.")}</p></div>
           <TimezoneSelect id="settings-zone" aria-label={t("Time zone")} value={timezone} disabled={zoneSaving} onChange={zone => { void setTimezone(zone); }} className="sm:w-56" />
         </div>
+      </div>
+    </Section>
+
+    <Section icon={<EyeOff className="h-4 w-4" aria-hidden="true" />} title={t("Privacy")}>
+      <div className="space-y-4">
+        <Toggle label={t("Hide amounts")} hint={t("Money values show as ••• — for screenshots and streams. R and percentages stay visible.")} on={preferences.privacy} onChange={value => update({ privacy: value })} />
+        <Toggle label={t("Remind me to review trades")} hint={t("A note on Home when closed trades are waiting for setup and emotion.")} on={preferences.reviewReminder} onChange={value => update({ reviewReminder: value })} />
+      </div>
+    </Section>
+
+    <Section icon={<SlidersHorizontal className="h-4 w-4" aria-hidden="true" />} title={t("Formats and defaults")}>
+      <div className="space-y-4">
+        <div className={row}>
+          <div><label htmlFor="settings-number" className={labelCls}>{t("Number format")}</label><p className={hintCls}>{t("Example: {value}", { value: formatNumber(12345.67, 2, preferences.numberFormat) })}</p></div>
+          <Select id="settings-number" value={preferences.numberFormat} onChange={event => update({ numberFormat: event.target.value as typeof preferences.numberFormat })} className="sm:w-56">
+            <option value="plain">12345.67</option>
+            <option value="grouped">12,345.67</option>
+            <option value="european">12 345,67</option>
+          </Select>
+        </div>
+        <div className={row}>
+          <div><label htmlFor="settings-week" className={labelCls}>{t("Week starts on")}</label><p className={hintCls}>{t("Calendar grids. Weekly reports keep Monday to Sunday.")}</p></div>
+          <Select id="settings-week" value={String(preferences.weekStart)} onChange={event => update({ weekStart: event.target.value === "0" ? 0 : 1 })} className="sm:w-56">
+            <option value="1">{t("Monday")}</option>
+            <option value="0">{t("Sunday")}</option>
+          </Select>
+        </div>
+        <div className={row}>
+          <div><label htmlFor="settings-account" className={labelCls}>{t("Default account")}</label><p className={hintCls}>{t("Selected when you open the site.")}</p></div>
+          <Select id="settings-account" value={preferences.defaultAccountId ?? ""} onChange={event => update({ defaultAccountId: event.target.value || null })} className="sm:w-56">
+            <option value="">{t("Last used")}</option>
+            {accounts.map(account => <option key={account.id} value={account.id}>{account.name}</option>)}
+          </Select>
+        </div>
+        <div className={row}>
+          <div><label htmlFor="settings-risk" className={labelCls}>{t("Default risk per trade, %")}</label><p className={hintCls}>{t("Prefilled when you add a trade by hand.")}</p></div>
+          <Input id="settings-risk" inputMode="decimal" className="sm:w-56" placeholder="1" defaultValue={preferences.defaultRiskPercent ?? ""} key={preferences.defaultRiskPercent ?? "none"}
+            onBlur={event => { const value = event.target.value.trim().replace(",", "."); update({ defaultRiskPercent: value === "" ? null : Number(value) }); }} />
+        </div>
+        {preferences.onboardingDismissed && <div className={row}>
+          <div><div className={labelCls}>{t("Getting started")}</div><p className={hintCls}>{t("The first-steps card on Home is hidden.")}</p></div>
+          <Button type="button" variant="secondary" onClick={() => update({ onboardingDismissed: false })}>{t("Show again")}</Button>
+        </div>}
       </div>
     </Section>
 
