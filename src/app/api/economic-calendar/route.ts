@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { resolvePrivateOwner } from "@/lib/supabase/private-owner";
+import { ownerOnly, resolvePrivateOwner } from "@/lib/supabase/private-owner";
 import { currenciesFromTrades, parseCalendarQuery, toCalendarEvent, type NewsEventRecord } from "@/lib/news/economic-calendar";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +15,8 @@ const json = (body: unknown, status = 200) => NextResponse.json(body, { status, 
 export async function GET(request: Request) {
   const context = await resolvePrivateOwner(request);
   if (context instanceof Response) return context;
+  const closed = ownerOnly(context);
+  if (closed) return closed;
   const { db, ownerId } = context;
 
   const params = new URL(request.url).searchParams;

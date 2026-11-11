@@ -1,10 +1,11 @@
-import { NextResponse } from "next/server";
-import { SESSION_COOKIE } from "@/lib/auth/session-token";
+import { authJson } from "@/lib/auth/auth-api";
+import { createRouteAuthClient } from "@/lib/supabase/auth-server";
 
 export const dynamic = "force-dynamic";
 
+/** POST → ends this browser's session (other devices stay signed in) and clears the cookies. */
 export async function POST() {
-  const response = NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
-  response.cookies.set(SESSION_COOKIE, "", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 0 });
-  return response;
+  const client = await createRouteAuthClient();
+  await client.auth.signOut({ scope: "local" }).catch(() => undefined);
+  return authJson({ ok: true });
 }

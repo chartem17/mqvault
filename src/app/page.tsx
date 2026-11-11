@@ -11,6 +11,8 @@ import { MarketTab } from "@/components/tabs/market-tab";
 import { CalendarTab } from "@/components/tabs/calendar-tab";
 import { StrategyControlTab } from "@/components/tabs/strategy-control-tab";
 import { parseJournalFocus } from "@/lib/journal/journal-focus";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { OWNER_ONLY_TABS } from "@/lib/auth/beta-access";
 import { useI18n } from "@/components/providers/i18n-provider";
 
 const TABS = ["home", "overview", "journal", "strategy-control", "market", "calendar"] as const;
@@ -19,7 +21,10 @@ function HomeContent() {
   const router = useRouter();
   const search = useSearchParams();
   const focus = useMemo(() => parseJournalFocus(search), [search]);
-  const activeTab: TabId = focus.kind !== "none" ? "journal" : TABS.find(tab => tab === search.get("tab")) ?? "home";
+  const user = useCurrentUser();
+  const requested: TabId = focus.kind !== "none" ? "journal" : TABS.find(tab => tab === search.get("tab")) ?? "home";
+  // Owner-only sections fall back to Home for everybody else (and while the user is still loading).
+  const activeTab: TabId = OWNER_ONLY_TABS.includes(requested) && !user?.isOwner ? "home" : requested;
   const setActiveTab: Dispatch<SetStateAction<TabId>> = value => {
     const next = typeof value === "function" ? value(activeTab) : value;
     if (next === activeTab && focus.kind === "none") return;

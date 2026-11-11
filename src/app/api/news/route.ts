@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { ownerOnly, resolvePrivateOwner } from "@/lib/supabase/private-owner";
 
 export const dynamic = "force-dynamic";
 const DAY = 86_400_000;
 
 export async function GET(request: NextRequest) {
   try {
+    const context = await resolvePrivateOwner(request);
+    if (context instanceof Response) return context;
+    const closed = ownerOnly(context);
+    if (closed) return closed;
     const sp = request.nextUrl.searchParams;
     const from = new Date(sp.get("from") ?? Date.now() - 7 * DAY);
     const to = new Date(sp.get("to") ?? Date.now() + 14 * DAY);
@@ -16,7 +20,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const supabase = createServerSupabase();
+    const supabase = context.db;
     const { data, error } = await supabase
       .from("news_events")
       .select(
