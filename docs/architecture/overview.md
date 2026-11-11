@@ -35,6 +35,8 @@ src/
   app/
     page.tsx, layout.tsx, globals.css, typography.css
     login/            сторінка входу
+    profile/          профіль користувача (імʼя, план, лічильники, список рахунків)
+    settings/         налаштування: вигляд, мова й час, безпека, MT5 Bridge, видалення акаунта
     journal/          сторінка-обгортка для посилань «відкрити ці угоди в журналі»
     api/
       accounts/                 CRUD рахунків;   accounts/[id]/prop-rules — умови проп-рахунку (GET/PATCH, expectedRevision)
@@ -42,6 +44,7 @@ src/
       strategies/               правила стратегій
       deletions/                відкладене остаточне видалення (RPC), сюди middleware перенаправляє DELETE
       preferences/              timezone, journal-layout, dashboard-layout
+      profile/                  профіль (GET/PATCH імʼя/DELETE акаунт), profile/sessions — активні сесії
       auth/                     login, signup, verify, resend, reset, password, oauth, logout  (+ app/auth/callback)
       instruments/, market/quotes/, news/     ринок, котирування, економічні новини
       mt5/{health,history,positions}/         виведені з експлуатації (повертають відповідь про retirement)
@@ -52,10 +55,10 @@ src/
     journal/          форма ручної угоди
     strategy-control/ конструктор стратегії і спільні контроли Strategy Control
     home/             круговий «день» (day-dial)
-    settings/         мова, часовий пояс
-    layout/           каркас застосунку, навігація
-    providers/        theme, i18n, timezone
-    ui/               примітиви: Button/Input/Select/Panel, Field, Checkbox, DateTimeField, діалоги, Undo-тости, MetricCard
+    settings/         мова, часовий пояс (контроли, використовуються на /settings), підключення Bridge
+    layout/           каркас: плаваючий сайдбар (app-sidebar), пошук Ctrl/⌘K (command-palette), нижня панель на телефоні
+    providers/        theme, i18n, timezone, profile
+    ui/               примітиви: Button/Input/Select/Panel, Field, Checkbox, DateTimeField, діалоги, Undo-тости, MetricCard, OtpInput + PasswordStrength, TagInput, GhostInput, AutoTextarea
   hooks/              див. таблицю вище
   lib/
     accounts/         модель рахунку, парсинг/валідація, гілки Phase1→2→Funded, Overview-розрахунки, умови проп
