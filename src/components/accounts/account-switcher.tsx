@@ -3,13 +3,13 @@ import { useState } from "react";
 import { Check, ChevronDown, Layers3, Plus, Trash2, Wallet2 } from "lucide-react";
 import { NewAccountModal } from "@/components/accounts/new-account-modal";
 import { Button, Panel } from "@/components/ui/primitives";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { useTrades } from "@/hooks/use-trades";
 import { kindLabel } from "@/lib/accounts/account-data";
 import { fmt } from "@/lib/journal/utils-trade";
 import { useI18n } from "@/components/providers/i18n-provider";
 
-function currencyAmount(value: number, currency: "USD" | "USDT") { return `${fmt.num(value)} ${currency}`; }
+function currencyAmount(value: number, currency: "USD" | "USDT") { return `${fmt.money(value)} ${currency}`; }
 function badgeBackground(color: string) { return `color-mix(in oklab, ${color} 13%, transparent)`; }
 export default function AccountSwitcher() {
   const { accounts, activeAccountId, activeAccount, setActiveAccountId, includedAccountIds, toggleAccountIncluded, deleteAccount, upsertAccount } = useTrades();
@@ -34,7 +34,7 @@ export default function AccountSwitcher() {
               <Button variant="ghost" onClick={() => { setActiveAccountId(account.id); setOpen(false); }} className="min-w-0 flex-1" style={{ textAlign: "left", justifyContent: "flex-start", padding: 0 }}>
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: badgeBackground(account.color) }}><Wallet2 className="h-4 w-4" /></div><div className="min-w-0 flex-1"><div className="truncate text-sm font-medium">{account.name}</div><div className="truncate text-xs text-muted-foreground">{t(kindLabel[account.kind])} · {currencyAmount(account.initialBalance, account.currency)}</div></div>{activeAccountId === account.id ? <Check className="h-4 w-4 text-primary" /> : null}
               </Button>
-              <label className="flex h-10 w-10 shrink-0 items-center justify-center" title={t("Include {name} in totals", { name: account.name })}><Checkbox aria-label={t("Include {name} in totals", { name: account.name })} checked={included} onChange={() => toggleAccountIncluded(account.id)} /></label>
+              <span className="flex h-10 shrink-0 items-center px-1" title={t("Include {name} in totals", { name: account.name })}><Switch size="sm" aria-label={t("Include {name} in totals", { name: account.name })} isSelected={included} onChange={() => toggleAccountIncluded(account.id)} /></span>
               <Button variant="ghost" size="icon" aria-label={t("Delete account {name}", { name: account.name })} title={t("Delete account {name}", { name: account.name })} onClick={() => void deleteAccount(account.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
             </div>;
           })}

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { KeyRound, LogOut, UserRound } from "lucide-react";
+import { KeyRound, LogOut, Settings, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/primitives";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { useCurrentUser } from "@/hooks/use-current-user";
@@ -44,7 +44,9 @@ export function UserMenu() {
             <div className="text-xs text-muted-foreground">{t("Signed in as")}</div>
             <div className="truncate text-sm font-medium" title={user?.email ?? undefined}>{user?.email ?? "…"}</div>
           </div>
-          <Link role="menuitem" href="/reset-password" className={`${itemClass} mt-1.5`} onClick={() => setOpen(false)}><KeyRound aria-hidden="true" className="h-4 w-4 shrink-0" />{t("Change password")}</Link>
+          <Link role="menuitem" href="/profile" className={`${itemClass} mt-1.5`} onClick={() => setOpen(false)}><UserRound aria-hidden="true" className="h-4 w-4 shrink-0" />{t("Profile")}</Link>
+          <Link role="menuitem" href="/settings" className={itemClass} onClick={() => setOpen(false)}><Settings aria-hidden="true" className="h-4 w-4 shrink-0" />{t("Settings")}</Link>
+          <Link role="menuitem" href="/reset-password" className={itemClass} onClick={() => setOpen(false)}><KeyRound aria-hidden="true" className="h-4 w-4 shrink-0" />{t("Change password")}</Link>
           <button role="menuitem" type="button" className={itemClass} disabled={leaving} onClick={signOut}><LogOut aria-hidden="true" className="h-4 w-4 shrink-0" />{leaving ? t("Signing out…") : t("Sign out")}</button>
         </div>
       )}

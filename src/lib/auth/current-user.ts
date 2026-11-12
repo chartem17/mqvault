@@ -4,6 +4,10 @@ import { findOrProvisionUser, signupMode, type AppUser, type AuthIdentity, type 
 import { isValidTimeZone } from "@/lib/time/timezone";
 import { createRouteAuthClient, readSessionIdentity } from "@/lib/supabase/auth-server";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { rateLimited, type RateLimit } from "./auth-api";
+
+/** Writes per user: generous for a person, a wall for a script hammering the API. */
+const API_WRITES_PER_USER: RateLimit = { name: "api-writes", windowSeconds: 60, max: 120 };
 
 type Db = ReturnType<typeof createServerSupabase>;
 const NO_STORE = { "Cache-Control": "no-store" };
@@ -60,7 +64,13 @@ async function confirmedIdentity(db: Db, authUserId: string): Promise<AuthIdenti
   };
 }
 
-export type UserContext = { db: Db; ownerId: string; isOwner: boolean; email: string | null };
+/**
+ * `db` queries as the signed-in user (their own token, role `authenticated`): Postgres row-level security
+ * refuses every row of another user even if a query forgets its user_id filter (ADR 0018).
+ * `admin` is the service-key client, for the few places ADR 0018 lists (Auth admin API, pairing, sessions list).
+ */
+export type UserContext = { db: UserDb; admin: Db; ownerId: string; isOwner: boolean; email: string | null };
+type UserDb = Awaited<ReturnType<typeof createRouteAuthClient>>;
 export type Workspace = { user: AppUser } | { user: null; reason: "unauthenticated" | "unconfirmed" | "not_invited" | "unavailable" };
 
 /** The application user behind an Auth user id; creates or links it on the first visit when the rules allow. */
@@ -93,11 +103,19 @@ export const WORKSPACE_DENIAL = {
 export async function resolveUser(request: Request): Promise<UserContext | Response> {
   const guard = guardRequest(request);
   if (guard.access === "denied") return guard.response;
-  const session = await readSessionIdentity(await createRouteAuthClient());
+  const auth = await createRouteAuthClient();
+  const session = await readSessionIdentity(auth);
   if (!session) return deny(401, "Authentication required", "unauthenticated");
-  const db = createServerSupabase();
-  const workspace = await workspaceFor(db, session.authUserId);
-  if (workspace.user) return { db, ownerId: workspace.user.id, isOwner: workspace.user.isOwner, email: workspace.user.email };
+  const admin = createServerSupabase();
+  const workspace = await workspaceFor(admin, session.authUserId);
+  if (workspace.user) {
+    // Every change through the API counts against one per-user budget (package 3); reads are not counted.
+    if (!["GET", "HEAD", "OPTIONS"].includes(request.method.toUpperCase())) {
+      const limited = await rateLimited(API_WRITES_PER_USER, workspace.user.id);
+      if (limited) return limited;
+    }
+    return { db: auth, admin, ownerId: workspace.user.id, isOwner: workspace.user.isOwner, email: workspace.user.email };
+  }
   const denial = WORKSPACE_DENIAL[workspace.reason];
   return deny(denial.status, denial.error, workspace.reason);
 }

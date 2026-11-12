@@ -1,4 +1,5 @@
 import { resolveUser } from "@/lib/auth/current-user";
+import { recordAudit } from "@/lib/auth/audit";
 import { json } from "@/lib/bridge/server";
 
 export const dynamic = "force-dynamic";
@@ -27,5 +28,6 @@ export async function DELETE(request: Request) {
   const { data, error } = await db.from("bridge_devices").update({ revoked_at: new Date().toISOString() }).eq("id", id).eq("user_id", ownerId).is("revoked_at", null).select("id").maybeSingle();
   if (error) return json({ error: "Failed to revoke" }, 500);
   if (!data) return json({ error: "Unknown device" }, 404);
+  await recordAudit(request, { userId: ownerId }, "bridge_device_revoked");
   return json({ revoked: data.id });
 }

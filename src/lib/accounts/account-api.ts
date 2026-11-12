@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { recordAudit } from "@/lib/auth/audit";
 import { resolveUser } from "@/lib/auth/current-user";
 import { permanentlyDeleteOwnedEntity } from "@/lib/supabase/permanent-delete";
 import { AccountSetupError } from "./account-setup";
@@ -88,7 +89,8 @@ export async function DELETE(request: Request) {
     if (context instanceof Response) return context;
     const body = await readBody(request);
     if (typeof body.id !== "string" || !UUID.test(body.id)) throw new AccountSetupError("Invalid account id");
-    const result = await permanentlyDeleteOwnedEntity(context.ownerId, "account", body.id);
+    const result = await permanentlyDeleteOwnedEntity(context.db, context.ownerId, "account", body.id);
+    if (result.deleted) await recordAudit(request, { userId: context.ownerId }, "account_deleted", { detail: { trades: Number(result.trades_deleted ?? 0) } });
     return json({ success: true, ...result });
   } catch (error) { return failure(error); }
 }

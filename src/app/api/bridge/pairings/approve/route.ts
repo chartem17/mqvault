@@ -1,4 +1,5 @@
 import { resolveUser } from "@/lib/auth/current-user";
+import { recordAudit } from "@/lib/auth/audit";
 import { json } from "@/lib/bridge/server";
 import { sha256Hex } from "@/lib/bridge/signature";
 import { APPROVE_LOCK_MS, MAX_FAILED_APPROVALS, normalizeUserCode, pairingStatus } from "@/lib/bridge/pairing";
@@ -13,7 +14,9 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const context = await resolveUser(request);
   if (context instanceof Response) return context;
-  const { db, ownerId } = context;
+  // Service key: a pairing belongs to nobody until it is approved, and the device row is created by the server.
+  // The user id comes from the verified session only.
+  const { admin: db, ownerId } = context;
   const body = await request.json().catch(() => null) as { user_code?: unknown; confirm?: unknown } | null;
   const limitKey = `approve:${ownerId}`;
   const { data: allowed, error: limitError } = await db.rpc("bridge_rate_limit_hit", { p_key: limitKey, p_window_seconds: APPROVE_LOCK_MS / 1000, p_max: MAX_FAILED_APPROVALS });
@@ -42,5 +45,6 @@ export async function POST(request: Request) {
     return json({ error: "invalid_code" }, 404);
   }
   await db.rpc("bridge_rate_limit_reset", { p_key: limitKey });
+  await recordAudit(request, { userId: ownerId }, "bridge_device_connected", { detail: { name: String(pairing.device_name ?? "").slice(0, 80), os: String(pairing.os ?? "").slice(0, 40) } });
   return json({ device: { id: created.id, ...device } }, 201);
 }

@@ -63,7 +63,7 @@ export function AccountRulesCard({ account, accountId, trades }: { account: Trad
   const settings = saved?.settings ?? settingsFromColumns({ target_percent: account.targetPercent, max_loss_percent: account.maxLossPercent, daily_loss_percent: account.dailyLossPercent, min_trading_days: account.minTradingDays });
   const effective = { ...account, phase: saved ? saved.phase ?? "manual" as const : account.phase, targetPercent: settings.target.state === "configured" ? settings.target.value ?? undefined : undefined };
   const summary = buildAccountOverview(effective, trades);
-  const money = (value: number | null) => value === null ? "—" : `${fmt.num(value, 2)} ${account.currency}`;
+  const money = (value: number | null) => value === null ? "—" : `${fmt.money(value, 2)} ${account.currency}`;
   const setSetting = <K extends keyof PropRuleSettings>(key: K, value: PropRuleSettings[K]) => setDraft(current => current ? { ...current, settings: { ...current.settings, [key]: value } } : current);
   const changeOpen = (open: boolean) => {
     if (busy.current) return;

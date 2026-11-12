@@ -1,5 +1,5 @@
 "use client";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { screenshotImageUrl } from '@/lib/journal/screenshot-gallery';
 import { EmptyState } from "@/components/ui/empty-state";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -154,6 +154,8 @@ export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus, review = fa
   if (review && focus.kind === 'none') return <div className="space-y-4 sm:p-6">{loading ? <EmptyState title={t("Loading trades…")} role="status" /> : <DayReview key={activeAccountId} trades={visibleTrades} accounts={accounts} updateTrade={updateTrade} onExit={() => onReviewChange?.(false)} />}</div>;
   const modal = <ManualTradeModal open={showModal} accounts={accounts} defaultAccountId={activeAccountId !== 'all' ? activeAccountId : undefined} initialTrade={editingTrade} submitting={saving} news={editingTrade ? <TradeNewsSection summary={news.byTrade?.get(editingTrade.id)} loading={news.loading} error={news.error} /> : null} onClose={() => { setShowModal(false); setEditingTrade(null); }} onSubmit={submit} />;
   if (gallery && focus.kind === 'none') return <div className="space-y-4 sm:p-6">{loading ? <EmptyState title={t("Loading trades…")} role="status" /> : <ScreenshotGallery trades={visibleTrades} accounts={accounts} onExit={() => onGalleryChange?.(false)} onOpenTrade={trade => { setEditingTrade(trade); setShowModal(true); }} />}{modal}</div>;
+  // Until the saved view is known (device copy or server), show a placeholder rather than a table that flips to cards.
+  if (!phone && !prefs.known) return <div className="space-y-4 sm:p-6"><EmptyState title={t("Loading trades…")} role="status" />{modal}</div>;
   return <div className="space-y-4 sm:p-6">
     <div className="flex flex-wrap items-center gap-2">
       <div className="relative order-1 w-[calc(100%-3rem)] min-w-0 sm:order-none sm:w-auto sm:min-w-[200px] sm:flex-1"><Search aria-hidden="true" className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input aria-label={t("Search trades")} value={search} onChange={e => setSearch(e.target.value)} placeholder={t("Search trades, ID…")} style={{ paddingLeft: '2.25rem' }} /></div>
@@ -166,7 +168,7 @@ export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus, review = fa
       {view !== 'cards' && <div className="relative" ref={panelRef}><Button variant="secondary" size="sm" aria-expanded={panel} onClick={() => { setFilterPanel(false); setPanel(!panel); }}><SlidersHorizontal className="h-4 w-4" />{t("Columns")}</Button>
         {panel && <section aria-label={t("Column visibility")} className="absolute right-0 top-full z-30 mt-2 w-[min(320px,85vw)] rounded-2xl border border-border bg-card p-3 shadow-2xl">
           <p className="mb-2 text-xs text-muted-foreground">{t("The switch shows or hides a column.")}</p>
-          <div className="max-h-[50vh] space-y-2 overflow-y-auto">{prefs.layout.order.map(id => <div key={id} className="rounded-xl border border-border p-2"><label className="flex items-center gap-2 text-sm"><Checkbox checked={!prefs.layout.hidden.includes(id)} disabled={!prefs.canEdit || (!prefs.layout.hidden.includes(id) && columns.length === 1)} onChange={() => prefs.change(toggleJournalColumn(prefs.layout, id))} />{labelFor(id)}</label></div>)}</div>
+          <div className="max-h-[50vh] space-y-2 overflow-y-auto">{prefs.layout.order.map(id => <div key={id} className="rounded-xl border border-border p-2"><Switch size="sm" className="w-full" isSelected={!prefs.layout.hidden.includes(id)} isDisabled={!prefs.canEdit || (!prefs.layout.hidden.includes(id) && columns.length === 1)} onChange={() => prefs.change(toggleJournalColumn(prefs.layout, id))}>{labelFor(id)}</Switch></div>)}</div>
         </section>}
       </div>}
       <div className="order-4 flex min-w-0 flex-1 gap-2 sm:order-none sm:w-auto sm:flex-none">

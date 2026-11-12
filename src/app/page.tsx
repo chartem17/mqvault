@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, type Dispatch, type SetStateAction } from "react";
+import { Suspense, useEffect, useMemo, useRef, type Dispatch, type SetStateAction } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AppShellLayout from "@/components/layout/app-shell-layout";
 import { HomeTab } from "@/components/tabs/home-tab";
@@ -14,6 +14,7 @@ import { parseJournalFocus } from "@/lib/journal/journal-focus";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { OWNER_ONLY_TABS } from "@/lib/auth/beta-access";
 import { useI18n } from "@/components/providers/i18n-provider";
+import { usePreferences } from "@/components/providers/preferences-provider";
 
 const TABS = ["home", "overview", "journal", "strategy-control", "market", "calendar"] as const;
 export type TabId = typeof TABS[number];
@@ -25,6 +26,14 @@ function HomeContent() {
   const requested: TabId = focus.kind !== "none" ? "journal" : TABS.find(tab => tab === search.get("tab")) ?? "home";
   // Owner-only sections fall back to Home for everybody else (and while the user is still loading).
   const activeTab: TabId = OWNER_ONLY_TABS.includes(requested) && !user?.isOwner ? "home" : requested;
+  // Settings → Start page: a bare "/" opens the tab the user chose.
+  const { preferences, ready } = usePreferences();
+  const startApplied = useRef(false);
+  useEffect(() => {
+    if (!ready || startApplied.current) return;
+    startApplied.current = true;
+    if (!search.toString() && preferences.startTab !== "home") router.replace(`/?tab=${preferences.startTab}`, { scroll: false });
+  }, [ready, preferences.startTab, router, search]);
   const setActiveTab: Dispatch<SetStateAction<TabId>> = value => {
     const next = typeof value === "function" ? value(activeTab) : value;
     if (next === activeTab && focus.kind === "none") return;

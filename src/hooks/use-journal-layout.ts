@@ -1,6 +1,6 @@
 "use client";
 import { msg } from '@/lib/i18n/core';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { defaultJournalLayout, parseJournalLayout, type JournalLayout } from '@/lib/journal/journal-layout';
 type Snapshot = { layout: JournalLayout; revision: number };
 async function responseValue(response: Response): Promise<Snapshot> {
@@ -9,8 +9,21 @@ async function responseValue(response: Response): Promise<Snapshot> {
   if (!Number.isSafeInteger(body.revision) || body.revision < 0) throw new Error(msg('Invalid revision'));
   return { layout: parseJournalLayout(body.layout), revision: body.revision };
 }
+/** Last known layout on this device: the journal opens in the saved view at once instead of switching after the request. */
+const CACHE_KEY = 'mq_journal_layout';
+function readCache(): JournalLayout | null {
+  try { const raw = localStorage.getItem(CACHE_KEY); return raw ? parseJournalLayout(JSON.parse(raw)) : null; } catch { return null; }
+}
+function writeCache(layout: JournalLayout) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify(layout)); } catch { /* storage may be blocked */ }
+}
 export function useJournalLayout() {
   const [layout, setLayout] = useState(defaultJournalLayout);
+  /** False until the layout is known (device copy or server); the journal shows a placeholder meanwhile, never the wrong view. */
+  const [known, setKnown] = useState(false);
+  // Before the first paint: take the device copy, so table/cards never flip after the server answers.
+  useLayoutEffect(() => { const cached = readCache(); if (cached) { setLayout(cached); setKnown(true); } }, []);
+  useEffect(() => { if (known) writeCache(layout); }, [layout, known]);
   const [saved, setSaved] = useState<Snapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -22,9 +35,9 @@ export function useJournalLayout() {
     setLoading(true);
     try {
       const value = await responseValue(await fetch('/api/preferences/journal-layout', { cache: 'no-store', signal }));
-      if (!signal?.aborted) { setSaved(value); setLayout(value.layout); setConflict(false); setError(null); }
+      if (!signal?.aborted) { setSaved(value); setLayout(value.layout); setKnown(true); setConflict(false); setError(null); }
     } catch (cause) { if (!signal?.aborted) setError(cause instanceof Error ? cause.message : msg('Loading failed')); }
-    finally { if (!signal?.aborted) setLoading(false); }
+    finally { if (!signal?.aborted) { setLoading(false); setKnown(true); } }
   }, []);
   useEffect(() => { const controller = new AbortController(); void reload(controller.signal); return () => controller.abort(); }, [reload]);
   const canEdit = saved !== null && !loading && !saving && !conflict;
@@ -50,5 +63,5 @@ export function useJournalLayout() {
     const timer = window.setTimeout(() => { void saveRef.current(); }, 500);
     return () => window.clearTimeout(timer);
   }, [layout, canEdit, dirty]);
-  return { layout, loading, saving, error, conflict, dirty, canEdit, change, cancel, save, reload };
+  return { layout, known, loading, saving, error, conflict, dirty, canEdit, change, cancel, save, reload };
 }

@@ -8,7 +8,7 @@ import { isDeviceSignedPath } from "../bridge/signature";
 /** Pages a signed-out visitor may open. Signed-in visitors are sent to the app instead. */
 export const PUBLIC_PAGES = new Set(["/login", "/signup", "/forgot-password"]);
 /** Sign-in endpoints: POST, same-origin JSON, no session yet. */
-export const PUBLIC_API = new Set(["/api/auth/login", "/api/auth/signup", "/api/auth/reset", "/api/auth/logout"]);
+export const PUBLIC_API = new Set(["/api/auth/login", "/api/auth/signup", "/api/auth/reset", "/api/auth/logout", "/api/auth/verify", "/api/auth/resend"]);
 /** GET handlers that finish an e-mail link or OAuth round trip and create the session themselves. */
 export const PUBLIC_CALLBACKS = new Set(["/auth/confirm", "/auth/callback", "/api/auth/google"]);
 /**
@@ -16,6 +16,18 @@ export const PUBLIC_CALLBACKS = new Set(["/auth/confirm", "/auth/callback", "/ap
  * (ADR 0015). Only POST is let through here; the route itself rejects anything without the token.
  */
 export const TOKEN_PATHS = new Set(["/api/economic-calendar/sync"]);
+
+/**
+ * Largest request body a page or API accepts (package 3): oversized bodies are refused before any work.
+ * CSV import sends up to 5000 parsed rows; machine endpoints check their own limits.
+ */
+export const MAX_BODY_BYTES = 1_000_000;
+export const LARGE_BODY_PATHS: Record<string, number> = { "/api/journal/import": 8_000_000 };
+export function bodyTooLarge(request: Request): boolean {
+  const declared = Number(request.headers.get("content-length") ?? "0");
+  const limit = LARGE_BODY_PATHS[new URL(request.url).pathname] ?? MAX_BODY_BYTES;
+  return Number.isFinite(declared) && declared > limit;
+}
 
 export type RequestGuard =
   | { access: "public" | "machine" | "session" }
@@ -32,6 +44,7 @@ export function guardRequest(request: Request): RequestGuard {
   if (isDeviceSignedPath(url.pathname, method)) return { access: "machine" };
 
   if (!["GET", "HEAD", "OPTIONS"].includes(method)) {
+    if (bodyTooLarge(request)) return { access: "denied", response: new Response("Request body is too large", { status: 413, headers: NO_STORE }) };
     // CSRF: a browser cannot send a cross-site JSON request with a foreign Origin without CORS, which we never grant.
     try {
       const expected = new URL(process.env.VAULT_SITE_ORIGIN || request.url).origin;

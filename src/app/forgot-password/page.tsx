@@ -4,16 +4,19 @@ import { useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { AuthCard, AuthInput, AuthMessage, AuthSubmit, authLinkClass, useAuthRequest } from "@/components/auth/auth-form";
+import { CaptchaBox, useCaptcha } from "@/components/auth/turnstile";
 
 export default function ForgotPasswordPage() {
   const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const { busy, error, send, settle, guard } = useAuthRequest();
+  const captcha = useCaptcha();
 
   async function submit() {
-    if (!email) return;
-    const result = await send("/api/auth/reset", { email });
+    if (!email || !captcha.ready) return;
+    const result = await send("/api/auth/reset", { email, captchaToken: captcha.token });
+    captcha.reset();
     if (result.ok) { setSent(true); settle(); }
   }
 
@@ -29,8 +32,9 @@ export default function ForgotPasswordPage() {
     <AuthCard title={t("Reset the password")} subtitle={t("Enter your account e-mail and we will send a link to set a new password.")} footer={footer}>
       <form onSubmit={guard(submit)} className="space-y-4" noValidate>
         <AuthInput label={t("E-mail")} type="email" name="email" autoComplete="username" inputMode="email" autoCapitalize="none" spellCheck={false} autoFocus required value={email} onChange={event => setEmail(event.target.value)} />
+        <CaptchaBox captcha={captcha} />
         {error && <AuthMessage tone="error">{error}</AuthMessage>}
-        <AuthSubmit busy={busy}>{busy ? t("Sending…") : t("Send the link")}</AuthSubmit>
+        <AuthSubmit busy={busy || !captcha.ready}>{busy ? t("Sending…") : t("Send the link")}</AuthSubmit>
       </form>
     </AuthCard>
   );
