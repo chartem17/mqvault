@@ -26,6 +26,8 @@ API-доступ агента не має права змінювати firewall
 | Rate limit sign-in | Request Path · Starts with · `/api/auth/` | Rate Limit: Fixed window, 60 s, 20 requests, key IP → Deny (429) |
 | Rate limit API | Request Path · Starts with · `/api/` **і** Request Path · Does not start with · `/api/bridge/device/` | Rate Limit: Fixed window, 60 s, 600 requests, key IP → Deny (429) |
 
+Стан на 2026-11-12: правила 1 і 2 активні; правило 3 на тарифі Hobby недоступне (лише одне правило з лімітом) — пропущено, бо зміни через API обмежені в самому застосунку. Готові правила Vercel (SQLi, XSS, RCE, generic) увімкнено в режимі **Log**: через 1–2 тижні переглянути логи й, якщо хибних спрацювань немає, перевести на **Deny**.
+
 Не вмикати «Bot Protection» / «Challenge» для `/api/bridge/*` і `/api/economic-calendar/sync`: це програми на ПК (Bridge, EA), вони не пройдуть браузерну перевірку. **Attack Challenge Mode** — лише на час атаки.
 
 Після збереження: Publish → перевірити, що сайт відкривається і Bridge синхронізує (у «Налаштування → MT5 Bridge» час «востаннє на зв'язку» оновлюється).
