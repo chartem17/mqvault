@@ -1,5 +1,6 @@
 "use client";
 
+import { Switch } from "@/components/ui/switch";
 import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useTrades, type JournalTrade } from "@/hooks/use-trades";
@@ -102,7 +103,7 @@ export function MyTradesNews({ week, nav }: { week: { from: number; to: number }
           <p className="m-0 mt-0.5 text-xs text-muted-foreground">{tn(rows.length, "{count} trade", "{count} trades")} · {t("{count} with red news", { count: withNews })}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" aria-pressed={onlyNews} onClick={() => setOnlyNews(v => !v)} className={`rounded-lg border px-3 py-1.5 text-xs ${onlyNews ? "border-red/30 bg-red/10 text-red" : "border-border bg-secondary/50 text-muted-foreground"}`}>{t("Only with red news")}</button>
+          <Switch size="sm" className="text-xs text-muted-foreground" isSelected={onlyNews} onChange={setOnlyNews}>{t("Only with red news")}</Switch>
           {nav}
         </div>
       </div>

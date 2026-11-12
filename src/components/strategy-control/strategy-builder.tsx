@@ -2,6 +2,7 @@
 import { Button, Input, Textarea } from "@/components/ui/primitives";
 import { TagInput } from "@/components/ui/tag-input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { STRATEGY_SURFACE } from "@/components/strategy-control/strategy-ui";
 import { useState } from "react";
 import { ruleLibrary } from "@/lib/strategy-control/rule-library";
@@ -51,7 +52,7 @@ export function StrategyBuilder({ onSave, onCancel }: Props) {
     <div className="space-y-4">{(Object.keys(ruleLibrary) as RuleType[]).map(ruleType => {
       const definition = ruleLibrary[ruleType], rule = rules.find(item => item.ruleType === ruleType);
       if (!rule) return null;
-      return <div key={ruleType} className={STRATEGY_SURFACE}><div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">{t(categories[definition.category])}</span><span className="text-sm font-medium text-foreground">{t(definition.title)}</span></div><p className="mt-2 text-sm leading-6 text-muted-foreground">{t(definition.description)}</p></div><label className="flex items-center gap-2 text-sm text-foreground"><Checkbox checked={rule.enabled} onChange={event => updateRule(ruleType, current => ({ ...current, enabled: event.target.checked }))}  />{t("Enabled")}</label></div>{rule.enabled ? <div className="mt-4 grid gap-4 md:grid-cols-2">{definition.paramsSchema.map(param => <ParamField key={`${ruleType}-${param.key}`} definition={param} value={rule.params[param.key]} onChange={nextValue => updateRule(ruleType, current => ({ ...current, params: { ...current.params, [param.key]: nextValue } }))} />)}</div> : null}</div>;
+      return <div key={ruleType} className={STRATEGY_SURFACE}><div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">{t(categories[definition.category])}</span><span className="text-sm font-medium text-foreground">{t(definition.title)}</span></div><p className="mt-2 text-sm leading-6 text-muted-foreground">{t(definition.description)}</p></div><Switch className="text-foreground" isSelected={rule.enabled} onChange={enabled => updateRule(ruleType, current => ({ ...current, enabled }))}>{t("Enabled")}</Switch></div>{rule.enabled ? <div className="mt-4 grid gap-4 md:grid-cols-2">{definition.paramsSchema.map(param => <ParamField key={`${ruleType}-${param.key}`} definition={param} value={rule.params[param.key]} onChange={nextValue => updateRule(ruleType, current => ({ ...current, params: { ...current.params, [param.key]: nextValue } }))} />)}</div> : null}</div>;
     })}</div>
   </div></div>;
 }

@@ -18,6 +18,7 @@ const START_TAB_OPTIONS = [
 ] as const;
 import { Button, Input, Panel, Select } from "@/components/ui/primitives";
 import { PasswordStrength } from "@/components/ui/otp-input";
+import { Switch } from "@/components/ui/switch";
 import { TimezoneSelect } from "@/components/settings/timezone-select";
 import { useTimezone } from "@/components/providers/timezone-provider";
 import { useI18n } from "@/components/providers/i18n-provider";
@@ -44,10 +45,7 @@ function Section({ icon, title, children }: { icon: ReactNode; title: string; ch
 function Toggle({ label, hint, on, onChange }: { label: string; hint: string; on: boolean; onChange: (value: boolean) => void }) {
   return <div className="flex items-center justify-between gap-4">
     <div><div className="text-sm font-medium">{label}</div><p className="mt-0.5 text-xs text-muted-foreground">{hint}</p></div>
-    <button type="button" role="switch" aria-checked={on} aria-label={label} onClick={() => onChange(!on)}
-      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${on ? "bg-primary" : "bg-[rgb(var(--ink)/0.18)]"}`}>
-      <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${on ? "translate-x-[1.375rem]" : "translate-x-0.5"}`} />
-    </button>
+    <Switch aria-label={label} isSelected={on} onChange={onChange} />
   </div>;
 }
 const row = "flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between";
