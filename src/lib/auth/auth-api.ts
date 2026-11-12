@@ -45,3 +45,9 @@ export async function rateLimited(limit: RateLimit, subject: string): Promise<Re
   if (data !== true) return authJson({ error: "Too many attempts. Try again later." }, 429);
   return null;
 }
+
+/** CAPTCHA token from a sign-in form (Cloudflare Turnstile); Supabase Auth verifies it when CAPTCHA is on. */
+export function captchaToken(body: Record<string, unknown> | null): string | undefined {
+  const value = body?.captchaToken;
+  return typeof value === "string" && value.length > 0 && value.length <= 4096 ? value : undefined;
+}

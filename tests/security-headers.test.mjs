@@ -8,12 +8,13 @@ const parse = csp => Object.fromEntries(csp.split("; ").map(part => { const [nam
 
 test("production CSP: nonce scripts only, no framing, no eval", () => {
   const policy = parse(contentSecurityPolicy("abc123=="));
-  assert.equal(policy["script-src"], "'self' 'nonce-abc123==' 'strict-dynamic'");
+  assert.equal(policy["script-src"], "'self' 'nonce-abc123==' 'strict-dynamic' https://challenges.cloudflare.com");
   assert.equal(policy["frame-ancestors"], "'none'");
   assert.equal(policy["object-src"], "'none'");
   assert.equal(policy["base-uri"], "'self'");
   assert.equal(policy["form-action"], "'self'");
-  assert.equal(policy["connect-src"], "'self'");
+  assert.equal(policy["connect-src"], "'self' https://challenges.cloudflare.com");
+  assert.equal(policy["frame-src"], "https://challenges.cloudflare.com", "only the Turnstile widget may be framed");
   assert.ok("upgrade-insecure-requests" in policy);
   assert.ok(!contentSecurityPolicy("x").includes("unsafe-eval"));
   assert.ok(!policy["script-src"].includes("unsafe-inline"));
@@ -22,7 +23,7 @@ test("production CSP: nonce scripts only, no framing, no eval", () => {
 test("development CSP allows eval and the reload socket only", () => {
   const policy = parse(contentSecurityPolicy("n", { dev: true }));
   assert.ok(policy["script-src"].includes("'unsafe-eval'"));
-  assert.equal(policy["connect-src"], "'self' ws:");
+  assert.equal(policy["connect-src"], "'self' https://challenges.cloudflare.com ws:");
   assert.ok(!("upgrade-insecure-requests" in policy));
 });
 

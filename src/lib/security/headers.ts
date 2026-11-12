@@ -17,17 +17,20 @@ export const STATIC_SECURITY_HEADERS: { key: string; value: string }[] = [
   { key: "X-DNS-Prefetch-Control", value: "off" },
 ];
 
+const TURNSTILE = "https://challenges.cloudflare.com";
+
 export function contentSecurityPolicy(nonce: string, options: { dev?: boolean } = {}): string {
   const directives: [string, string][] = [
     ["default-src", "'self'"],
-    ["script-src", `'self' 'nonce-${nonce}' 'strict-dynamic'${options.dev ? " 'unsafe-eval'" : ""}`],
+    // Cloudflare Turnstile (sign-in forms): its script is loaded by the app's own code, its widget is an iframe.
+    ["script-src", `'self' 'nonce-${nonce}' 'strict-dynamic' ${TURNSTILE}${options.dev ? " 'unsafe-eval'" : ""}`],
     ["style-src", "'self' 'unsafe-inline'"],
     // Trade screenshots (TradingView) and provider avatars are https images from other hosts.
     ["img-src", "'self' data: blob: https:"],
     ["font-src", "'self' data:"],
     // The browser talks only to this site; Supabase, brokers and data providers are reached by the server.
-    ["connect-src", options.dev ? "'self' ws:" : "'self'"],
-    ["frame-src", "'none'"],
+    ["connect-src", options.dev ? `'self' ${TURNSTILE} ws:` : `'self' ${TURNSTILE}`],
+    ["frame-src", TURNSTILE],
     ["frame-ancestors", "'none'"],
     ["object-src", "'none'"],
     ["base-uri", "'self'"],

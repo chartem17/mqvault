@@ -1,4 +1,4 @@
-import { authJson, clientIp, rateLimited, readAuthBody, siteOrigin, type RateLimit } from "@/lib/auth/auth-api";
+import { authJson, captchaToken, clientIp, rateLimited, readAuthBody, siteOrigin, type RateLimit } from "@/lib/auth/auth-api";
 import { normalizeEmail } from "@/lib/auth/request-guard";
 import { createRouteAuthClient } from "@/lib/supabase/auth-server";
 
@@ -16,7 +16,8 @@ export async function POST(request: Request) {
   if (limited) return limited;
   if (email) {
     const client = await createRouteAuthClient();
-    await client.auth.resend({ type: "signup", email, options: { emailRedirectTo: `${siteOrigin(request)}/auth/callback` } }).catch(() => undefined);
+    const { error } = await client.auth.resend({ type: "signup", email, options: { emailRedirectTo: `${siteOrigin(request)}/auth/callback`, captchaToken: captchaToken(body) } });
+    if (error?.code === "captcha_failed") return authJson({ error: "The human check failed. Try again.", code: "captcha_failed" }, 400);
   }
   return authJson({ ok: true, wait: RESEND_WAIT_SECONDS });
 }

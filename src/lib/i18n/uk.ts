@@ -3,6 +3,8 @@ import type { Dictionary } from "./core";
 /** Ukrainian translations keyed by the English source text. Keep keys identical to the `t()` / `tn()` / `msg()` calls. */
 export const uk: Dictionary = {
   // Sidebar, profile, settings and the e-mail code step (package 2)
+  "The human check did not load. Reload the page or try another browser.": "Перевірка «я не робот» не завантажилась. Перезавантажте сторінку або спробуйте інший браузер.",
+  "The human check failed. Try again.": "Перевірка «я не робот» не пройдена. Спробуйте ще раз.",
   "Computer connected to MT5 Bridge": "Компʼютер підключено до MT5 Bridge",
   "Computer disconnected from MT5 Bridge": "Компʼютер відʼєднано від MT5 Bridge",
   "Data exported": "Дані експортовано",

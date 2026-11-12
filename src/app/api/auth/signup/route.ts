@@ -1,4 +1,4 @@
-import { SIGNUP_PER_IP, authJson, clientIp, rateLimited, readAuthBody, siteOrigin } from "@/lib/auth/auth-api";
+import { SIGNUP_PER_IP, authJson, captchaToken, clientIp, rateLimited, readAuthBody, siteOrigin } from "@/lib/auth/auth-api";
 import { signupMode } from "@/lib/auth/provision";
 import { normalizeEmail, passwordProblem } from "@/lib/auth/request-guard";
 import { admitSession } from "@/lib/auth/sign-in";
@@ -38,9 +38,10 @@ export async function POST(request: Request) {
   const client = await createRouteAuthClient();
   const { data, error } = await client.auth.signUp({
     email, password: body?.password as string,
-    options: { emailRedirectTo: `${siteOrigin(request)}/auth/callback`, data: { locale, ...(timezone ? { timezone } : {}) } },
+    options: { captchaToken: captchaToken(body), emailRedirectTo: `${siteOrigin(request)}/auth/callback`, data: { locale, ...(timezone ? { timezone } : {}) } },
   });
   if (error) {
+    if (error.code === "captcha_failed") return authJson({ error: "The human check failed. Try again.", code: "captcha_failed" }, 400);
     if (error.code === "weak_password") return authJson({ error: "Choose a stronger password" }, 400);
     if (error.code === "over_email_send_rate_limit" || error.status === 429) return authJson({ error: "Too many attempts. Try again later." }, 429);
     if (error.code === "user_already_exists" || error.code === "email_exists") return authJson({ ok: true, confirm: true });

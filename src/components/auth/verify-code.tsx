@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { OTP_LENGTH } from "@/lib/auth/password-strength";
 import { OtpInput, type OtpInputHandle, type OtpStatus } from "@/components/ui/otp-input";
 import { useI18n } from "@/components/providers/i18n-provider";
+import { CaptchaBox, useCaptcha } from "@/components/auth/turnstile";
 
 const RESEND_SECONDS = 60;
 
@@ -25,6 +26,7 @@ export function VerifyCode({ email, onVerified, onStatus }: { email: string; onV
   const [resendIn, setResendIn] = useState(RESEND_SECONDS);
   const [sending, setSending] = useState(false);
   const input = useRef<OtpInputHandle>(null);
+  const captcha = useCaptcha();
   const timers = useRef<number[]>([]);
   const later = (run: () => void, ms: number) => { timers.current.push(window.setTimeout(run, ms)); };
   useEffect(() => () => { timers.current.forEach(id => window.clearTimeout(id)); }, []);
@@ -45,10 +47,11 @@ export function VerifyCode({ email, onVerified, onStatus }: { email: string; onV
   }
 
   async function resend() {
-    if (resendIn > 0 || sending) return;
+    if (resendIn > 0 || sending || !captcha.ready) return;
     setSending(true); setError("");
     try {
-      const reply = await post("/api/auth/resend", { email });
+      const reply = await post("/api/auth/resend", { email, captchaToken: captcha.token });
+      captcha.reset();
       if (!reply.ok) setError(reply.data.error ?? "Something went wrong. Try again.");
       else { setResendIn(reply.data.wait ?? RESEND_SECONDS); setCode(""); setStatus("idle"); input.current?.focus(); }
     } catch { setError("No connection"); }
@@ -63,9 +66,10 @@ export function VerifyCode({ email, onVerified, onStatus }: { email: string; onV
     <OtpInput ref={input} length={OTP_LENGTH} value={code} onChange={value => { setCode(value); if (error) setError(""); }} onComplete={value => void verify(value)}
       status={status} autoFocus aria-label={t("Verification code")} aria-describedby="otp-hint" />
     <div className="min-h-5">{!done && error && <p role="alert" className="text-sm text-destructive">{t(error)}</p>}</div>
+    {!done && resendIn <= 0 && <CaptchaBox captcha={captcha} />}
     {!done && <p className="text-sm text-muted-foreground">
       {t("Didn't receive the code?")}{" "}
-      <button type="button" onClick={() => void resend()} disabled={resendIn > 0 || sending} className="font-medium text-primary disabled:cursor-default disabled:text-muted-foreground">
+      <button type="button" onClick={() => void resend()} disabled={resendIn > 0 || sending || !captcha.ready} className="font-medium text-primary disabled:cursor-default disabled:text-muted-foreground">
         {resendIn > 0 ? t("Resend in {seconds}s", { seconds: resendIn }) : t("Resend")}
       </button>
     </p>}

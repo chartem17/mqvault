@@ -8,6 +8,7 @@ import { msg } from "@/lib/i18n/core";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { AuthCard, AuthInput, AuthMessage, AuthSubmit, authLinkClass, useAuthRequest } from "@/components/auth/auth-form";
 import { VerifyCode } from "@/components/auth/verify-code";
+import { CaptchaBox, useCaptcha } from "@/components/auth/turnstile";
 import type { OtpStatus } from "@/components/ui/otp-input";
 
 /** Why the visitor was sent back here (set by /auth/callback, /auth/confirm and the password form). */
@@ -30,11 +31,14 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const { busy, error, send, guard } = useAuthRequest();
   const [verifying, setVerifying] = useState("");
+  const captcha = useCaptcha();
   const [codeStatus, setCodeStatus] = useState<OtpStatus>("idle");
 
   async function submit() {
     if (!email || !password) return;
-    const result = await send("/api/auth/login", { email, password });
+    if (!captcha.ready) return;
+    const result = await send("/api/auth/login", { email, password, captchaToken: captcha.token });
+    captcha.reset();
     // A full navigation, so every provider reloads its data for the signed-in user.
     if (result.ok) { window.location.assign(next); return; }
     // Right password, unconfirmed e-mail: send a fresh letter and confirm with its code in the same card.
@@ -57,8 +61,9 @@ function LoginForm() {
       <form onSubmit={guard(submit)} className="space-y-4" noValidate>
         <AuthInput label={t("E-mail")} type="email" name="email" autoComplete="username" inputMode="email" autoCapitalize="none" spellCheck={false} autoFocus required value={email} onChange={event => setEmail(event.target.value)} />
         <AuthInput label={t("Password")} type="password" name="password" autoComplete="current-password" required value={password} onChange={event => setPassword(event.target.value)} />
+        <CaptchaBox captcha={captcha} />
         {error && <AuthMessage tone="error">{error}</AuthMessage>}
-        <AuthSubmit busy={busy}>{busy ? t("Signing in…") : t("Sign in")}</AuthSubmit>
+        <AuthSubmit busy={busy || !captcha.ready}>{busy ? t("Signing in…") : t("Sign in")}</AuthSubmit>
       </form>
       <div className="text-center text-sm"><Link href="/forgot-password" className={authLinkClass}>{t("Forgot your password?")}</Link></div>
       {googleEnabled && <>
