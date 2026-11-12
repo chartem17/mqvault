@@ -67,5 +67,5 @@ async function handle(request: NextRequest, nonce: string, csp: string): Promise
   return finish(NextResponse.next({ request: forwarded() }));
 }
 
-// robots.txt is public: crawlers have no session.
-export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico|robots.txt).*)"] };
+// robots.txt is public: crawlers have no session. The Sentry tunnel carries error reports, also from signed-out pages.
+export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico|robots.txt|sentry-tunnel).*)"] };

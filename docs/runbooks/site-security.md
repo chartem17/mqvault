@@ -29,3 +29,16 @@ API-доступ агента не має права змінювати firewall
 Не вмикати «Bot Protection» / «Challenge» для `/api/bridge/*` і `/api/economic-calendar/sync`: це програми на ПК (Bridge, EA), вони не пройдуть браузерну перевірку. **Attack Challenge Mode** — лише на час атаки.
 
 Після збереження: Publish → перевірити, що сайт відкривається і Bridge синхронізує (у «Налаштування → MT5 Bridge» час «востаннє на зв'язку» оновлюється).
+
+## 3. Sentry — моніторинг помилок
+
+Код готовий: помилки з браузера (через `/sentry-tunnel` самого сайту), сторінок і API потрапляють у Sentry. Без запису екрана, без трасування продуктивності, без даних користувача: `dataCollection` вимикає cookies, тіла запитів, query-параметри й ідентифікацію, а `lib/monitoring/scrub.ts` додатково прибирає email, токени й довгі числа (перевірено: у звіті `[email]`, `[number]`, cookies й query немає). Вимкнено, доки немає DSN.
+
+1. sentry.io → Projects → **Create project** → платформа **Next.js** → назва `mqvault` → Create (майстер установки пропустити — код уже є).
+2. Project → Settings → **Client Keys (DSN)** → скопіювати DSN (`https://…@….ingest….sentry.io/…`). Це не секрет: він і так потрапляє в браузер.
+3. Vercel → Settings → Environment Variables → `NEXT_PUBLIC_SENTRY_DSN` = DSN, Production і Preview → Redeploy.
+4. Sentry → Project → Settings → **Security & Privacy**: увімкнути *Data Scrubber*, *Use Default Scrubbers*, **Prevent Storing of IP Addresses**.
+5. (Необов'язково, для читабельних стеків) Settings → Auth Tokens → **Create Organization Token** → у Vercel: `SENTRY_AUTH_TOKEN` (секрет), `SENTRY_ORG` (slug організації), `SENTRY_PROJECT` = `mqvault`. Без них збірка не змінюється, стеки просто мінімізовані.
+6. Alerts: за замовчуванням Sentry шле лист про кожну нову помилку — цього достатньо.
+
+Згадати Sentry як обробника технічних даних у Privacy Policy (пакет юридичних текстів).

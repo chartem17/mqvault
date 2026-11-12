@@ -18,6 +18,7 @@ const EXEMPT = {
   "api/auth/verify/route.ts": { reason: "confirms an e-mail with its one-time code, then admits the session", proof: /verifyOtp\(/ },
   "api/auth/resend/route.ts": { reason: "re-sends the confirmation letter, rate-limited", proof: /auth\.resend\(/ },
   "auth/callback/route.ts": { reason: "finishes a PKCE flow", proof: /exchangeCodeForSession\(/ },
+  "sentry-tunnel/route.ts": { reason: "forwards browser error reports to Sentry; accepts only the project DSN, no user data", proof: /@sentry\/nextjs\/tunnel/ },
   "auth/confirm/route.ts": { reason: "verifies a one-time e-mail token", proof: /verifyOtp\(/ },
   "api/bridge/device/deals/route.ts": { reason: "device signature", proof: /authenticateDevice\(/ },
   "api/bridge/device/heartbeat/route.ts": { reason: "device signature", proof: /authenticateDevice\(/ },
