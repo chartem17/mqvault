@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { recordAudit } from "@/lib/auth/audit";
 import { parseReviewChips } from "@/lib/journal/trade-review";
 import { resolveUser } from "@/lib/auth/current-user";
 import { permanentlyDeleteOwnedEntity } from "@/lib/supabase/permanent-delete";
@@ -100,6 +101,7 @@ export async function DELETE(request: Request) {
     const body = await readBody(request);
     if (typeof body.id !== "string" || !STRATEGY_UUID.test(body.id)) return json({ error: "Invalid strategy id" }, 400);
     const result = await permanentlyDeleteOwnedEntity(context.db, context.ownerId, "strategy", body.id);
+    if (result.deleted) await recordAudit(request, { userId: context.ownerId }, "strategy_deleted");
     return json({ success: true, ...result });
   } catch (error) { return failure(error); }
 }

@@ -64,6 +64,7 @@ CREATE FUNCTION public.vault_delete_entity(p_owner_id uuid, p_kind text, p_entit
 \ir ../supabase/migrations/20261112194420_user_preferences.sql
 \ir ../supabase/migrations/20261112194829_rls_user_isolation.sql
 \ir ../supabase/migrations/20261112204953_private_rls_helpers.sql
+\ir ../supabase/migrations/20261113100000_audit_events.sql
 
 -- Two users: A (owner, linked) and B (invited, linked).
 INSERT INTO auth.users VALUES ('00000000-0000-4000-8000-0000000000aa', 'a@example.test'), ('00000000-0000-4000-8000-0000000000bb', 'b@example.test');
@@ -84,6 +85,7 @@ INSERT INTO public.news_events (id, title) VALUES ('00000000-0000-4000-8000-0000
 INSERT INTO public.market_instruments (symbol) VALUES ('EURUSD');
 INSERT INTO public.trade_news_links (trade_id, news_event_id) VALUES ('00000000-0000-4000-8000-0000000000a2', '00000000-0000-4000-8000-0000000000e1');
 INSERT INTO public.beta_invites (email) VALUES ('c@example.test');
+INSERT INTO public.audit_events (user_id, action, method) VALUES ('00000000-0000-4000-8000-00000000000a', 'sign_in', 'password');
 
 CREATE SCHEMA tst;
 GRANT USAGE ON SCHEMA tst TO anon, authenticated, service_role;
@@ -120,6 +122,9 @@ SELECT tst.expect((SELECT count(*) = 0 FROM (SELECT id FROM public.bridge_device
 SELECT tst.expect((SELECT count(*) = 0 FROM public.trade_news_links) AND (SELECT count(*) = 0 FROM public.news_impact_stats), 'B sees no trade links or stats of A');
 SELECT tst.expect((SELECT count(*) = 0 FROM public.news_events), 'calendar stays with the owner during the beta');
 SELECT tst.expect((SELECT count(*) = 1 FROM public.market_instruments), 'instruments are shared');
+SELECT tst.expect((SELECT count(*) = 0 FROM public.audit_events), 'B sees no security events of A');
+SELECT tst.denied($$INSERT INTO public.audit_events (user_id, action) VALUES ('00000000-0000-4000-8000-00000000000b', 'sign_in')$$, 'B forges a security event');
+SELECT tst.denied($$DELETE FROM public.audit_events$$, 'B erases security events');
 
 SELECT tst.no_rows($$UPDATE public.accounts SET name = 'x' WHERE id = '00000000-0000-4000-8000-0000000000a1'$$, 'B renames A''s account');
 SELECT tst.no_rows($$DELETE FROM public.accounts WHERE id = '00000000-0000-4000-8000-0000000000a1'$$, 'B deletes A''s account');
@@ -165,6 +170,8 @@ SELECT set_config('request.jwt.claims', '{"role":"authenticated","sub":"00000000
 SELECT tst.expect((SELECT name = 'A prop' FROM public.accounts) AND (SELECT net_pnl = 10 FROM public.journal_trades), 'A''s account and trade are intact');
 SELECT tst.expect((SELECT count(*) = 1 FROM public.strategy_rules) AND (SELECT count(*) = 1 FROM (SELECT id, name, last_seen_at FROM public.bridge_devices) d) AND (SELECT count(*) = 1 FROM public.bridge_deals) AND (SELECT trades = 1 FROM public.news_impact_stats), 'A sees own strategy, deals and stats');
 SELECT tst.expect((SELECT count(*) = 1 FROM public.news_events), 'the owner sees the calendar');
+SELECT tst.expect((SELECT count(*) = 1 FROM public.audit_events), 'A sees own security events');
+SELECT tst.denied($$UPDATE public.audit_events SET action = 'sign_in'$$, 'A cannot rewrite own log');
 SELECT tst.denied('SELECT public_key FROM public.bridge_devices', 'not even the owner reads device keys through the API');
 SELECT tst.denied('SELECT last_seq FROM public.bridge_devices', 'nor the replay counter');
 RESET ROLE;

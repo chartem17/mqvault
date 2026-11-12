@@ -28,6 +28,14 @@ import { PASSWORD_MIN_LENGTH as PASSWORD_MIN } from "@/lib/auth/request-guard";
 import { passwordStrength } from "@/lib/auth/password-strength";
 import { formatDateTimeOrDash } from "@/lib/time/timezone";
 
+type ActivityRow = { id: number; action: string; method: string | null; detail: Record<string, unknown>; ip_hash: string | null; user_agent: string | null; created_at: string };
+/** What each security event is called on screen. */
+const ACTIVITY_LABEL: Record<string, string> = {
+  sign_in: msg("Signed in"), password_changed: msg("Password changed"), sign_out_everywhere: msg("Signed out on other devices"),
+  data_exported: msg("Data exported"), account_deleted: msg("Trading account deleted"), strategy_deleted: msg("Strategy deleted"),
+  bridge_device_connected: msg("Computer connected to MT5 Bridge"), bridge_device_revoked: msg("Computer disconnected from MT5 Bridge"),
+};
+const METHOD_LABEL: Record<string, string> = { password: msg("password"), code: msg("e-mail code"), google: "Google", email_link: msg("e-mail link"), reset_link: msg("reset link"), current_password: msg("with the current password") };
 type SessionRow = { id: string; created_at: string; updated_at: string | null; user_agent: string | null; ip: string | null };
 
 async function post(path: string, body?: Record<string, unknown>, method = "POST") {
@@ -85,6 +93,13 @@ export default function SettingsPage() {
   const [sessions, setSessions] = useState<SessionRow[] | null>(null);
   const [sessionsAvailable, setSessionsAvailable] = useState(true);
   const [signOutBusy, setSignOutBusy] = useState(false);
+  const [activity, setActivity] = useState<ActivityRow[] | null>(null);
+  useEffect(() => {
+    fetch("/api/profile/activity", { credentials: "same-origin" })
+      .then(response => response.ok ? response.json() : null)
+      .then((data: { events?: ActivityRow[]; available?: boolean } | null) => setActivity(data?.available === false ? [] : data?.events ?? []))
+      .catch(() => setActivity([]));
+  }, []);
   useEffect(() => {
     fetch("/api/profile/sessions", { credentials: "same-origin" })
       .then(response => response.ok ? response.json() : null)
@@ -231,6 +246,22 @@ export default function SettingsPage() {
               </li>)}
             </ul>}
           <Button type="button" variant="secondary" className="mt-3" loading={signOutBusy} onClick={() => void signOutEverywhere()}><LogOut className="h-4 w-4" aria-hidden="true" />{t("Sign out everywhere")}</Button>
+        </div>
+
+        <div>
+          <div className={labelCls}>{t("Recent activity")}</div>
+          <p className={hintCls}>{t("Sign-ins and security changes on your account. Something you do not recognise? Change the password and sign out everywhere.")}</p>
+          {activity === null ? <p className={hintCls}>{t("Loading…")}</p>
+            : activity.length === 0 ? <p className={hintCls}>{t("No events yet.")}</p>
+            : <ul className="mt-2 divide-y divide-border rounded-xl border border-border">
+              {activity.map(event => <li key={event.id} className="flex items-start gap-3 px-3.5 py-2.5">
+                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm">{t(ACTIVITY_LABEL[event.action] ?? event.action)}{event.method && METHOD_LABEL[event.method] ? <span className="text-muted-foreground"> · {t(METHOD_LABEL[event.method])}</span> : null}</div>
+                  <div className="truncate text-xs text-muted-foreground">{formatDateTimeOrDash(event.created_at, timezone)}{event.user_agent ? ` · ${event.user_agent}` : ""}</div>
+                </div>
+              </li>)}
+            </ul>}
         </div>
       </div>
     </Section>

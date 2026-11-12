@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { recordAudit } from "@/lib/auth/audit";
 import { siteOrigin } from "@/lib/auth/auth-api";
 import { RECOVERY_COOKIE, RECOVERY_MAX_AGE_SECONDS, createRecoveryTicket } from "@/lib/auth/recovery-ticket";
 import { safeNextPath } from "@/lib/auth/request-guard";
@@ -31,6 +32,8 @@ export async function GET(request: Request) {
   if (error || !data.user) return to("/login?error=link");
   const admitted = await admitSession(client, data.user.id);
   if (!admitted.ok) return to(`/login?error=${admitted.reason}`);
+  const provider = (data.user.app_metadata as { provider?: unknown } | undefined)?.provider;
+  await recordAudit(request, { authUserId: data.user.id }, "sign_in", { method: provider === "google" ? "google" : "email_link" });
   const next = safeNextPath(url.searchParams.get("next"));
   // Completing this round trip proves control of the mailbox (or the linked Google identity) right now.
   return next === "/reset-password" ? withRecoveryTicket(to(next), data.user.id) : to(next);

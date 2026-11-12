@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { recordAudit } from "@/lib/auth/audit";
 import { resolveUser } from "@/lib/auth/current-user";
 import { rateLimited, type RateLimit } from "@/lib/auth/auth-api";
 import { tradesCsv } from "@/lib/journal/trades-csv";
@@ -32,6 +33,7 @@ export async function GET(request: Request) {
   const stamp = new Date().toISOString().slice(0, 10);
   const headers = (type: string, name: string) => ({ "Content-Type": type, "Content-Disposition": `attachment; filename="${name}"`, "Cache-Control": "no-store" });
 
+  await recordAudit(request, { userId: ownerId }, "data_exported", { detail: { format } });
   if (format === "csv") {
     const names = new Map((accounts ?? []).map(account => [String(account.id), String(account.name ?? "")]));
     return new NextResponse(`﻿${tradesCsv(trades, names)}`, { headers: headers("text/csv; charset=utf-8", `mqvault-trades-${stamp}.csv`) });

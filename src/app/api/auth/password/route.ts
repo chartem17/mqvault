@@ -1,4 +1,5 @@
 import { PASSWORD_PER_USER, authJson, rateLimited, readAuthBody } from "@/lib/auth/auth-api";
+import { recordAudit } from "@/lib/auth/audit";
 import { PASSWORD_MAX_LENGTH, passwordProblem } from "@/lib/auth/request-guard";
 import { RECOVERY_COOKIE, verifyRecoveryTicket } from "@/lib/auth/recovery-ticket";
 import { createRouteAuthClient } from "@/lib/supabase/auth-server";
@@ -42,5 +43,6 @@ export async function POST(request: Request) {
   }
   jar.delete(RECOVERY_COOKIE);
   await client.auth.signOut({ scope: "others" }).catch(() => undefined);
+  await recordAudit(request, { authUserId: claims.sub }, "password_changed", { method: fromResetLink ? "reset_link" : "current_password" });
   return authJson({ ok: true });
 }

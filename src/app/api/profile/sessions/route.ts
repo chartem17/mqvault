@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { recordAudit } from "@/lib/auth/audit";
 import { resolveUser } from "@/lib/auth/current-user";
 import { createRouteAuthClient } from "@/lib/supabase/auth-server";
 
@@ -29,5 +30,6 @@ export async function POST(request: Request) {
   const auth = await createRouteAuthClient();
   const { error } = await auth.auth.signOut({ scope });
   if (error) return json({ error: "Could not sign out" }, 502);
+  await recordAudit(request, { userId: context.ownerId }, "sign_out_everywhere", { detail: { scope } });
   return json({ ok: true, scope });
 }

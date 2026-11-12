@@ -1,4 +1,5 @@
 import { resolveUser } from "@/lib/auth/current-user";
+import { recordAudit } from "@/lib/auth/audit";
 import { json } from "@/lib/bridge/server";
 import { sha256Hex } from "@/lib/bridge/signature";
 import { APPROVE_LOCK_MS, MAX_FAILED_APPROVALS, normalizeUserCode, pairingStatus } from "@/lib/bridge/pairing";
@@ -44,5 +45,6 @@ export async function POST(request: Request) {
     return json({ error: "invalid_code" }, 404);
   }
   await db.rpc("bridge_rate_limit_reset", { p_key: limitKey });
+  await recordAudit(request, { userId: ownerId }, "bridge_device_connected", { detail: { name: String(pairing.device_name ?? "").slice(0, 80), os: String(pairing.os ?? "").slice(0, 40) } });
   return json({ device: { id: created.id, ...device } }, 201);
 }

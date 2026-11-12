@@ -1,4 +1,5 @@
 import { authJson, clientIp, rateLimited, readAuthBody, type RateLimit } from "@/lib/auth/auth-api";
+import { recordAudit } from "@/lib/auth/audit";
 import { normalizeEmail } from "@/lib/auth/request-guard";
 import { normalizeOtp } from "@/lib/auth/password-strength";
 import { admitSession } from "@/lib/auth/sign-in";
@@ -28,5 +29,6 @@ export async function POST(request: Request) {
   if (error || !data.user) return authJson({ error: "Invalid or expired code" }, 400);
   const admitted = await admitSession(client, data.user.id);
   if (!admitted.ok) return authJson({ error: WORKSPACE_DENIAL[admitted.reason].error, code: admitted.reason }, WORKSPACE_DENIAL[admitted.reason].status);
+  await recordAudit(request, { authUserId: data.user.id }, "sign_in", { method: "code" });
   return authJson({ ok: true });
 }

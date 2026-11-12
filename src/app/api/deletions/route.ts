@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { recordAudit } from "@/lib/auth/audit";
 import { resolveUser } from "@/lib/auth/current-user";
 import { permanentlyDeleteOwnedEntity, type DeletionKind } from "@/lib/supabase/permanent-delete";
 
@@ -19,6 +20,7 @@ export async function DELETE(request: NextRequest) {
   try {
     // The owner of the entity is the signed-in user, resolved on the server. Never read user_id from client input.
     const result = await permanentlyDeleteOwnedEntity(context.db, context.ownerId, kind as DeletionKind, body.id);
+    if (result.deleted && kind !== "trade") await recordAudit(request, { userId: context.ownerId }, kind === "account" ? "account_deleted" : "strategy_deleted", { detail: kind === "account" ? { trades: Number(result.trades_deleted ?? 0) } : {} });
     return json({ success: true, ...result });
   } catch (error) {
     console.error("DELETE /api/deletions failed", error instanceof Error ? error.message : "Unknown error");

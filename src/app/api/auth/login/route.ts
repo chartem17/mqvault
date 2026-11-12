@@ -1,4 +1,5 @@
 import { LOGIN_PER_EMAIL, LOGIN_PER_IP, authJson, clientIp, rateLimited, readAuthBody } from "@/lib/auth/auth-api";
+import { recordAudit } from "@/lib/auth/audit";
 import { normalizeEmail, PASSWORD_MAX_LENGTH } from "@/lib/auth/request-guard";
 import { admitSession } from "@/lib/auth/sign-in";
 import { createRouteAuthClient } from "@/lib/supabase/auth-server";
@@ -24,5 +25,6 @@ export async function POST(request: Request) {
   }
   const admitted = await admitSession(client, data.user.id);
   if (!admitted.ok) return authJson({ error: WORKSPACE_DENIAL[admitted.reason].error, code: admitted.reason }, WORKSPACE_DENIAL[admitted.reason].status);
+  await recordAudit(request, { authUserId: data.user.id }, "sign_in", { method: "password" });
   return authJson({ ok: true });
 }

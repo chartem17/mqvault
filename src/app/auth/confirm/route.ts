@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { recordAudit } from "@/lib/auth/audit";
 import { siteOrigin } from "@/lib/auth/auth-api";
 import { RECOVERY_COOKIE, RECOVERY_MAX_AGE_SECONDS, createRecoveryTicket } from "@/lib/auth/recovery-ticket";
 import { safeNextPath } from "@/lib/auth/request-guard";
@@ -34,5 +35,6 @@ export async function GET(request: Request) {
   if (error || !data.user) return to("/login?error=link");
   const admitted = await admitSession(client, data.user.id);
   if (!admitted.ok) return to(`/login?error=${admitted.reason}`);
+  await recordAudit(request, { authUserId: data.user.id }, "sign_in", { method: type === "recovery" ? "reset_link" : "email_link" });
   return type === "recovery" ? withRecoveryTicket(to("/reset-password"), data.user.id) : to(safeNextPath(url.searchParams.get("next")));
 }

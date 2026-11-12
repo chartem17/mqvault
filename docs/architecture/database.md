@@ -79,5 +79,6 @@ app_users ─┬─< accounts ─┬─< journal_trades ─┬─< strategy_chec
 | `20261111190319 list_auth_sessions` | функція списку сесій, лише `service_role` | застосовано 2026-11-11 |
 | `20261112194420 user_preferences` | `app_users.preferences` jsonb ≤ 16 КБ | застосовано 2026-11-12 |
 | `20261112194829 rls_user_isolation` | політики RLS, права `authenticated`, перевірка власника у `vault_delete_entity`, прибрано `dev read journal_trades` | застосовано 2026-11-12 (63 політики; дані без змін: 13 рахунків, 321 угода, 2 стратегії) |
+| `20261113100000 audit_events` | журнал дій: пише лише сервер, користувач читає свої рядки | чекає погодження |
 | `20261112204953 private_rls_helpers` | допоміжні функції RLS переїжджають у схему `private` (advisor 0029) | застосовано 2026-11-12; advisors: лишилось лише «захист від злитих паролів» (налаштування Auth) |
 

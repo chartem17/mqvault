@@ -3,6 +3,23 @@ import type { Dictionary } from "./core";
 /** Ukrainian translations keyed by the English source text. Keep keys identical to the `t()` / `tn()` / `msg()` calls. */
 export const uk: Dictionary = {
   // Sidebar, profile, settings and the e-mail code step (package 2)
+  "Computer connected to MT5 Bridge": "Компʼютер підключено до MT5 Bridge",
+  "Computer disconnected from MT5 Bridge": "Компʼютер відʼєднано від MT5 Bridge",
+  "Data exported": "Дані експортовано",
+  "No events yet.": "Подій ще немає.",
+  "Password changed": "Пароль змінено",
+  "Recent activity": "Остання активність",
+  "Sign-ins and security changes on your account. Something you do not recognise? Change the password and sign out everywhere.": "Входи й зміни безпеки вашого акаунта. Бачите щось незнайоме? Змініть пароль і вийдіть всюди.",
+  "Signed in": "Вхід",
+  "Signed out on other devices": "Вихід на інших пристроях",
+  "Strategy deleted": "Стратегію видалено",
+  "Trading account deleted": "Торговий рахунок видалено",
+  "e-mail code": "код із листа",
+  "e-mail link": "посилання з листа",
+  "password": "пароль",
+  "reset link": "посилання для скидання",
+  "with the current password": "з поточним паролем",
+  "Could not load activity": "Не вдалося завантажити активність",
   "Page not found": "Сторінку не знайдено",
   "The address may be mistyped, or the page has moved.": "Можливо, адресу введено з помилкою або сторінку перенесено.",
   "Error": "Помилка",
