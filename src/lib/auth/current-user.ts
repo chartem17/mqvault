@@ -4,6 +4,10 @@ import { findOrProvisionUser, signupMode, type AppUser, type AuthIdentity, type 
 import { isValidTimeZone } from "@/lib/time/timezone";
 import { createRouteAuthClient, readSessionIdentity } from "@/lib/supabase/auth-server";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { rateLimited, type RateLimit } from "./auth-api";
+
+/** Writes per user: generous for a person, a wall for a script hammering the API. */
+const API_WRITES_PER_USER: RateLimit = { name: "api-writes", windowSeconds: 60, max: 120 };
 
 type Db = ReturnType<typeof createServerSupabase>;
 const NO_STORE = { "Cache-Control": "no-store" };
@@ -104,7 +108,14 @@ export async function resolveUser(request: Request): Promise<UserContext | Respo
   if (!session) return deny(401, "Authentication required", "unauthenticated");
   const admin = createServerSupabase();
   const workspace = await workspaceFor(admin, session.authUserId);
-  if (workspace.user) return { db: auth, admin, ownerId: workspace.user.id, isOwner: workspace.user.isOwner, email: workspace.user.email };
+  if (workspace.user) {
+    // Every change through the API counts against one per-user budget (package 3); reads are not counted.
+    if (!["GET", "HEAD", "OPTIONS"].includes(request.method.toUpperCase())) {
+      const limited = await rateLimited(API_WRITES_PER_USER, workspace.user.id);
+      if (limited) return limited;
+    }
+    return { db: auth, admin, ownerId: workspace.user.id, isOwner: workspace.user.isOwner, email: workspace.user.email };
+  }
   const denial = WORKSPACE_DENIAL[workspace.reason];
   return deny(denial.status, denial.error, workspace.reason);
 }

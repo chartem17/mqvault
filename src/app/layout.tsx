@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { Inter, Unbounded } from "next/font/google";
 import "./globals.css";
 import "./typography.css";
@@ -18,9 +18,11 @@ const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-ui", dis
 export const metadata: Metadata = { title: "Trade Vault", description: "Personal trading journal & macro workspace" };
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const saved = (await cookies()).get(LOCALE_COOKIE)?.value;
+  // Per-request CSP nonce from the middleware: next-themes injects an inline script that must carry it.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   const locale = isLocale(saved) ? saved : DEFAULT_LOCALE;
   return <html lang={locale} className={`${inter.variable} ${unbounded.variable}`} suppressHydrationWarning><body style={{ margin: 0, minHeight: "100dvh", backgroundColor: "var(--page-bg)" }}>
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange nonce={nonce}>
       <I18nProvider initialLocale={locale}><ProfileProvider><PreferencesProvider><TimezoneProvider><UndoProvider><TradesProvider>{children}</TradesProvider></UndoProvider></TimezoneProvider></PreferencesProvider></ProfileProvider></I18nProvider>
     </ThemeProvider>
   </body></html>;

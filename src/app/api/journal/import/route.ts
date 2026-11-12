@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { resolveUser } from "@/lib/auth/current-user";
+import { rateLimited, type RateLimit } from "@/lib/auth/auth-api";
+
+const IMPORTS_PER_USER: RateLimit = { name: "csv-import", windowSeconds: 3600, max: 30 };
 import { splitDuplicates, type ImportedTrade } from "@/lib/journal/csv-import";
 import { derivedFinancials } from "@/lib/journal/trade-financials";
 
@@ -40,6 +43,9 @@ export async function POST(request: Request) {
   const context = await resolveUser(request);
   if (context instanceof Response) return context;
   const { db, ownerId } = context;
+  // Imports write many rows at once: a separate, tighter budget than single edits.
+  const limited = await rateLimited(IMPORTS_PER_USER, ownerId);
+  if (limited) return limited;
   const body = await request.json().catch(() => null) as { account_id?: unknown; trades?: unknown; dryRun?: unknown } | null;
   if (!body || typeof body.account_id !== "string" || !UUID.test(body.account_id)) return json({ error: "account_id is required" }, 400);
   if (!Array.isArray(body.trades) || body.trades.length === 0) return json({ error: "No trades to import" }, 400);

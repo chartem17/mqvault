@@ -41,6 +41,7 @@ const builds = [
   [["src/lib/supabase/deletion-result.ts"], ".tmp-deletion-tests", [...dom, "--strict"]],
   [["src/lib/time/trading-calendar.ts"], ".tmp-date-tests", [...dom, "--strict"]],
   [["src/lib/dashboard/goals.ts", "src/lib/time/timezone.ts", "src/lib/journal/trade-review.ts"], ".tmp-goals-tests", [...dom, "--strict"]],
+  [["src/lib/security/headers.ts"], ".tmp-security-headers-tests", [...dom, "--strict"]],
   [["src/lib/journal/number-format.ts"], ".tmp-number-format-tests", ["--strict"]],
   [["src/lib/preferences/user-preferences.ts"], ".tmp-user-preferences-tests", ["--strict"]],
   [["src/lib/journal/trades-csv.ts"], ".tmp-trades-csv-tests", ["--strict"]],

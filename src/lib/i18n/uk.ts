@@ -3,6 +3,12 @@ import type { Dictionary } from "./core";
 /** Ukrainian translations keyed by the English source text. Keep keys identical to the `t()` / `tn()` / `msg()` calls. */
 export const uk: Dictionary = {
   // Sidebar, profile, settings and the e-mail code step (package 2)
+  "Page not found": "Сторінку не знайдено",
+  "The address may be mistyped, or the page has moved.": "Можливо, адресу введено з помилкою або сторінку перенесено.",
+  "Error": "Помилка",
+  "Something went wrong": "Щось пішло не так",
+  "Your data is safe. Try again; if it keeps happening, reload the page.": "Ваші дані в безпеці. Спробуйте ще раз; якщо повторюється — перезавантажте сторінку.",
+  "Try again": "Спробувати ще раз",
   "A prop account has a profit target, loss limits, a minimum of trading days and a phase. Home and Overview then show the progress and the room left to the daily limit. Personal accounts have none of that.": "Проп-рахунок має ціль прибутку, ліміти збитку, мінімум торгових днів і фазу. «Головна» та «Огляд» показують прогрес і запас до денного ліміту. В особистих рахунках цього немає.",
   "Accounts: sign up with e-mail or Google; your journal is private to you.": "Акаунти: реєстрація через email або Google; ваш журнал бачите лише ви.",
   "Add a trading account, then bring in trades: import a CSV from your broker, connect MT5 Bridge for automatic sync, or add trades by hand in the journal. The Getting started card on Home walks you through it.": "Додайте торговий рахунок, потім угоди: імпортуйте CSV від брокера, підключіть MT5 Bridge для автосинхронізації або додайте угоди вручну в журналі. Картка «Перші кроки» на «Головній» проведе вас.",
