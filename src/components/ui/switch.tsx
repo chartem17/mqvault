@@ -15,7 +15,8 @@ type Props = Omit<SwitchProps, "className" | "children"> & {
 function Switch({ className, size = "default", children, ...props }: Props) {
   return (
     <AriaSwitch
-      data-slot="switch"
+      // Not "switch": ui-sdk's web.css styles that slot as its own switch on top of this one.
+      data-slot="app-switch"
       data-size={size}
       className={cn(
         "group inline-flex items-center gap-2 text-sm outline-none",

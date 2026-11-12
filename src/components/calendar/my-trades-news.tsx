@@ -103,7 +103,7 @@ export function MyTradesNews({ week, nav }: { week: { from: number; to: number }
           <p className="m-0 mt-0.5 text-xs text-muted-foreground">{tn(rows.length, "{count} trade", "{count} trades")} · {t("{count} with red news", { count: withNews })}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Switch size="sm" className="text-xs text-muted-foreground" isSelected={onlyNews} onChange={setOnlyNews}>{t("Only with red news")}</Switch>
+          <Switch size="sm" className="whitespace-nowrap text-xs text-muted-foreground" isSelected={onlyNews} onChange={setOnlyNews}>{t("Only with red news")}</Switch>
           {nav}
         </div>
       </div>

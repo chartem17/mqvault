@@ -32,7 +32,6 @@
   --ambient-c: oklch(0.72 0.13 75 / 0.07);
   --grid-line: rgb(255 255 255 / 0.035);
   --spot: rgb(255 255 255 / 0.05);
-  --spot-edge: oklch(0.78 0.10 185 / 0.35);
 }
 .light {
   --ui-overlay: rgb(236 238 237 / 0.7);
@@ -42,7 +41,6 @@
   --ambient-c: oklch(0.88 0.08 75 / 0.28);
   --grid-line: rgb(17 24 22 / 0.045);
   --spot: rgb(255 255 255 / 0.65);
-  --spot-edge: oklch(0.52 0.13 185 / 0.35);
 }
 
 /* ---- Ambient background ---- */
@@ -67,19 +65,13 @@
 @keyframes ambient-b { to { transform: translate3d(-12vw, -14vh, 0) scale(0.9); } }
 @keyframes ambient-c { to { transform: translate3d(-16vw, -8vh, 0) scale(1.15); } }
 
-/* ---- Cards: a touch of glass and a pointer spotlight ---- */
-.dark :is([class~="bg-card"], [class~="bg-panel"]) { background-color: color-mix(in oklab, var(--color-card) 84%, transparent); }
-.light :is([class~="bg-card"], [class~="bg-panel"]) { background-color: color-mix(in oklab, var(--color-card) 88%, transparent); }
+/* ---- Cards: a touch of glass and a pointer spotlight (paint only: no layout or overflow change) ---- */
+/* Floating panels (menus, filters, dialogs) stay solid so nothing shows through them. */
+.dark :is([class~="bg-card"], [class~="bg-panel"]):not([class*="fixed"], [class*="absolute"], [class*="shadow-xl"], [class*="shadow-2xl"], .mq-dialog) { background-color: color-mix(in oklab, var(--color-card) 84%, transparent); }
+.light :is([class~="bg-card"], [class~="bg-panel"]):not([class*="fixed"], [class*="absolute"], [class*="shadow-xl"], [class*="shadow-2xl"], .mq-dialog) { background-color: color-mix(in oklab, var(--color-card) 88%, transparent); }
 :is([class~="bg-card"], [class~="bg-panel"], [data-spot])[data-spotlit] {
   background-image: radial-gradient(420px circle at var(--spot-x) var(--spot-y), var(--spot), transparent 62%);
 }
-:is([class~="bg-card"], [class~="bg-panel"])[data-spotlit]:is([class~="rounded-2xl"], [class~="rounded-3xl"], [class~="rounded-xl"])::after {
-  content: ""; position: absolute; inset: -1px; border-radius: inherit; pointer-events: none; padding: 1px;
-  background: radial-gradient(260px circle at var(--spot-x) var(--spot-y), var(--spot-edge), transparent 70%);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-}
-:is([class~="bg-card"], [class~="bg-panel"])[data-spotlit]:is([class~="rounded-2xl"], [class~="rounded-3xl"], [class~="rounded-xl"]):not([class~="absolute"], [class~="fixed"], [class~="sticky"]) { position: relative; }
 
 /* ---- Motion: pages rise in, panels follow one by one ---- */
 .page-enter { animation: page-in 0.5s var(--ease-out) both; }
