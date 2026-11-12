@@ -61,8 +61,9 @@ CREATE FUNCTION public.vault_delete_entity(p_owner_id uuid, p_kind text, p_entit
 
 \ir ../supabase/migrations/20261111182306_user_auth.sql
 \ir ../supabase/migrations/20261111190319_list_auth_sessions.sql
-\ir ../supabase/migrations/20261112100000_user_preferences.sql
-\ir ../supabase/migrations/20261112110000_rls_user_isolation.sql
+\ir ../supabase/migrations/20261112194420_user_preferences.sql
+\ir ../supabase/migrations/20261112194829_rls_user_isolation.sql
+\ir ../supabase/migrations/20261113090000_private_rls_helpers.sql
 
 -- Two users: A (owner, linked) and B (invited, linked).
 INSERT INTO auth.users VALUES ('00000000-0000-4000-8000-0000000000aa', 'a@example.test'), ('00000000-0000-4000-8000-0000000000bb', 'b@example.test');
@@ -102,14 +103,14 @@ SELECT set_config('request.jwt.claims', '{"role":"anon"}', false);
 SELECT tst.denied('SELECT 1 FROM public.journal_trades', 'anon reads trades');
 SELECT tst.denied('SELECT 1 FROM public.app_users', 'anon reads users');
 SELECT tst.denied('SELECT 1 FROM public.news_events', 'anon reads news');
-SELECT tst.denied('SELECT public.current_app_user_id()', 'anon calls current_app_user_id');
+SELECT tst.denied('SELECT private.current_app_user_id()', 'anon calls current_app_user_id');
 SELECT tst.denied($$SELECT public.vault_delete_entity('00000000-0000-4000-8000-00000000000a', 'account', '00000000-0000-4000-8000-0000000000a1')$$, 'anon runs the deletion RPC');
 RESET ROLE;
 
 -- User B against user A.
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claims', '{"role":"authenticated","sub":"00000000-0000-4000-8000-0000000000bb"}', false);
-SELECT tst.expect((SELECT public.current_app_user_id() = '00000000-0000-4000-8000-00000000000b'), 'B resolves to own app user');
+SELECT tst.expect((SELECT private.current_app_user_id() = '00000000-0000-4000-8000-00000000000b'), 'B resolves to own app user');
 SELECT tst.expect((SELECT count(*) = 1 AND bool_and(id = '00000000-0000-4000-8000-00000000000b') FROM public.app_users), 'B sees only own profile');
 SELECT tst.expect((SELECT count(*) = 1 AND bool_and(name = 'B account') FROM public.accounts), 'B sees only own accounts');
 SELECT tst.expect((SELECT count(*) = 1 AND bool_and(symbol = 'XAUUSD') FROM public.journal_trades), 'B sees only own trades');
@@ -171,7 +172,7 @@ RESET ROLE;
 -- A signed-in user without a workspace (unlinked auth user) sees nothing.
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claims', '{"role":"authenticated","sub":"00000000-0000-4000-8000-0000000000cc"}', false);
-SELECT tst.expect((SELECT public.current_app_user_id() IS NULL) AND (SELECT count(*) = 0 FROM public.accounts) AND (SELECT count(*) = 0 FROM public.journal_trades) AND (SELECT count(*) = 0 FROM public.app_users), 'an unlinked login sees nothing');
+SELECT tst.expect((SELECT private.current_app_user_id() IS NULL) AND (SELECT count(*) = 0 FROM public.accounts) AND (SELECT count(*) = 0 FROM public.journal_trades) AND (SELECT count(*) = 0 FROM public.app_users), 'an unlinked login sees nothing');
 SELECT tst.denied($$INSERT INTO public.accounts (user_id, name) VALUES (NULL, 'x')$$, 'an unlinked login cannot insert');
 RESET ROLE;
 
@@ -182,5 +183,6 @@ RESET ROLE;
 
 SELECT tst.expect(NOT EXISTS (SELECT 1 FROM pg_class c WHERE c.relnamespace = 'public'::regnamespace AND c.relkind = 'r' AND NOT c.relrowsecurity), 'every public table has RLS');
 SELECT tst.expect(NOT EXISTS (SELECT 1 FROM information_schema.role_table_grants WHERE table_schema = 'public' AND grantee = 'anon'), 'anon has no table privileges');
+SELECT tst.expect(NOT EXISTS (SELECT 1 FROM pg_proc WHERE pronamespace = 'public'::regnamespace AND prosecdef AND has_function_privilege('authenticated', oid, 'execute') AND proname <> 'vault_delete_entity'), 'no SECURITY DEFINER function in the exposed schema is callable by signed-in users');
 SELECT tst.expect(NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND qual = 'true' AND cmd IN ('SELECT', 'ALL') AND tablename NOT IN ('market_instruments')), 'no open "read everything" policy is left');
 \echo rls user isolation: all checks passed

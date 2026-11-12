@@ -1,7 +1,7 @@
 -- Row-level security as a second, independent layer of user isolation (ADR 0018, extends ADR 0017).
 -- API routes now query with the signed-in user's own token (role `authenticated`); Postgres itself refuses any
 -- row of another user, even if a route forgot its user_id filter. The service key stays only where ADR 0018
--- lists it. No data is changed. Requires 20261112100000_user_preferences (column grant on preferences).
+-- lists it. No data is changed. Requires 20261112194420_user_preferences (column grant on preferences).
 
 -- 1. Who is calling, in application terms -------------------------------------------------------------------
 CREATE FUNCTION public.current_app_user_id()

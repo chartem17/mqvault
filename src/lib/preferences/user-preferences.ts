@@ -1,5 +1,5 @@
 /**
- * Per-user settings kept on the server (app_users.preferences, migration 20261112100000) with a copy in the
+ * Per-user settings kept on the server (app_users.preferences, migration 20261112194420) with a copy in the
  * browser. Pure: every value coming from storage or a request goes through `sanitizePreferences`, so a bad or
  * old value can never break the UI and unknown keys are dropped.
  */

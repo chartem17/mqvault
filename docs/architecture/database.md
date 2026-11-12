@@ -72,11 +72,12 @@ app_users ─┬─< accounts ─┬─< journal_trades ─┬─< strategy_chec
 
 ## Ізоляція користувачів у БД (ADR 0018)
 
-Після міграції `20261112110000_rls_user_isolation` API ходить у БД токеном користувача (`authenticated`), і RLS пускає лише до власних рядків: `user_id = current_app_user_id()` (переклад `auth.uid()` → `app_users.id`). Повний перелік політик і винятків для сервісного ключа — в [ADR 0018](../decisions/0018-rls-second-layer.md). Нова таблиця користувача потребує RLS, чотирьох політик і прав для `authenticated` у тій самій міграції.
+Після міграції `20261112194829_rls_user_isolation` API ходить у БД токеном користувача (`authenticated`), і RLS пускає лише до власних рядків: `user_id = current_app_user_id()` (переклад `auth.uid()` → `app_users.id`). Повний перелік політик і винятків для сервісного ключа — в [ADR 0018](../decisions/0018-rls-second-layer.md). Нова таблиця користувача потребує RLS, чотирьох політик і прав для `authenticated` у тій самій міграції.
 
 | Версія | Що робить | Стан |
 |---|---|---|
 | `20261111190319 list_auth_sessions` | функція списку сесій, лише `service_role` | застосовано 2026-11-11 |
-| `20261112100000 user_preferences` | `app_users.preferences` jsonb ≤ 16 КБ | чекає погодження |
-| `20261112110000 rls_user_isolation` | політики RLS, права `authenticated`, перевірка власника у `vault_delete_entity`, прибрано `dev read journal_trades` | чекає погодження |
+| `20261112194420 user_preferences` | `app_users.preferences` jsonb ≤ 16 КБ | застосовано 2026-11-12 |
+| `20261112194829 rls_user_isolation` | політики RLS, права `authenticated`, перевірка власника у `vault_delete_entity`, прибрано `dev read journal_trades` | застосовано 2026-11-12 (63 політики; дані без змін: 13 рахунків, 321 угода, 2 стратегії) |
+| `20261113090000 private_rls_helpers` | допоміжні функції RLS переїжджають у схему `private` (advisor 0029) | чекає погодження |
 
