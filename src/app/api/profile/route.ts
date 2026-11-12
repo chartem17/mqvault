@@ -29,7 +29,7 @@ export async function GET(request: Request) {
   let providers: string[] = [];
   let fallbackName: string | null = null;
   if (row.data.auth_user_id) {
-    const { data } = await db.auth.admin.getUserById(row.data.auth_user_id as string);
+    const { data } = await context.admin.auth.admin.getUserById(row.data.auth_user_id as string);
     const meta = (data?.user?.user_metadata ?? {}) as Record<string, unknown>;
     avatar = avatarFrom(meta);
     providers = (data?.user?.identities ?? []).map(identity => identity.provider);
@@ -85,10 +85,11 @@ export async function DELETE(request: Request) {
     return json({ error: "Type your email to confirm deletion" }, 400);
   }
   const { data: row } = await context.db.from("app_users").select("auth_user_id").eq("id", context.ownerId).maybeSingle();
-  const { error } = await context.db.from("app_users").delete().eq("id", context.ownerId).eq("is_owner", false);
+  // Users cannot delete their profile row through row-level security: removing a workspace is a server action.
+  const { error } = await context.admin.from("app_users").delete().eq("id", context.ownerId).eq("is_owner", false);
   if (error) { console.error("Workspace deletion failed", error.code); return json({ error: "Could not delete the account" }, 500); }
   if (row?.auth_user_id) {
-    const removed = await context.db.auth.admin.deleteUser(row.auth_user_id as string);
+    const removed = await context.admin.auth.admin.deleteUser(row.auth_user_id as string);
     if (removed.error) console.error("Auth user deletion failed", removed.error.code ?? removed.error.status);
   }
   const auth = await createRouteAuthClient();

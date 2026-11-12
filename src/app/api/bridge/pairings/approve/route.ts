@@ -13,7 +13,9 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const context = await resolveUser(request);
   if (context instanceof Response) return context;
-  const { db, ownerId } = context;
+  // Service key: a pairing belongs to nobody until it is approved, and the device row is created by the server.
+  // The user id comes from the verified session only.
+  const { admin: db, ownerId } = context;
   const body = await request.json().catch(() => null) as { user_code?: unknown; confirm?: unknown } | null;
   const limitKey = `approve:${ownerId}`;
   const { data: allowed, error: limitError } = await db.rpc("bridge_rate_limit_hit", { p_key: limitKey, p_window_seconds: APPROVE_LOCK_MS / 1000, p_max: MAX_FAILED_APPROVALS });

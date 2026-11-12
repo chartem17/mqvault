@@ -99,7 +99,7 @@ export async function DELETE(request: Request) {
     if (context instanceof Response) return context;
     const body = await readBody(request);
     if (typeof body.id !== "string" || !STRATEGY_UUID.test(body.id)) return json({ error: "Invalid strategy id" }, 400);
-    const result = await permanentlyDeleteOwnedEntity(context.ownerId, "strategy", body.id);
+    const result = await permanentlyDeleteOwnedEntity(context.db, context.ownerId, "strategy", body.id);
     return json({ success: true, ...result });
   } catch (error) { return failure(error); }
 }

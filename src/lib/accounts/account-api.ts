@@ -88,7 +88,7 @@ export async function DELETE(request: Request) {
     if (context instanceof Response) return context;
     const body = await readBody(request);
     if (typeof body.id !== "string" || !UUID.test(body.id)) throw new AccountSetupError("Invalid account id");
-    const result = await permanentlyDeleteOwnedEntity(context.ownerId, "account", body.id);
+    const result = await permanentlyDeleteOwnedEntity(context.db, context.ownerId, "account", body.id);
     return json({ success: true, ...result });
   } catch (error) { return failure(error); }
 }

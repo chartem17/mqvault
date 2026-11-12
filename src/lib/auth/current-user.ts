@@ -60,7 +60,13 @@ async function confirmedIdentity(db: Db, authUserId: string): Promise<AuthIdenti
   };
 }
 
-export type UserContext = { db: Db; ownerId: string; isOwner: boolean; email: string | null };
+/**
+ * `db` queries as the signed-in user (their own token, role `authenticated`): Postgres row-level security
+ * refuses every row of another user even if a query forgets its user_id filter (ADR 0018).
+ * `admin` is the service-key client, for the few places ADR 0018 lists (Auth admin API, pairing, sessions list).
+ */
+export type UserContext = { db: UserDb; admin: Db; ownerId: string; isOwner: boolean; email: string | null };
+type UserDb = Awaited<ReturnType<typeof createRouteAuthClient>>;
 export type Workspace = { user: AppUser } | { user: null; reason: "unauthenticated" | "unconfirmed" | "not_invited" | "unavailable" };
 
 /** The application user behind an Auth user id; creates or links it on the first visit when the rules allow. */
@@ -93,11 +99,12 @@ export const WORKSPACE_DENIAL = {
 export async function resolveUser(request: Request): Promise<UserContext | Response> {
   const guard = guardRequest(request);
   if (guard.access === "denied") return guard.response;
-  const session = await readSessionIdentity(await createRouteAuthClient());
+  const auth = await createRouteAuthClient();
+  const session = await readSessionIdentity(auth);
   if (!session) return deny(401, "Authentication required", "unauthenticated");
-  const db = createServerSupabase();
-  const workspace = await workspaceFor(db, session.authUserId);
-  if (workspace.user) return { db, ownerId: workspace.user.id, isOwner: workspace.user.isOwner, email: workspace.user.email };
+  const admin = createServerSupabase();
+  const workspace = await workspaceFor(admin, session.authUserId);
+  if (workspace.user) return { db: auth, admin, ownerId: workspace.user.id, isOwner: workspace.user.isOwner, email: workspace.user.email };
   const denial = WORKSPACE_DENIAL[workspace.reason];
   return deny(denial.status, denial.error, workspace.reason);
 }

@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   if (context instanceof Response) return context;
   const { data: row } = await context.db.from("app_users").select("auth_user_id").eq("id", context.ownerId).maybeSingle();
   if (!row?.auth_user_id) return json({ sessions: [], available: false });
-  const { data, error } = await context.db.rpc("list_auth_sessions", { p_auth_user_id: row.auth_user_id });
+  const { data, error } = await context.admin.rpc("list_auth_sessions", { p_auth_user_id: row.auth_user_id });
   if (error) return json({ sessions: [], available: false });
   return json({ sessions: data ?? [], available: true });
 }

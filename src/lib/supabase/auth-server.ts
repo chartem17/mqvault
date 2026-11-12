@@ -4,7 +4,8 @@ import { cookies } from "next/headers";
 /**
  * Supabase Auth on the server only (ADR 0017). The browser never holds a Supabase client: sign-in, sign-up
  * and password changes go through /api/auth/*, and the session cookies are httpOnly, so page scripts cannot read them.
- * This client uses the publishable key and is for auth.* calls only — data access stays in createServerSupabase().
+ * This client uses the publishable key and carries the user's own token: `resolveUser` also uses it for data, so
+ * row-level security applies (ADR 0018). The service key (createServerSupabase) is only for the places ADR 0018 lists.
  */
 
 type CookieWrite = { name: string; value: string; options: CookieOptions };
