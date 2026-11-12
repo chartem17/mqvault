@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { Inter, Unbounded } from "next/font/google";
+// ui-sdk defaults first: its `ui-sdk` cascade layer is then the lowest, so our tokens and Tailwind win.
+import "@ui-sdk/core/web.css";
 import "./globals.css";
 import "./typography.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
