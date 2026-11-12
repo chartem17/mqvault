@@ -95,7 +95,7 @@
 /* ---- Buttons. In the components layer, so a className passed at the call site still wins. ---- */
 @layer components {
   .mq-btn {
-    position: relative; isolation: isolate; overflow: hidden; cursor: pointer;
+    position: relative; isolation: isolate; cursor: pointer; height: auto; width: auto; white-space: normal;
     transition: transform 0.18s var(--ease-out), box-shadow 0.25s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease;
   }
   .mq-btn:active:not([data-disabled]) { transform: scale(0.97); }
@@ -108,6 +108,7 @@
   }
 
   .btn-primary {
+    overflow: hidden;
     background: linear-gradient(180deg, color-mix(in oklab, var(--color-primary) 88%, white), var(--color-primary));
     box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.28), 0 1px 2px rgb(0 0 0 / 0.25), 0 6px 18px -8px color-mix(in oklab, var(--color-primary) 70%, transparent);
   }
@@ -131,6 +132,11 @@
   }
   .btn-secondary:hover:not([data-disabled]) { border-color: rgb(var(--ink) / 0.2); background: color-mix(in oklab, var(--color-primary) 9%, var(--color-secondary)); }
   .light .btn-secondary { background: color-mix(in oklab, white 80%, transparent); box-shadow: 0 1px 2px rgb(var(--ink) / 0.06); }
+
+  /* The sign-in pages keep their original look (owner's decision): their language button stays flat. */
+  .login-stage .btn-secondary { border-color: var(--color-border); background: var(--color-secondary); box-shadow: none; }
+  .login-stage .btn-secondary:hover:not([data-disabled]) { border-color: var(--color-border); background: var(--color-accent); }
+  .login-stage .mq-btn:active:not([data-disabled]) { transform: none; opacity: 0.8; }
 
   .btn-ghost:hover:not([data-disabled]) { background: rgb(var(--ink) / 0.06); }
 
@@ -243,4 +249,23 @@
   .light .mq-segmented[data-tone="panel"] .mq-segmented-pill { background: white; box-shadow: 0 2px 8px -2px rgb(var(--ink) / 0.18); }
   .mq-segmented[data-wrap] .mq-segmented-item { border: 1px solid rgb(var(--ink) / 0.1); background: rgb(var(--ink) / 0.04); }
   .mq-segmented[data-wrap][data-tone="primary"] .mq-segmented-item[data-checked] { border-color: transparent; background: var(--color-primary); }
+}
+
+/* ---- Toasts ---- */
+.undo-notice {
+  -webkit-backdrop-filter: blur(16px) saturate(140%); backdrop-filter: blur(16px) saturate(140%);
+  box-shadow: inset 0 1px 0 var(--edge-light), 0 18px 48px -16px rgb(0 0 0 / 0.6);
+  animation: toast-in 0.45s var(--ease-spring) both;
+}
+@keyframes toast-in { from { opacity: 0; transform: translateY(16px) scale(0.96); } to { opacity: 1; transform: none; } }
+
+/* ---- Fields ---- */
+@layer components {
+  .mq-field { transition: border-color 0.18s ease, box-shadow 0.2s ease, background-color 0.18s ease; }
+  .mq-field:hover:not(:disabled, [data-disabled], :focus-visible) { border-color: rgb(var(--ink) / 0.22); }
+  input.mq-field:focus-visible, textarea.mq-field:focus-visible {
+    outline: none; border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 20%, transparent), 0 0 24px -6px color-mix(in oklab, var(--color-primary) 45%, transparent);
+  }
+  .mq-field[aria-invalid="true"] { box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-destructive) 18%, transparent); }
 }

@@ -7,14 +7,14 @@ import { Select as UiSelect, SelectContent as UiSelectContent, SelectEmpty as Ui
 import { Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { surfaceClass } from "./surface-styles";
-const control = "w-full min-h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-destructive";
+const control = "mq-field w-full min-h-10 rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-destructive";
 const variants = {
   primary: "btn-primary border-transparent text-primary-foreground",
   secondary: "btn-secondary text-secondary-foreground",
   ghost: "btn-ghost border-transparent bg-transparent text-foreground",
   destructive: "btn-destructive",
 };
-const sizes = { sm: "h-8 min-h-8 px-3 text-xs", md: "h-10 min-h-10 px-4 text-sm", lg: "h-11 min-h-11 px-5 text-sm", icon: "h-10 w-10 p-0" };
+const sizes = { sm: "min-h-8 px-3 text-xs", md: "min-h-10 px-4 text-sm", lg: "min-h-11 px-5 text-sm", icon: "h-10 w-10 p-0" };
 export type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "type"> & { type?: "button" | "submit" | "reset"; variant?: keyof typeof variants; size?: keyof typeof sizes; loading?: boolean };
 /** The app's button, on ui-sdk's Button: an async onClick keeps it pending (`data-pending`) until the promise settles. */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button({ variant = "primary", size = "md", loading = false, disabled, type = "button", className, children, onClick, ...props }, ref) {
