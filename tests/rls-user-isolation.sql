@@ -64,7 +64,7 @@ CREATE FUNCTION public.vault_delete_entity(p_owner_id uuid, p_kind text, p_entit
 \ir ../supabase/migrations/20261112194420_user_preferences.sql
 \ir ../supabase/migrations/20261112194829_rls_user_isolation.sql
 \ir ../supabase/migrations/20261112204953_private_rls_helpers.sql
-\ir ../supabase/migrations/20261113100000_audit_events.sql
+\ir ../supabase/migrations/20261112214306_audit_events.sql
 
 -- Two users: A (owner, linked) and B (invited, linked).
 INSERT INTO auth.users VALUES ('00000000-0000-4000-8000-0000000000aa', 'a@example.test'), ('00000000-0000-4000-8000-0000000000bb', 'b@example.test');

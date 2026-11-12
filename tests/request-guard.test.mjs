@@ -77,3 +77,12 @@ test("e-mail and password checks", () => {
   assert.ok(passwordProblem(undefined));
   assert.ok(passwordProblem("x".repeat(201)));
 });
+
+test("oversized bodies are refused before anything else (package 3)", () => {
+  const { guardRequest: guard } = require("../.tmp-request-guard-tests/lib/auth/request-guard.js");
+  const post = (path, length) => new Request(`https://vault.test${path}`, { method: "POST", headers: { origin: "https://vault.test", "content-type": "application/json", "content-length": String(length) } });
+  assert.equal(guard(post("/api/journal/trades", 2_000_000)).response?.status, 413);
+  assert.equal(guard(post("/api/journal/trades", 900_000)).access, "session");
+  assert.equal(guard(post("/api/journal/import", 5_000_000)).access, "session", "CSV import has a larger limit");
+  assert.equal(guard(post("/api/journal/import", 9_000_000)).response?.status, 413);
+});
