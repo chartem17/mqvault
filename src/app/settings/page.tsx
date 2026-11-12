@@ -1,5 +1,6 @@
 "use client";
 
+import { Segmented } from "@/components/ui/segmented";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
@@ -128,7 +129,7 @@ export default function SettingsPage() {
   }
 
   const light = mounted && resolvedTheme === "light";
-  return <main className="mx-auto w-full max-w-2xl space-y-4 px-3 py-5 sm:px-6 sm:py-8">
+  return <main className="page-enter mx-auto w-full max-w-2xl space-y-4 px-3 py-5 sm:px-6 sm:py-8">
     <div className="mb-1 flex items-center justify-between gap-3">
       <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" aria-hidden="true" />{t("Back to workspace")}</Link>
       <Link href="/profile" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"><UserRound className="h-4 w-4" aria-hidden="true" />{t("Profile")}</Link>
@@ -138,13 +139,7 @@ export default function SettingsPage() {
     <Section icon={<Palette className="h-4 w-4" aria-hidden="true" />} title={t("Appearance")}>
       <div className={row}>
         <div><div className={labelCls}>{t("Theme")}</div><p className={hintCls}>{t("Applies to this device.")}</p></div>
-        <div className="grid grid-cols-2 gap-1 rounded-xl bg-[rgb(var(--ink)/0.06)] p-1">
-          {([["dark", t("Dark theme"), <Moon key="d" className="h-3.5 w-3.5" aria-hidden="true" />], ["light", t("Light theme"), <Sun key="l" className="h-3.5 w-3.5" aria-hidden="true" />]] as const).map(([value, label, icon]) =>
-            <button key={value} type="button" disabled={!mounted} aria-pressed={mounted && (value === "light") === light} onClick={() => setTheme(value)}
-              className={`inline-flex min-h-9 items-center justify-center gap-2 rounded-lg px-3.5 text-sm transition-colors ${mounted && (value === "light") === light ? "bg-panel text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-              {icon}{label}
-            </button>)}
-        </div>
+        <Segmented aria-label={t("Theme")} tone="panel" size="md" disabled={!mounted} value={mounted ? (light ? "light" : "dark") : null} onChange={setTheme} options={[{ value: "dark", label: t("Dark theme"), icon: <Moon aria-hidden="true" /> }, { value: "light", label: t("Light theme"), icon: <Sun aria-hidden="true" /> }]} />
       </div>
       <div className={`${row} mt-4`}>
         <div><label htmlFor="settings-start" className={labelCls}>{t("Start page")}</label><p className={hintCls}>{t("What opens when you come to the site.")}</p></div>

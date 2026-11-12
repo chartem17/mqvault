@@ -1,5 +1,6 @@
 "use client";
 
+import { Hint } from "@/components/ui/hint";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -50,7 +51,7 @@ export function Onboarding() {
         <h2 className="m-0 text-base font-semibold">{t("Getting started")}</h2>
         <p className="mt-1 text-sm text-muted-foreground">{t("{done} of {total} steps done", { done: doneCount, total: steps.length })}</p>
       </div>
-      <button type="button" onClick={() => update({ onboardingDismissed: true })} aria-label={t("Hide getting started")} title={t("Hide getting started")} className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"><X className="h-4 w-4" aria-hidden="true" /></button>
+      <Hint label={t("Hide getting started")}><button type="button" onClick={() => update({ onboardingDismissed: true })} aria-label={t("Hide getting started")} className="rounded-lg p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"><X className="h-4 w-4" aria-hidden="true" /></button></Hint>
     </div>
     <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[rgb(var(--ink)/0.1)]"><div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${doneCount / steps.length * 100}%` }} /></div>
     <ol className="mt-4 space-y-3 p-0">

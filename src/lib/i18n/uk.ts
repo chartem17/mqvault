@@ -3,6 +3,9 @@ import type { Dictionary } from "./core";
 /** Ukrainian translations keyed by the English source text. Keep keys identical to the `t()` / `tn()` / `msg()` calls. */
 export const uk: Dictionary = {
   // Sidebar, profile, settings and the e-mail code step (package 2)
+  "Calendar view": "Вигляд календаря",
+  "Search time zones": "Пошук часового поясу",
+  "Search time zones…": "Пошук часового поясу…",
   "The human check did not load. Reload the page or try another browser.": "Перевірка «я не робот» не завантажилась. Перезавантажте сторінку або спробуйте інший браузер.",
   "The human check failed. Try again.": "Перевірка «я не робот» не пройдена. Спробуйте ще раз.",
   "Computer connected to MT5 Bridge": "Компʼютер підключено до MT5 Bridge",

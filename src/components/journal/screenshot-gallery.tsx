@@ -1,5 +1,6 @@
 "use client";
 
+import { Segmented } from "@/components/ui/segmented";
 import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, ExternalLink, Pencil, X } from "lucide-react";
 import { Button, Select } from "@/components/ui/primitives";
@@ -52,7 +53,7 @@ export function ScreenshotGallery({ trades, accounts, onExit, onOpenTrade }: { t
   return <div className="space-y-4">
     <div className="flex flex-wrap items-center gap-2">
       <h2 className="m-0 mr-2 text-lg font-semibold">{t("Screenshot gallery")}</h2>
-      <div role="radiogroup" aria-label={t("Gallery filter")} className="flex flex-wrap gap-1">{GALLERY_PRESETS.map(item => <button key={item} type="button" role="radio" aria-checked={preset === item} onClick={() => setPreset(item)} className={`min-h-9 rounded-full border px-3.5 text-sm transition-colors ${preset === item ? "border-primary bg-primary text-primary-foreground" : "border-border bg-secondary/50 text-foreground hover:border-primary/50"}`}>{t(PRESET_LABEL[item])}</button>)}</div>
+      <Segmented aria-label={t("Gallery filter")} size="md" wrap value={preset} onChange={setPreset} options={GALLERY_PRESETS.map(item => ({ value: item, label: t(PRESET_LABEL[item]) }))} />
       <div className="flex min-w-0 flex-1 flex-wrap gap-2 sm:flex-none">
         <Select aria-label={t("Symbol")} value={symbol} onChange={event => setSymbol(event.target.value)} className="min-w-0 flex-1 rounded-full sm:w-auto sm:flex-none"><option value="">{t("All symbols")}</option>{symbols.map(item => <option key={item} value={item}>{item}</option>)}</Select>
         <Select aria-label={t("Setup")} value={setup} onChange={event => setSetup(event.target.value)} className="min-w-0 flex-1 rounded-full sm:w-auto sm:flex-none"><option value="">{t("All setups")}</option>{setups.map(item => <option key={item} value={item}>{t(item)}</option>)}</Select>

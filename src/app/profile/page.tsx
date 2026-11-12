@@ -1,5 +1,6 @@
 "use client";
 
+import { Hint } from "@/components/ui/hint";
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { ArrowLeft, BookOpen, Check, LogOut, Pencil, Settings, Wallet2, X } from "lucide-react";
@@ -43,7 +44,7 @@ export default function ProfilePage() {
     if (problem) setError(problem); else setEditing(false);
   }
 
-  return <main className="mx-auto w-full max-w-2xl px-3 py-5 sm:px-6 sm:py-8">
+  return <main className="page-enter mx-auto w-full max-w-2xl px-3 py-5 sm:px-6 sm:py-8">
     <div className="mb-5 flex items-center justify-between gap-3">
       <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" aria-hidden="true" />{t("Back to workspace")}</Link>
       <Link href="/settings" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"><Settings className="h-4 w-4" aria-hidden="true" />{t("Settings")}</Link>
@@ -62,7 +63,7 @@ export default function ProfilePage() {
             <Button type="button" size="icon" variant="ghost" aria-label={t("Cancel")} onClick={() => { setEditing(false); setDraft(profile?.display_name ?? ""); setError(""); }}><X className="h-4 w-4" aria-hidden="true" /></Button>
           </form> : <div className="flex min-w-0 items-center gap-2">
             <h1 className="truncate text-xl font-semibold">{profile?.display_name || (loading ? "…" : t("Unnamed trader"))}</h1>
-            <button type="button" aria-label={t("Edit name")} title={t("Edit name")} onClick={() => setEditing(true)} className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"><Pencil className="h-3.5 w-3.5" aria-hidden="true" /></button>
+            <Hint label={t("Edit name")}><button type="button" aria-label={t("Edit name")} onClick={() => setEditing(true)} className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"><Pencil className="h-3.5 w-3.5" aria-hidden="true" /></button></Hint>
           </div>}
           <p className="mt-0.5 truncate text-sm text-muted-foreground">{profile?.email ?? ""}</p>
           <span className="mt-2 inline-flex items-center rounded-full bg-primary/12 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-primary">{profile?.plan === "owner" ? t("Owner") : t("Closed beta")}</span>

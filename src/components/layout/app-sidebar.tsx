@@ -1,5 +1,6 @@
 "use client";
 
+import { Hint } from "@/components/ui/hint";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
@@ -120,10 +121,10 @@ export function AppSidebar({ activeTab, setActiveTab, onSearch }: { activeTab: T
           <div className="truncate text-[15px] font-semibold tracking-tight">Trade Vault</div>
           <div className="truncate text-[11px] text-muted-foreground">{t("Execution workspace")}</div>
         </div>
-        <button type="button" onClick={toggleCollapsed} aria-label={collapsed ? t("Expand sidebar") : t("Collapse sidebar")} title={collapsed ? t("Expand sidebar") : t("Collapse sidebar")}
+        <Hint label={collapsed ? t("Expand sidebar") : t("Collapse sidebar")} side="right"><button type="button" onClick={toggleCollapsed} aria-label={collapsed ? t("Expand sidebar") : t("Collapse sidebar")}
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
           {collapsed ? <ChevronsRight className="h-4 w-4" aria-hidden="true" /> : <ChevronsLeft className="h-4 w-4" aria-hidden="true" />}
-        </button>
+        </button></Hint>
       </div>
 
       {!collapsed && <div className="sb-hide px-3 pb-1">

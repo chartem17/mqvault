@@ -15,7 +15,7 @@ export default function HelpPage() {
   useEffect(() => { try { localStorage.setItem(SEEN_CHANGES_KEY, LATEST_CHANGE); } catch { /* storage may be blocked */ } }, []);
   const date = (day: string) => new Date(`${day}T12:00:00Z`).toLocaleDateString(intl, { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 
-  return <main className="mx-auto w-full max-w-2xl space-y-4 px-3 py-5 sm:px-6 sm:py-8">
+  return <main className="page-enter mx-auto w-full max-w-2xl space-y-4 px-3 py-5 sm:px-6 sm:py-8">
     <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" aria-hidden="true" />{t("Back to workspace")}</Link>
     <h1 className="flex items-center gap-2.5 text-xl font-semibold"><LifeBuoy className="h-5 w-5 text-primary" aria-hidden="true" />{t("Help")}</h1>
 
