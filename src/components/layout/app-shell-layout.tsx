@@ -10,10 +10,13 @@ import { Button } from "@/components/ui/primitives";
 import { NavigationButton } from "@/components/layout/navigation-button";
 import { TimezoneControl } from "@/components/settings/timezone-control";
 import { LanguageToggle } from "@/components/settings/language-toggle";
+import { UserMenu } from "@/components/layout/user-menu";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { OWNER_ONLY_TABS } from "@/lib/auth/beta-access";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { msg } from "@/lib/i18n/core";
 
-const TABS: { id: TabId; label: string; short?: string; icon: React.ElementType }[] = [
+const ALL_TABS: { id: TabId; label: string; short?: string; icon: React.ElementType }[] = [
   { id: "home", label: msg("Home"), icon: House },
   { id: "overview", label: msg("Overview"), icon: LayoutDashboard },
   { id: "journal", label: msg("Journal"), icon: BookOpen },
@@ -25,6 +28,9 @@ const TABS: { id: TabId; label: string; short?: string; icon: React.ElementType 
 export default function AppShellLayout({ children, activeTab, setActiveTab }: { children: ReactNode; activeTab: TabId; setActiveTab: (tab: TabId) => void }) {
   const { resolvedTheme, setTheme } = useTheme();
   const { t } = useI18n();
+  // Closed beta: Market and Calendar stay with the installation owner (data licensed for private use).
+  const owner = useCurrentUser()?.isOwner === true;
+  const TABS = ALL_TABS.filter(tab => owner || !OWNER_ONLY_TABS.includes(tab.id));
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
   const light = mounted && resolvedTheme === "light";
@@ -62,12 +68,13 @@ export default function AppShellLayout({ children, activeTab, setActiveTab }: { 
                 {light ? <Moon aria-hidden="true" className="h-4 w-4 shrink-0" /> : <Sun aria-hidden="true" className="h-4 w-4 shrink-0" />}
                 <span className="hidden xl:inline">{themeLabel}</span>
               </Button>
+              <UserMenu />
             </div>
           </div>
           <div className="px-3 py-4 sm:px-6 sm:py-5 xl:px-8 xl:py-6">{children}</div>
         </main>
       </div>
-      <nav aria-label={t("Main navigation")} className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      <nav aria-label={t("Main navigation")} style={{ gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))` }} className="fixed inset-x-0 bottom-0 z-40 grid border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
         {TABS.map((tab) => {
           const Icon = tab.icon, active = activeTab === tab.id;
           return <button key={tab.id} type="button" aria-current={active ? "page" : undefined} onClick={() => setActiveTab(tab.id)} className={`flex min-w-0 flex-col items-center gap-1 px-0.5 pb-2 pt-2.5 text-[10px] leading-tight focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary ${active ? "text-primary" : "text-muted-foreground"}`}>

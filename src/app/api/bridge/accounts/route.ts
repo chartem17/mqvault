@@ -1,4 +1,4 @@
-import { resolvePrivateOwner } from "@/lib/supabase/private-owner";
+import { resolveUser } from "@/lib/auth/current-user";
 import { json } from "@/lib/bridge/server";
 import { depositsTotal, parseReviewDecision } from "@/lib/bridge/account-match";
 
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
  * each with the suggested starting balance (sum of deposits).
  */
 export async function GET(request: Request) {
-  const context = await resolvePrivateOwner(request);
+  const context = await resolveUser(request);
   if (context instanceof Response) return context;
   const { db, ownerId } = context;
   const { data, error } = await db.from("bridge_terminal_accounts")
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
 /** POST { id, decision: "confirm" | "ignore" } — confirm hides the question; ignore also stops syncing this MT5 account. */
 export async function POST(request: Request) {
-  const context = await resolvePrivateOwner(request);
+  const context = await resolveUser(request);
   if (context instanceof Response) return context;
   const { db, ownerId } = context;
   const body = parseReviewDecision(await request.json().catch(() => null));

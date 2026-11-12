@@ -21,4 +21,4 @@
 - Ендпоінт з'являється на production лише після merge гілки в `main`.
 
 ## Де в коді
-`tools/mt5/MQVault_CalendarSync.mq5`, `src/app/api/economic-calendar/sync/route.ts`, `src/lib/news/economic-calendar.ts` (`cleanRecordFromMt5`, `forecastLooksSuspect`), `src/lib/auth/private-access.ts` (`TOKEN_PATHS`); тести `tests/economic-calendar.test.mjs`, `tests/private-access.test.mjs`; інструкція — [runbooks/calendar-sync.md](../runbooks/calendar-sync.md).
+`tools/mt5/MQVault_CalendarSync.mq5`, `src/app/api/economic-calendar/sync/route.ts`, `src/lib/news/economic-calendar.ts` (`cleanRecordFromMt5`, `forecastLooksSuspect`), `src/lib/auth/request-guard.ts` (`TOKEN_PATHS`; до ADR 0017 — `private-access.ts`); тести `tests/economic-calendar.test.mjs`, `tests/request-guard.test.mjs`; інструкція — [runbooks/calendar-sync.md](../runbooks/calendar-sync.md).

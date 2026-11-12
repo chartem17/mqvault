@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { parseReviewChips } from "@/lib/journal/trade-review";
-import { resolvePrivateOwner } from "@/lib/supabase/private-owner";
+import { resolveUser } from "@/lib/auth/current-user";
 import { permanentlyDeleteOwnedEntity } from "@/lib/supabase/permanent-delete";
 import { isRecord, parseStrategyRules, StrategyInputError, STRATEGY_UUID, toStrategyProfile } from "@/lib/strategy-control/strategy-storage";
 
@@ -37,7 +37,7 @@ function failure(error: unknown) {
 
 export async function GET(request: Request) {
   try {
-    const context = await resolvePrivateOwner(request);
+    const context = await resolveUser(request);
     if (context instanceof Response) return context;
     const accountId = new URL(request.url).searchParams.get("accountId");
     if (accountId && accountId !== "all" && !STRATEGY_UUID.test(accountId)) return json({ error: "Invalid accountId" }, 400);
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const context = await resolvePrivateOwner(request);
+    const context = await resolveUser(request);
     if (context instanceof Response) return context;
     const body = await readBody(request);
     if (typeof body.account_id !== "string" || !STRATEGY_UUID.test(body.account_id)) return json({ error: "Choose a specific account before saving a strategy" }, 400);
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const context = await resolvePrivateOwner(request);
+    const context = await resolveUser(request);
     if (context instanceof Response) return context;
     const body = await readBody(request);
     if (typeof body.id !== "string" || !STRATEGY_UUID.test(body.id)) return json({ error: "Invalid strategy id" }, 400);
@@ -95,7 +95,7 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const context = await resolvePrivateOwner(request);
+    const context = await resolveUser(request);
     if (context instanceof Response) return context;
     const body = await readBody(request);
     if (typeof body.id !== "string" || !STRATEGY_UUID.test(body.id)) return json({ error: "Invalid strategy id" }, 400);

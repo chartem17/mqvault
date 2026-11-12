@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { resolveUser } from "@/lib/auth/current-user";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const supabase = createServerSupabase();
+/** The shared list of tradable symbols (reference data, the same for every signed-in user). */
+export async function GET(request: Request) {
+  const context = await resolveUser(request);
+  if (context instanceof Response) return context;
+  const supabase = context.db;
   const { data, error } = await supabase
     .from("market_instruments")
     .select(
@@ -15,7 +18,7 @@ export async function GET() {
     .order("symbol", { ascending: true });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to load instruments" }, { status: 500 });
   }
 
   const instruments = (data ?? []).map((row) => ({

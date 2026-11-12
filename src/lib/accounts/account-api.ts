@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { resolvePrivateOwner } from "@/lib/supabase/private-owner";
+import { resolveUser } from "@/lib/auth/current-user";
 import { permanentlyDeleteOwnedEntity } from "@/lib/supabase/permanent-delete";
 import { AccountSetupError } from "./account-setup";
 import { buildAccountPayload, type AccountRecord } from "./account-payload";
 import { linkError } from "./account-chain";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const FIELDS = "id,name,broker,platform,account_type,currency,mt5_login,mt5_server,initial_balance,phase,target_percent,max_loss_percent,daily_loss_percent,min_trading_days,is_active,status,color,parent_account_id,broker_timezone,prop_target_state";
-type OwnerContext = Exclude<Awaited<ReturnType<typeof resolvePrivateOwner>>, Response>;
+type OwnerContext = Exclude<Awaited<ReturnType<typeof resolveUser>>, Response>;
 /** Checks a prop-branch link against the owner's accounts only (existence, prop type, no loops, one next stage per parent). */
 async function parentError(context: OwnerContext, accountId: string | null, parentId: string): Promise<string | null> {
   const { data, error } = await context.db.from("accounts").select("id,account_type,parent_account_id").eq("user_id", context.ownerId).eq("is_active", true);
@@ -35,7 +35,7 @@ function failure(error: unknown) {
 }
 export async function GET(request: Request) {
   try {
-    const context = await resolvePrivateOwner(request);
+    const context = await resolveUser(request);
     if (context instanceof Response) return context;
     const { data, error } = await context.db.from("accounts").select(FIELDS).eq("user_id", context.ownerId).eq("is_active", true).order("created_at", { ascending: true });
     if (error) throw new Error(error.code);
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
 }
 export async function POST(request: Request) {
   try {
-    const context = await resolvePrivateOwner(request);
+    const context = await resolveUser(request);
     if (context instanceof Response) return context;
     const body = await readBody(request);
     const payload = buildAccountPayload(body);
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
 }
 export async function PATCH(request: Request) {
   try {
-    const context = await resolvePrivateOwner(request);
+    const context = await resolveUser(request);
     if (context instanceof Response) return context;
     const body = await readBody(request);
     if (typeof body.id !== "string" || !UUID.test(body.id)) throw new AccountSetupError("Invalid account id");
@@ -84,7 +84,7 @@ export async function PATCH(request: Request) {
 }
 export async function DELETE(request: Request) {
   try {
-    const context = await resolvePrivateOwner(request);
+    const context = await resolveUser(request);
     if (context instanceof Response) return context;
     const body = await readBody(request);
     if (typeof body.id !== "string" || !UUID.test(body.id)) throw new AccountSetupError("Invalid account id");

@@ -1,4 +1,4 @@
-import { resolvePrivateOwner } from "@/lib/supabase/private-owner";
+import { resolveUser } from "@/lib/auth/current-user";
 import { json } from "@/lib/bridge/server";
 import { sha256Hex } from "@/lib/bridge/signature";
 import { APPROVE_LOCK_MS, MAX_FAILED_APPROVALS, normalizeUserCode, pairingStatus } from "@/lib/bridge/pairing";
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
  * At most MAX_FAILED_APPROVALS attempts per APPROVE_LOCK_MS; a successful confirmation resets the counter.
  */
 export async function POST(request: Request) {
-  const context = await resolvePrivateOwner(request);
+  const context = await resolveUser(request);
   if (context instanceof Response) return context;
   const { db, ownerId } = context;
   const body = await request.json().catch(() => null) as { user_code?: unknown; confirm?: unknown } | null;

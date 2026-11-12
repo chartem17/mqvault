@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { resolvePrivateOwner } from "@/lib/supabase/private-owner";
+import { resolveUser } from "@/lib/auth/current-user";
 import { splitDuplicates, type ImportedTrade } from "@/lib/journal/csv-import";
 import { derivedFinancials } from "@/lib/journal/trade-financials";
 
@@ -37,7 +37,7 @@ function clean(raw: unknown): ImportedTrade | null {
  * never changed. dryRun only reports what would happen. Net P&L and R are computed here, as for any trade.
  */
 export async function POST(request: Request) {
-  const context = await resolvePrivateOwner(request);
+  const context = await resolveUser(request);
   if (context instanceof Response) return context;
   const { db, ownerId } = context;
   const body = await request.json().catch(() => null) as { account_id?: unknown; trades?: unknown; dryRun?: unknown } | null;

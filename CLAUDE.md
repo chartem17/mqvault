@@ -6,7 +6,7 @@
 ## Спершу прочитай
 1. [`docs/architecture/overview.md`](docs/architecture/overview.md) — шари, карта `src/`, правила залежностей.
 2. [`docs/roadmap/ROADMAP.md`](docs/roadmap/ROADMAP.md) — що зроблено, що далі, порядок робіт, стан гілок.
-3. [`docs/decisions/`](docs/decisions/) — ухвалені рішення (час, сесії, фінанси, проп, видалення, доступ, мови, адаптивність, дашборд). Не переглядай їх без запиту власника.
+3. [`docs/decisions/`](docs/decisions/) — ухвалені рішення (час, сесії, фінанси, проп, видалення, акаунти й доступ, мови, адаптивність, дашборд). Не переглядай їх без запиту власника.
 4. [`docs/architecture/database.md`](docs/architecture/database.md) — схема БД і застереження щодо міграцій.
 
 ## Команди
@@ -15,7 +15,7 @@ npm run dev      # локально
 npm run lint     # ESLint (має бути 0 помилок)
 npx tsc --noEmit # типи
 npm test         # юніт-тести (scripts/run-tests.mjs компілює модулі з src/lib і запускає tests/*.test.mjs)
-npm run build    # production-збірка; потрібні NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SECRET_KEY, VAULT_ACCESS_PASSWORD (≥20 символів) — для перевірки підійдуть заглушки
+npm run build    # production-збірка; потрібні NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY (або стара назва …_ANON_KEY), SUPABASE_SECRET_KEY — для перевірки підійдуть заглушки
 ```
 Це саме те, що виконує CI (`.github/workflows/ci.yml`). Перед PR прожени lint → tsc → test → build.
 Пісочниця без мережі не дістає Google Fonts: для `next build` задай `NEXT_FONT_GOOGLE_MOCKED_RESPONSES=<js-модуль із заглушкою>`.
@@ -30,6 +30,7 @@ npm run build    # production-збірка; потрібні NEXT_PUBLIC_SUPABAS
 - **Мови.** Кожен видимий рядок — `t("English text")` / `tn()` / `msg()` + переклад у `src/lib/i18n/uk.ts`. Українського тексту поза словником у коді бути не повинно, тест це перевіряє. → ADR 0007
 - **Адаптивність.** Новий UI одразу працює на телефоні (`useMediaQuery`/`PHONE_QUERY`). → ADR 0008
 - **Тестовані модулі `src/lib/<домен>`** імпортують сусідів відносними шляхами (`../time/timezone`), не `@/…`: тести компілюють їх окремо `tsc`-ом без аліасів. Новий модуль із тестом додай у `scripts/run-tests.mjs`.
+- **Користувачі.** Кожен маршрут `/api/*` починається з `resolveUser(request)` (`@/lib/auth/current-user`) і фільтрує кожен запит до таблиць користувача за `user_id = ownerId`. `user_id` ніколи не береться із запиту. Новий маршрут без `resolveUser` тест не пропустить (`tests/api-route-guard.test.mjs`); виняток — лише з поясненням у тому ж тесті. Нова таблиця: RLS увімкнено, прав для `anon`/`authenticated` немає; нова функція — `REVOKE … FROM PUBLIC`. → ADR 0017
 - **`lib` не імпортує компоненти й React.** Клієнт не бачить `SUPABASE_SECRET_KEY` і не ходить у БД напряму — тільки через `/api/*`.
 - **Міграції.** Вже застосовані файли не редагувати; нова зміна схеми = новий файл у `supabase/migrations/`, застосовувати лише після погодження власника. Історія файлів збігається з Supabase, але базової схеми в міграціях немає, тож `supabase db push` не запускати (див. database.md).
 - **Секрети** не читати без потреби, не друкувати, не комітити. `.env*` у `.gitignore`.

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
-import { safeEqual } from "@/lib/auth/session-token";
+import { safeEqual } from "@/lib/auth/safe-equal";
 import { CALENDAR_CURRENCIES, calendarRowFromCsv, cleanRecordFromMt5, forecastLooksSuspect, type Mt5RawValue, type NewsEventImportRow } from "@/lib/news/economic-calendar";
 
 export const dynamic = "force-dynamic";

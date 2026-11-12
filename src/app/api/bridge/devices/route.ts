@@ -1,4 +1,4 @@
-import { resolvePrivateOwner } from "@/lib/supabase/private-owner";
+import { resolveUser } from "@/lib/auth/current-user";
 import { json } from "@/lib/bridge/server";
 
 export const dynamic = "force-dynamic";
@@ -6,7 +6,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** GET → paired PCs and the MT5 accounts they report (owner's session). */
 export async function GET(request: Request) {
-  const context = await resolvePrivateOwner(request);
+  const context = await resolveUser(request);
   if (context instanceof Response) return context;
   const { db, ownerId } = context;
   const [devices, terminals] = await Promise.all([
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 
 /** DELETE ?id=<device> → revokes the PC immediately: its signature stops being accepted. Synced trades stay. */
 export async function DELETE(request: Request) {
-  const context = await resolvePrivateOwner(request);
+  const context = await resolveUser(request);
   if (context instanceof Response) return context;
   const { db, ownerId } = context;
   const id = new URL(request.url).searchParams.get("id") ?? "";

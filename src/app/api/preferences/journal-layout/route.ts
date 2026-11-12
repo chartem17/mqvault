@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { resolvePrivateOwner } from '@/lib/supabase/private-owner';
+import { resolveUser } from '@/lib/auth/current-user';
 import { defaultJournalLayout, parseJournalLayout } from '@/lib/journal/journal-layout';
 export const dynamic = 'force-dynamic';
 function json(body: unknown, status = 200) { return NextResponse.json(body, { status, headers: { 'Cache-Control': 'no-store' } }); }
 function failure(code?: string) { console.error('Journal layout database operation failed', { code }); return json({ error: 'Journal settings operation failed' }, 500); }
 export async function GET(request: Request) {
   try {
-    const owner = await resolvePrivateOwner(request); if (owner instanceof Response) return owner;
+    const owner = await resolveUser(request); if (owner instanceof Response) return owner;
     const { data, error } = await owner.db.from('journal_layout_preferences').select('layout,revision').eq('user_id', owner.ownerId).maybeSingle();
     if (error) return failure(error.code);
     return json({ layout: data ? parseJournalLayout(data.layout) : defaultJournalLayout(), revision: data?.revision ?? 0 });
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
 }
 export async function PATCH(request: Request) {
   try {
-    const owner = await resolvePrivateOwner(request); if (owner instanceof Response) return owner;
+    const owner = await resolveUser(request); if (owner instanceof Response) return owner;
     const text = await request.text(); if (text.length > 8192) return json({ error: 'Request too large' }, 413);
     let layout: ReturnType<typeof parseJournalLayout>; let revision: number;
     try {

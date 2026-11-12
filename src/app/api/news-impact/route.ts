@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { resolvePrivateOwner } from "@/lib/supabase/private-owner";
+import { resolveUser } from "@/lib/auth/current-user";
 import { newsCurrenciesForSymbol, newsImpactReport, summarizeTradesNews, NEWS_NEAR_MINUTES, NEWS_RULE_HORIZON_MINUTES, NEWS_WIDE_MINUTES, type NewsEventInput, type NewsTradeInput } from "@/lib/news/news-trades";
 
 export const dynamic = "force-dynamic";
@@ -15,8 +15,11 @@ const json = (body: unknown, status = 200) => NextResponse.json(body, { status, 
  * red release (for the Strategy Control rule), plus near/around/clear statistics with n.
  */
 export async function GET(request: Request) {
-  const context = await resolvePrivateOwner(request);
+  const context = await resolveUser(request);
   if (context instanceof Response) return context;
+  // Closed beta: the calendar is licensed for the owner's private use (ADR 0013), so other users get
+  // "not checked" (no coverage) — the same shape the client already handles when the calendar is empty.
+  if (!context.isOwner) return json({ trades: [], coverage: null });
   const { db, ownerId } = context;
 
   const params = new URL(request.url).searchParams;

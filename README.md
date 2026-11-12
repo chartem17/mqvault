@@ -17,7 +17,7 @@ CI (`.github/workflows/ci.yml`) на кожен PR у `main`: lint, типи, т
 
 ## Змінні середовища
 
-`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SECRET_KEY` (лише сервер), `VAULT_ACCESS_PASSWORD` (≥ 20 символів). Значення не зберігаються в репозиторії.
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (стара назва `NEXT_PUBLIC_SUPABASE_ANON_KEY` теж приймається), `SUPABASE_SECRET_KEY` (лише сервер), `VAULT_SITE_ORIGIN` (адреса сайту в production). Необов'язкові: `AUTH_SIGNUP_MODE=open` (без неї реєстрація лише за запрошеннями), `NEXT_PUBLIC_AUTH_GOOGLE=1`, `CALENDAR_SYNC_TOKEN`. Значення не зберігаються в репозиторії. Вхід — акаунти Supabase Auth ([ADR 0017](docs/decisions/0017-user-accounts-supabase-auth.md), розгортання — [runbook](docs/runbooks/user-auth-rollout.md)).
 
 ## Структура
 
