@@ -10,13 +10,14 @@ import { JournalTab } from "@/components/tabs/journal-tab";
 import { MarketTab } from "@/components/tabs/market-tab";
 import { CalendarTab } from "@/components/tabs/calendar-tab";
 import { StrategyControlTab } from "@/components/tabs/strategy-control-tab";
+import { PlaybookTab } from "@/components/tabs/playbook-tab";
 import { parseJournalFocus } from "@/lib/journal/journal-focus";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { OWNER_ONLY_TABS } from "@/lib/auth/beta-access";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { usePreferences } from "@/components/providers/preferences-provider";
 
-const TABS = ["home", "overview", "journal", "strategy-control", "market", "calendar"] as const;
+const TABS = ["home", "overview", "journal", "playbook", "strategy-control", "market", "calendar"] as const;
 export type TabId = typeof TABS[number];
 function HomeContent() {
   const router = useRouter();
@@ -66,6 +67,7 @@ function HomeContent() {
       case "home": return search.get("report") === "week" ? <WeeklyReportView week={search.get("week")} /> : <HomeTab />;
       case "overview": return <OverviewTab />;
       case "journal": return <JournalTab key={focus.kind === "ids" ? `ids:${focus.ids.join(",")}` : focus.kind} focus={focus} onClearFocus={clearFocus} review={review} onReviewChange={setReview} gallery={gallery} onGalleryChange={setGallery} />;
+      case "playbook": return <PlaybookTab />;
       case "strategy-control": return <StrategyControlTab />;
       case "market": return <MarketTab />;
       case "calendar": return <CalendarTab />;

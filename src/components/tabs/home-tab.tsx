@@ -18,6 +18,10 @@ import { Onboarding } from "@/components/home/onboarding";
 import { PreSessionChecklist } from "@/components/home/pre-session-checklist";
 import { MonthlyGoals } from "@/components/home/monthly-goals";
 import { usePreferences } from "@/components/providers/preferences-provider";
+import { usePlaybook } from "@/hooks/use-playbook";
+import { PlaybookStatus } from "@/components/playbook/playbook-status";
+import { DisciplineMetrics } from "@/components/playbook/discipline-metrics";
+import { windowAt } from "@/lib/playbook/engine";
 
 const POS = "var(--color-green)", NEG = "var(--color-red)";
 const DISPLAY = { fontFamily: "var(--font-home-display), var(--font-ui), system-ui, sans-serif" } as const;
@@ -48,6 +52,7 @@ export function HomeTab() {
   const { timezone } = useTimezone();
   const { activeStrategy } = useStrategies();
   const { preferences } = usePreferences();
+  const playbook = usePlaybook();
   // Ticks every minute so the session status and the dial stay current while the page is open.
   const [now, setNow] = useState(() => new Date());
   useEffect(() => { const id = window.setInterval(() => setNow(new Date()), 60_000); return () => window.clearInterval(id); }, []);
@@ -72,6 +77,9 @@ export function HomeTab() {
   const unmarked = useMemo(() => unmarkedTrades(visibleTrades), [visibleTrades]);
   const recentUnmarked = useMemo(() => [...unmarked].sort((a, b) => b.opened_at.localeCompare(a.opened_at)).slice(0, 5), [unmarked]);
   const todayDots = useMemo(() => visibleTrades.filter(trade => zonedParts(trade.opened_at, timezone).date === today.day), [visibleTrades, timezone, today.day]);
+
+  const playbookWindow = useMemo(() => windowAt(now, playbook.config), [now, playbook.config]);
+  const playbookState = useMemo(() => activeAccountId === "all" ? null : playbook.accountState(activeAccountId, now), [activeAccountId, now, playbook]);
 
   const known = visibleTrades.filter(trade => typeof trade.net_pnl === "number");
   const net = known.reduce((sum, trade) => sum + (trade.net_pnl as number), 0);
@@ -126,6 +134,11 @@ export function HomeTab() {
       </div>
       <DayDial trades={todayDots} timezone={timezone} now={now} netToday={today.netPnl} />
     </section>
+
+    <div className="grid gap-12 sm:gap-16 lg:grid-cols-2">
+      <PlaybookStatus state={playbookState} window={playbookWindow} config={playbook.config} onNewPlan={playbook.plansAvailable === false ? undefined : () => router.push("/?tab=playbook", { scroll: false })} />
+      <DisciplineMetrics trades={visibleTrades} assessed={playbook.assessed} config={playbook.config} now={now} />
+    </div>
 
     <div className="grid gap-12 sm:gap-16 lg:grid-cols-2">
       <PreSessionChecklist today={todayKey} />

@@ -1,4 +1,4 @@
-import { BookOpen, CalendarDays, Globe2, House, LayoutDashboard, LifeBuoy, MonitorSmartphone, Settings, ShieldCheck, UserRound, type LucideIcon } from "lucide-react";
+import { BookOpen, CalendarDays, ClipboardCheck, Globe2, House, LayoutDashboard, LifeBuoy, MonitorSmartphone, Settings, ShieldCheck, UserRound, type LucideIcon } from "lucide-react";
 import type { TabId } from "@/app/page";
 import { msg } from "@/lib/i18n/core";
 import { OWNER_ONLY_TABS } from "@/lib/auth/beta-access";
@@ -11,6 +11,7 @@ export const NAV_PAGES: NavPage[] = [
   { key: "home", label: msg("Home"), icon: House, section: "main", target: { kind: "tab", tab: "home" } },
   { key: "overview", label: msg("Overview"), icon: LayoutDashboard, section: "main", target: { kind: "tab", tab: "overview" } },
   { key: "journal", label: msg("Journal"), icon: BookOpen, section: "main", target: { kind: "tab", tab: "journal" } },
+  { key: "playbook", label: msg("Playbook"), short: msg("Rules"), icon: ClipboardCheck, section: "main", target: { kind: "tab", tab: "playbook" } },
   { key: "strategy-control", label: msg("Strategy control"), short: msg("Strategy"), icon: ShieldCheck, section: "main", target: { kind: "tab", tab: "strategy-control" } },
   { key: "market", label: msg("Market"), icon: Globe2, section: "markets", target: { kind: "tab", tab: "market" } },
   { key: "calendar", label: msg("Calendar"), icon: CalendarDays, section: "markets", target: { kind: "tab", tab: "calendar" } },
