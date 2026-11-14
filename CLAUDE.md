@@ -20,6 +20,12 @@ npm run build    # production-збірка; потрібні NEXT_PUBLIC_SUPABAS
 Це саме те, що виконує CI (`.github/workflows/ci.yml`). Перед PR прожени lint → tsc → test → build.
 Пісочниця без мережі не дістає Google Fonts: для `next build` задай `NEXT_FONT_GOOGLE_MOCKED_RESPONSES=<js-модуль із заглушкою>`.
 
+## Пошук по коду
+Якщо підключено Graphify (MCP), питання про структуру (де визначено, хто викликає, що зачепить зміна, які тести) став спершу йому, а не grep/читанню цілих файлів. Індекс будується з `main` після кожного push, тож для змін у робочій гілці читай файли напряму. Literal-рядки й конфіги шукай звичайним пошуком.
+
+## Перевірка власником
+Власник перевіряє результат через Vercel-preview гілки. У підсумку PR коротко напиши, що саме відкрити й перевірити на preview.
+
 ## Де що лежить
 `src/app` — сторінки та `/api/*` · `src/components/{tabs,overview,accounts,journal,strategy-control,home,settings,layout,providers,ui}` — UI (у `ui/` лише спільні примітиви; файл однієї фічі лежить у її теці) · `src/hooks` — клієнтські дані · `src/lib/{accounts,journal,dashboard,time,market,auth,strategy-control,i18n,supabase}` — доменна логіка · `supabase/migrations` · `tests` · `docs`.
 
