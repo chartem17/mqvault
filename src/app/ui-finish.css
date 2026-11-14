@@ -30,7 +30,6 @@
   --ambient-a: oklch(0.62 0.13 185 / 0.26);
   --ambient-b: oklch(0.55 0.16 275 / 0.2);
   --ambient-c: oklch(0.72 0.13 75 / 0.07);
-  --grid-line: rgb(255 255 255 / 0.035);
   --spot: rgb(255 255 255 / 0.05);
 }
 .light {
@@ -39,7 +38,6 @@
   --ambient-a: oklch(0.80 0.09 185 / 0.38);
   --ambient-b: oklch(0.82 0.07 275 / 0.30);
   --ambient-c: oklch(0.88 0.08 75 / 0.28);
-  --grid-line: rgb(17 24 22 / 0.045);
   --spot: rgb(255 255 255 / 0.65);
 }
 
@@ -49,13 +47,6 @@
 .mq-ambient-a { width: 62vmax; height: 62vmax; left: -18vmax; top: -24vmax; background: radial-gradient(closest-side, var(--ambient-a), transparent); animation: ambient-a 46s ease-in-out infinite alternate; }
 .mq-ambient-b { width: 56vmax; height: 56vmax; right: -20vmax; top: 18vh; background: radial-gradient(closest-side, var(--ambient-b), transparent); animation: ambient-b 58s ease-in-out infinite alternate; }
 .mq-ambient-c { width: 44vmax; height: 44vmax; left: 28vw; bottom: -26vmax; background: radial-gradient(closest-side, var(--ambient-c), transparent); animation: ambient-c 52s ease-in-out infinite alternate; }
-.mq-ambient-grid {
-  position: absolute; inset: 0;
-  background-image: linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-  background-size: 56px 56px;
-  -webkit-mask-image: radial-gradient(ellipse 80% 55% at 50% 0%, #000 20%, transparent 75%);
-  mask-image: radial-gradient(ellipse 80% 55% at 50% 0%, #000 20%, transparent 75%);
-}
 .mq-ambient-grain {
   position: absolute; inset: -50%; opacity: 0.05; mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");

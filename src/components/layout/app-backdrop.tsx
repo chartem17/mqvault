@@ -8,7 +8,7 @@ const AUTH_PATHS = ["/login", "/signup", "/forgot-password", "/reset-password"];
 const SPOT_TARGET = '[class~="bg-card"], [class~="bg-panel"], [data-spot]';
 
 /**
- * Ambient background of the app: slow drifting light, a fading grid and grain, plus a soft
+ * Ambient background of the app: slow drifting light and grain (the dots live in AppDotField), plus a soft
  * spotlight that follows the pointer over cards. Pure decoration, hidden from assistive tech.
  */
 export function AppBackdrop() {
@@ -42,7 +42,6 @@ export function AppBackdrop() {
     <span className="mq-ambient-light mq-ambient-a" />
     <span className="mq-ambient-light mq-ambient-b" />
     <span className="mq-ambient-light mq-ambient-c" />
-    <span className="mq-ambient-grid" />
     <span className="mq-ambient-grain" />
   </div>;
 }

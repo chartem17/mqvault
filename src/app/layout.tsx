@@ -7,6 +7,7 @@ import "./globals.css";
 import "./typography.css";
 import "./ui-finish.css";
 import { AppBackdrop } from "@/components/layout/app-backdrop";
+import { AppDotField } from "@/components/layout/app-dot-field";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { TradesProvider } from "@/hooks/use-trades";
 import { UndoProvider } from "@/components/ui/undo-toast";
@@ -28,7 +29,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return <html lang={locale} className={`${inter.variable} ${unbounded.variable}`} suppressHydrationWarning><body style={{ margin: 0, minHeight: "100dvh" }}>
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange nonce={nonce}>
       <AppBackdrop />
-      <I18nProvider initialLocale={locale}><ProfileProvider><PreferencesProvider><TimezoneProvider><UndoProvider><TradesProvider>{children}</TradesProvider></UndoProvider></TimezoneProvider></PreferencesProvider></ProfileProvider></I18nProvider>
+      <I18nProvider initialLocale={locale}><ProfileProvider><PreferencesProvider><TimezoneProvider><UndoProvider><TradesProvider><AppDotField>{children}</AppDotField></TradesProvider></UndoProvider></TimezoneProvider></PreferencesProvider></ProfileProvider></I18nProvider>
     </ThemeProvider>
   </body></html>;
 }

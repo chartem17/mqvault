@@ -1,6 +1,8 @@
 /* ui-sdk injects its own CSS at runtime; declaring the layer first keeps it below ours and Tailwind. */
 @layer ui-sdk;
 @import "tailwindcss";
+/* `dark:` follows the theme switch (next-themes puts .dark / .light on <html>), not the OS setting. */
+@custom-variant dark (&:where(.dark, .dark *));
 
 /*
  * Design tokens. Change the look of the whole app here, not in individual components.
