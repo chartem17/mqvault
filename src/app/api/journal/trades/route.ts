@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { resolveUser, type UserContext } from "@/lib/auth/current-user";
 import { parseTradeReview, reviewFromInput } from "@/lib/journal/trade-review";
 import { derivedFinancials, financialsChanged } from "@/lib/journal/trade-financials";
+import { disciplineFromInput, parseDiscipline } from "@/lib/playbook/discipline";
 
 export const dynamic = "force-dynamic";
 
@@ -113,6 +114,12 @@ function fieldsFrom(body: Body) {
   return f;
 }
 
+/** MT5 Bridge records why a position closed (sl / tp / manual …) in meta.bridge. */
+function closeReason(meta: unknown): string | null {
+  const bridge = meta && typeof meta === "object" ? (meta as { bridge?: { close_reason?: unknown } }).bridge : undefined;
+  return typeof bridge?.close_reason === "string" ? bridge.close_reason : null;
+}
+
 function mapRow(row: Record<string, unknown>) {
   const str = (v: unknown) => (v === null || v === undefined ? "" : String(v));
   const num = (v: unknown) =>
@@ -151,6 +158,8 @@ function mapRow(row: Record<string, unknown>) {
     screenshot_url: row.screenshot_url,
     notes: row.notes,
     review: parseTradeReview(row.meta),
+    discipline: parseDiscipline(row.meta),
+    close_reason: closeReason(row.meta),
   };
 }
 
@@ -291,15 +300,26 @@ export async function PATCH(request: NextRequest) {
     if (!current) return fail(404, "Trade not found");
 
     let meta: Record<string, unknown> | undefined;
+    const metaBase = () =>
+      meta ??
+      (current.meta && typeof current.meta === "object" && !Array.isArray(current.meta)
+        ? { ...(current.meta as Record<string, unknown>) }
+        : {});
     if (body.review !== undefined) {
       const review = reviewFromInput(body.review);
       if (review === undefined) return fail(400, "review is invalid");
-      const base =
-        current.meta && typeof current.meta === "object" && !Array.isArray(current.meta)
-          ? { ...(current.meta as Record<string, unknown>) }
-          : {};
+      const base = metaBase();
       if (review === null) delete base.review;
       else base.review = review;
+      meta = base;
+    }
+    // Playbook discipline marks (manual violations, "stagnation", risk exception) live in meta.discipline.
+    if (body.discipline !== undefined) {
+      const discipline = disciplineFromInput(body.discipline);
+      if (discipline === undefined) return fail(400, "discipline is invalid");
+      const base = metaBase();
+      if (discipline === null) delete base.discipline;
+      else base.discipline = discipline;
       meta = base;
     }
 

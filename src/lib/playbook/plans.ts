@@ -205,3 +205,24 @@ export function matchPlans(plans: readonly MatchPlan[], trades: readonly Playboo
   }
   return { byPlan, byTrade };
 }
+
+const num = (value: unknown) => { const n = typeof value === "number" ? value : Number(value); return Number.isFinite(n) ? n : 0; };
+
+/** Database row → plan (numeric columns arrive as strings). */
+export function planFromRow(row: Record<string, unknown>): TradePlan {
+  const str = (value: unknown) => typeof value === "string" ? value : "";
+  return {
+    id: str(row.id), account_id: str(row.account_id), symbol: str(row.symbol), direction: row.direction === "Short" ? "Short" : "Long",
+    at_desk: row.at_desk === true, context: str(row.context), poi_type: pick(row.poi_type, POI_TYPES) ?? "fvg", poi_note: str(row.poi_note), poi_swept: row.poi_swept === true,
+    reaction: pick(row.reaction, REACTIONS) ?? "fvg", bos_timeframe: pick(row.bos_timeframe, BOS_TIMEFRAMES) ?? "M5", bos_body_close: row.bos_body_close === true,
+    limit_on_fvg: row.limit_on_fvg === true, m3_refined: row.m3_refined === true,
+    entry: num(row.entry), stop: num(row.stop), target: num(row.target), rr: num(row.rr), risk_pct: num(row.risk_pct),
+    risk_exception: pick(row.risk_exception, RISK_EXCEPTIONS) ?? "none", screenshot_url: str(row.screenshot_url), reason: str(row.reason),
+    status: row.status === "cancelled" ? "cancelled" : "active", trade_id: typeof row.trade_id === "string" ? row.trade_id : null, created_at: str(row.created_at),
+  };
+}
+
+/** Today's active plans of one account that no trade matches yet: they count towards the daily trade limit. */
+export function pendingPlansToday(plans: readonly TradePlan[], match: PlanMatch, accountId: string, day: string, dayOf: (iso: string) => string): number {
+  return plans.filter(plan => plan.account_id === accountId && plan.status === "active" && !match.byPlan.has(plan.id) && dayOf(plan.created_at) === day).length;
+}

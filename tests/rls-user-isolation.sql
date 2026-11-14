@@ -65,6 +65,7 @@ CREATE FUNCTION public.vault_delete_entity(p_owner_id uuid, p_kind text, p_entit
 \ir ../supabase/migrations/20261112194829_rls_user_isolation.sql
 \ir ../supabase/migrations/20261112204953_private_rls_helpers.sql
 \ir ../supabase/migrations/20261112214306_audit_events.sql
+\ir ../supabase/migrations/20261114120000_trade_plans.sql
 
 -- Two users: A (owner, linked) and B (invited, linked).
 INSERT INTO auth.users VALUES ('00000000-0000-4000-8000-0000000000aa', 'a@example.test'), ('00000000-0000-4000-8000-0000000000bb', 'b@example.test');
@@ -86,6 +87,7 @@ INSERT INTO public.market_instruments (symbol) VALUES ('EURUSD');
 INSERT INTO public.trade_news_links (trade_id, news_event_id) VALUES ('00000000-0000-4000-8000-0000000000a2', '00000000-0000-4000-8000-0000000000e1');
 INSERT INTO public.beta_invites (email) VALUES ('c@example.test');
 INSERT INTO public.audit_events (user_id, action, method) VALUES ('00000000-0000-4000-8000-00000000000a', 'sign_in', 'password');
+INSERT INTO public.trade_plans (id, user_id, account_id, symbol, direction, at_desk, context, poi_type, poi_note, poi_swept, reaction, bos_timeframe, bos_body_close, limit_on_fvg, entry, stop, target, rr, risk_pct, screenshot_url, reason, trade_id) VALUES ('00000000-0000-4000-8000-0000000000a6', '00000000-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-0000000000a1', 'EURUSD', 'Long', true, '4H bullish to the high', 'fvg', '4H FVG', true, 'fvg', 'M5', true, true, 1.1, 1.099, 1.103, 3, 1, 'https://example.test/x', 'Sweep and M5 BOS, limit on FVG', '00000000-0000-4000-8000-0000000000a2');
 
 CREATE SCHEMA tst;
 GRANT USAGE ON SCHEMA tst TO anon, authenticated, service_role;
@@ -125,6 +127,14 @@ SELECT tst.expect((SELECT count(*) = 1 FROM public.market_instruments), 'instrum
 SELECT tst.expect((SELECT count(*) = 0 FROM public.audit_events), 'B sees no security events of A');
 SELECT tst.denied($$INSERT INTO public.audit_events (user_id, action) VALUES ('00000000-0000-4000-8000-00000000000b', 'sign_in')$$, 'B forges a security event');
 SELECT tst.denied($$DELETE FROM public.audit_events$$, 'B erases security events');
+SELECT tst.expect((SELECT count(*) = 0 FROM public.trade_plans), 'B sees no trade plans of A');
+SELECT tst.no_rows($$UPDATE public.trade_plans SET status = 'cancelled'$$, 'B cancels A''s plan');
+SELECT tst.no_rows($$DELETE FROM public.trade_plans$$, 'B deletes A''s plan');
+SELECT tst.denied($$INSERT INTO public.trade_plans (id, user_id, account_id, symbol, direction, at_desk, context, poi_type, poi_note, poi_swept, reaction, bos_timeframe, bos_body_close, limit_on_fvg, entry, stop, target, rr, risk_pct, screenshot_url, reason, trade_id) VALUES ('00000000-0000-4000-8000-0000000000b6', '00000000-0000-4000-8000-00000000000b', '00000000-0000-4000-8000-0000000000a1', 'EURUSD', 'Long', true, '4H bullish to the high', 'fvg', '4H FVG', true, 'fvg', 'M5', true, true, 1.1, 1.099, 1.103, 3, 1, 'https://example.test/x', 'Sweep and M5 BOS, limit on FVG', NULL)$$, 'B puts a plan into A''s account');
+INSERT INTO public.trade_plans (id, user_id, account_id, symbol, direction, at_desk, context, poi_type, poi_note, poi_swept, reaction, bos_timeframe, bos_body_close, limit_on_fvg, entry, stop, target, rr, risk_pct, screenshot_url, reason, trade_id) VALUES ('00000000-0000-4000-8000-0000000000b7', '00000000-0000-4000-8000-00000000000b', '00000000-0000-4000-8000-0000000000b1', 'EURUSD', 'Long', true, '4H bullish to the high', 'fvg', '4H FVG', true, 'fvg', 'M5', true, true, 1.1, 1.099, 1.103, 3, 1, 'https://example.test/x', 'Sweep and M5 BOS, limit on FVG', NULL);
+SELECT tst.expect((SELECT count(*) = 1 FROM public.trade_plans), 'B saves a plan on own account');
+SELECT tst.denied($$UPDATE public.trade_plans SET trade_id = '00000000-0000-4000-8000-0000000000a2' WHERE id = '00000000-0000-4000-8000-0000000000b7'$$, 'B links own plan to A''s trade');
+SELECT tst.denied($$UPDATE public.trade_plans SET at_desk = false WHERE id = '00000000-0000-4000-8000-0000000000b7'$$, 'a plan cannot lose a checklist item');
 
 SELECT tst.no_rows($$UPDATE public.accounts SET name = 'x' WHERE id = '00000000-0000-4000-8000-0000000000a1'$$, 'B renames A''s account');
 SELECT tst.no_rows($$DELETE FROM public.accounts WHERE id = '00000000-0000-4000-8000-0000000000a1'$$, 'B deletes A''s account');
@@ -171,6 +181,7 @@ SELECT tst.expect((SELECT name = 'A prop' FROM public.accounts) AND (SELECT net_
 SELECT tst.expect((SELECT count(*) = 1 FROM public.strategy_rules) AND (SELECT count(*) = 1 FROM (SELECT id, name, last_seen_at FROM public.bridge_devices) d) AND (SELECT count(*) = 1 FROM public.bridge_deals) AND (SELECT trades = 1 FROM public.news_impact_stats), 'A sees own strategy, deals and stats');
 SELECT tst.expect((SELECT count(*) = 1 FROM public.news_events), 'the owner sees the calendar');
 SELECT tst.expect((SELECT count(*) = 1 FROM public.audit_events), 'A sees own security events');
+SELECT tst.expect((SELECT count(*) = 1 AND bool_and(trade_id = '00000000-0000-4000-8000-0000000000a2') FROM public.trade_plans), 'A''s plan is intact and linked');
 SELECT tst.denied($$UPDATE public.audit_events SET action = 'sign_in'$$, 'A cannot rewrite own log');
 SELECT tst.denied('SELECT public_key FROM public.bridge_devices', 'not even the owner reads device keys through the API');
 SELECT tst.denied('SELECT last_seq FROM public.bridge_devices', 'nor the replay counter');
