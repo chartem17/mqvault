@@ -44,7 +44,7 @@ export default function AppShellLayout({ children, activeTab, setActiveTab }: { 
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen text-foreground">
       <DefaultAccount />
       <div key={displayKey} className="flex min-h-screen">
         <AppSidebar activeTab={activeTab} setActiveTab={setActiveTab} onSearch={() => setSearch(true)} />
@@ -61,7 +61,7 @@ export default function AppShellLayout({ children, activeTab, setActiveTab }: { 
               <div className="flex items-center gap-2 md:hidden"><LanguageToggle /><UserMenu /></div>
             </div>
           </div>
-          <div className="px-3 py-4 sm:px-6 sm:py-5 xl:px-8 xl:py-6">{children}</div>
+          <div key={activeTab} className="page-enter px-3 py-4 sm:px-6 sm:py-5 xl:px-8 xl:py-6">{children}</div>
         </main>
       </div>
       <Shortcuts />

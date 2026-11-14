@@ -1,5 +1,6 @@
 "use client";
 
+import { Segmented } from "@/components/ui/segmented";
 import { useMemo, useState } from "react";
 import { useTrades } from "@/hooks/use-trades";
 import { useTimezone } from "@/components/providers/timezone-provider";
@@ -37,7 +38,7 @@ export function EarnLoseWidget() {
   };
 
   return <WidgetPanel title={t("Where I earn / lose")} sub={t("R per group · rows with fewer than {count} trades are dimmed · * some trades have no R", { count: MIN_SAMPLE })} scroll
-    aside={<div role="radiogroup" aria-label={t("Group by")} className="flex flex-wrap gap-1">{BREAKDOWN_DIMENSIONS.map(item => <button key={item} type="button" role="radio" aria-checked={dimension === item} onClick={() => setDimension(item)} className={`min-h-8 rounded-full border px-2.5 text-xs transition-colors ${dimension === item ? "border-primary bg-primary text-primary-foreground" : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground"}`}>{t(DIMENSION_LABEL[item])}</button>)}</div>}>
+    aside={<Segmented aria-label={t("Group by")} size="xs" wrap value={dimension} onChange={setDimension} options={BREAKDOWN_DIMENSIONS.map(item => ({ value: item, label: t(DIMENSION_LABEL[item]) }))} />}>
     {rows.length === 0 ? <p className="text-sm text-muted-foreground">{t("No data.")}</p> : <table className="w-full text-xs tabular-nums">
       <thead className="sticky top-0 z-10 bg-card"><tr className="border-b border-border text-left text-muted-foreground">
         <th scope="col" className="py-2 pr-2 font-medium">{t(DIMENSION_LABEL[dimension])}</th>

@@ -59,7 +59,7 @@ export function TimezoneSelect({ value, onChange, disabled, id, "aria-label": ar
     return { common, all };
   }, [value, t, broker]);
   return (
-    <Select id={id} aria-label={ariaLabel} value={value} disabled={disabled} onChange={event => onChange(event.target.value)} className={className}>
+    <Select id={id} aria-label={ariaLabel} value={value} disabled={disabled} onChange={event => onChange(event.target.value)} className={className} search={{ label: t("Search time zones"), placeholder: t("Search time zones…"), empty: t("Nothing found") }}>
       <optgroup label={t("Common")}>
         {common.map(({ tz, label }) => <option key={tz} value={tz}>{label}</option>)}
       </optgroup>
