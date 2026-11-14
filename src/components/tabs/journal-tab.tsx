@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Pencil, Plus, Search, Trash2, SlidersHorizontal, GripVertical, LayoutGrid, Table as TableIcon, Filter, ListChecks, Images, Upload } from 'lucide-react';
 import { Button, Input, Select } from '@/components/ui/primitives';
 import { ManualTradeModal } from '@/components/journal/manual-trade-modal';
+import { DateTimeField, isInPickerPopover } from '@/components/ui/date-time-field';
 import { DayReview } from '@/components/journal/day-review';
 import { ScreenshotGallery } from '@/components/journal/screenshot-gallery';
 import { CsvImportModal } from '@/components/journal/csv-import-modal';
@@ -78,7 +79,7 @@ export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus, review = fa
   }, [panel]);
   useEffect(() => {
     if (!filterPanel) return;
-    function onPointerDown(event: MouseEvent) { if (filterPanelRef.current && !filterPanelRef.current.contains(event.target as Node)) setFilterPanel(false); }
+    function onPointerDown(event: MouseEvent) { if (filterPanelRef.current && !filterPanelRef.current.contains(event.target as Node) && !isInPickerPopover(event.target)) setFilterPanel(false); }
     function onKeyDown(event: KeyboardEvent) { if (event.key === 'Escape') setFilterPanel(false); }
     document.addEventListener('mousedown', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
@@ -135,7 +136,7 @@ export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus, review = fa
   function filterField(id: JournalColumnId) {
     const kind = journalFilterKind(id), value = filters[id] ?? {}, label = labelFor(id);
     if (kind === 'number') return <div className="grid grid-cols-2 gap-2"><Input inputMode="decimal" aria-label={t('{label}: from', { label })} placeholder={t('from')} value={value.min ?? ''} onChange={e => setFilter(id, { min: e.target.value })} /><Input inputMode="decimal" aria-label={t('{label}: to', { label })} placeholder={t('to')} value={value.max ?? ''} onChange={e => setFilter(id, { max: e.target.value })} /></div>;
-    if (kind === 'date') return <div className="grid grid-cols-2 gap-2"><Input type="date" aria-label={t('{label}: from', { label })} value={value.from ?? ''} onChange={e => setFilter(id, { from: e.target.value })} /><Input type="date" aria-label={t('{label}: to', { label })} value={value.to ?? ''} onChange={e => setFilter(id, { to: e.target.value })} /></div>;
+    if (kind === 'date') return <div className="grid grid-cols-2 gap-2"><DateTimeField clearable aria-label={t('{label}: from', { label })} placeholder={t('from')} value={value.from ?? ''} onChange={from => setFilter(id, { from })} /><DateTimeField clearable aria-label={t('{label}: to', { label })} placeholder={t('to')} value={value.to ?? ''} onChange={to => setFilter(id, { to })} /></div>;
     return <Input aria-label={t('{label}: contains', { label })} placeholder={t('contains…')} value={value.value ?? ''} onChange={e => setFilter(id, { value: e.target.value })} />;
   }
   function move(source: JournalColumnId, target?: JournalColumnId) { if (editing && target && prefs.canEdit) prefs.change(moveJournalColumn(prefs.layout, source, target)); }

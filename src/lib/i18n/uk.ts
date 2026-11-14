@@ -1223,4 +1223,11 @@ export const uk: Dictionary = {
   "The new password must differ from the current one": "Новий пароль має відрізнятися від поточного",
   "Could not change the password. Try again later.": "Не вдалося змінити пароль. Спробуйте пізніше.",
   "This section is not available in the closed beta": "Цей розділ недоступний у закритій беті",
+  "Pick a time": "Оберіть час",
+  "Pick a date": "Оберіть дату",
+  "Pick date and time": "Оберіть дату й час",
+  "Hours": "Години",
+  "Minutes": "Хвилини",
+  "Now": "Зараз",
+  "Clear": "Очистити",
 };

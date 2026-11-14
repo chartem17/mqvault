@@ -11,6 +11,8 @@ import { GhostInput } from "@/components/ui/ghost-input";
 import { usePreferences } from "@/components/providers/preferences-provider";
 import { AutoTextarea } from "@/components/ui/auto-textarea";
 import { Field } from "@/components/ui/field";
+import { DateTimeField } from "@/components/ui/date-time-field";
+import { ModalPortal } from "@/components/ui/modal-portal";
 import { EmptyState } from "@/components/ui/empty-state";
 import "@/components/ui/field.css";
 import { useInstruments } from "@/hooks/use-instruments";
@@ -257,6 +259,7 @@ export function ManualTradeModal({
   const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const backdropPress = useRef(false);
   const { instruments } = useInstruments();
   const { timezone: userZone } = useTimezone();
   const [entryZone, setEntryZone] = useState(userZone);
@@ -513,6 +516,7 @@ export function ManualTradeModal({
   }
 
   return (
+    <ModalPortal>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6">
       <style>{`
         @keyframes trade-ticket-shake {
@@ -525,7 +529,10 @@ export function ManualTradeModal({
 
       <div
         className={`${DIALOG_BACKDROP} absolute inset-0`}
-        onClick={onClose}
+        // Close only on a press that starts and ends on the backdrop, so dismissing a
+        // date picker or finishing a text selection outside the ticket keeps it open.
+        onPointerDown={(event) => { backdropPress.current = event.target === event.currentTarget; }}
+        onClick={(event) => { if (backdropPress.current && event.target === event.currentTarget) onClose(); backdropPress.current = false; }}
       />
 
       <aside
@@ -597,11 +604,13 @@ export function ManualTradeModal({
                 <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
                   {t("Opened at")}
                 </span>
-                <Input
+                <DateTimeField
                   data-trade-field="opened_at"
                   type="datetime-local"
+                  aria-label={t("Opened at")}
+                  zone={entryZone}
                   value={form.opened_at}
-                  onChange={(event) => changeOpenedAt(event.target.value)} className="ui-field-control" data-ui-state={errors.opened_at ? 'error' : undefined} aria-invalid={Boolean(errors.opened_at)}
+                  onChange={changeOpenedAt} data-ui-state={errors.opened_at ? 'error' : undefined} aria-invalid={Boolean(errors.opened_at)}
                 />
                 {errors.opened_at ? (
                   <span className="text-[11px] text-destructive">
@@ -610,7 +619,7 @@ export function ManualTradeModal({
                 ) : null}
               </label>
 
-              {input("closed_at", msg("Closed at"), "datetime-local")}
+              <Field label={t("Closed at")}>{control => <DateTimeField {...control} data-trade-field="closed_at" type="datetime-local" zone={entryZone} clearable value={form.closed_at} onChange={value => setField("closed_at", value)} />}</Field>
 
               <div className="col-span-2 flex flex-col gap-1">
                 <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
@@ -894,5 +903,6 @@ export function ManualTradeModal({
         </div>
       ) : null}
     </div>
+    </ModalPortal>
   );
 }
