@@ -15,6 +15,7 @@ Supabase (Postgres 17), проєкт `mqvault-dev`. Схему знято з ж�
 | `accounts` | Торгові рахунки | `platform` (manual/mt5/binance/bybit/other), `account_type` (personal/prop), `broker_timezone` (за замовч. `Etc/UTC`), `phase`, `parent_account_id` (гілка Phase 1 → 2 → Funded), `target_percent`, `max_loss_percent`, `daily_loss_percent`, `min_trading_days`, `prop_*_state`, `prop_rules_revision` |
 | `journal_trades` | Угоди | `source`, `opened_at`/`closed_at` (timestamptz), `gross_pnl`, `commission`, `swap`, `fee`, `net_pnl`, `result_r`, `session`, `setup`, `emotion`, `mistake`, `screenshot_url`, поля нормалізації символу (`normalized_symbol`, `asset_class`, …), `meta` |
 | `strategy_rules` | Стратегії (правила) | `account_id`, `definition` (jsonb), `source_strategy_id` (копія зі стратегії) |
+| `trade_plans` | План угоди до входу (Playbook, [ADR 0019](../decisions/0019-playbook-trading-system.md)) | `account_id`, пункти чекліста (CHECK — заповнені), `entry`/`stop`/`target`, `rr`, `risk_pct`, `risk_exception`, `gate` (знімок перевірки), `status` active/cancelled, `trade_id` (ручна прив'язка, `ON DELETE SET NULL`). Міграція `20261114120000` **не застосована** |
 | `strategy_checks` | Результат перевірки угоди стратегією | `trade_id`, `strategy_rule_id`, `passed`, `reasons`. Порожня, у коді поки не використовується (перевірки рахуються на льоту в `lib/strategy-control`) |
 | `news_events` | Економічні новини/календар, одна таблиця на весь сайт ([ADR 0013](../decisions/0013-economic-calendar-source.md)) | `event_time`, `impact`, `currency`, `actual/forecast/previous` (текст для показу), `source`, `external_id`; після міграції `20261108171403` — `*_value` (числа), `event_type`, `all_day`, `forecast_suspect`, `license_scope` |
 | `trade_news_links` | Зв'язок угод із новинами | `trade_id`, `news_event_id`, `minutes_diff`, `relation_type`, `window_minutes` |
@@ -80,5 +81,6 @@ app_users ─┬─< accounts ─┬─< journal_trades ─┬─< strategy_chec
 | `20261112194420 user_preferences` | `app_users.preferences` jsonb ≤ 16 КБ | застосовано 2026-11-12 |
 | `20261112194829 rls_user_isolation` | політики RLS, права `authenticated`, перевірка власника у `vault_delete_entity`, прибрано `dev read journal_trades` | застосовано 2026-11-12 (63 політики; дані без змін: 13 рахунків, 321 угода, 2 стратегії) |
 | `20261112214306 audit_events` | журнал дій: пише лише сервер, користувач читає свої рядки | застосовано 2026-11-12 |
+| `20261114120000 trade_plans` | плани угод Playbook: RLS свої рядки, свої рахунки, лише свої угоди для прив'язки | **не застосовано** — чекає погодження власника (гілка `agent/ts-rules`) |
 | `20261112204953 private_rls_helpers` | допоміжні функції RLS переїжджають у схему `private` (advisor 0029) | застосовано 2026-11-12; advisors: лишилось лише «захист від злитих паролів» (налаштування Auth) |
 
