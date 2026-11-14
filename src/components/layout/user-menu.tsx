@@ -1,5 +1,6 @@
 "use client";
 
+import { Hint } from "@/components/ui/hint";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { KeyRound, LogOut, Settings, UserRound } from "lucide-react";
@@ -35,9 +36,9 @@ export function UserMenu() {
   const label = t("Account menu");
   return (
     <div ref={root} className="relative shrink-0">
-      <Button variant="secondary" className="px-2.5 sm:px-3" aria-label={label} title={label} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(value => !value)}>
+      <Hint label={label} side="bottom"><Button variant="secondary" className="px-2.5 sm:px-3" aria-label={label} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(value => !value)}>
         <UserRound aria-hidden="true" className="h-4 w-4 shrink-0" />
-      </Button>
+      </Button></Hint>
       {open && (
         <div role="menu" aria-label={label} className="absolute right-0 top-full z-50 mt-2 w-64 max-w-[calc(100vw-1.5rem)] rounded-xl border border-border bg-card p-1.5 shadow-2xl">
           <div className="border-b border-border px-3 pb-2.5 pt-2">
