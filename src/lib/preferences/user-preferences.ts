@@ -3,8 +3,9 @@
  * browser. Pure: every value coming from storage or a request goes through `sanitizePreferences`, so a bad or
  * old value can never break the UI and unknown keys are dropped.
  */
+import { sanitizePlaybook, type PlaybookConfig } from "../playbook/config";
 
-export const START_TABS = ["home", "overview", "journal", "strategy-control", "calendar"] as const;
+export const START_TABS = ["home", "overview", "journal", "playbook", "strategy-control", "calendar"] as const;
 export type StartTab = typeof START_TABS[number];
 export const NUMBER_FORMATS = ["plain", "grouped", "european"] as const;
 export type NumberFormat = typeof NUMBER_FORMATS[number];
@@ -25,11 +26,13 @@ export type UserPreferences = {
   checklist: Checklist | null;
   onboardingDismissed: boolean;
   reviewReminder: boolean;
+  /** Trading system parameters (Playbook); null = the built-in defaults. */
+  playbook: PlaybookConfig | null;
 };
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
   startTab: "home", privacy: false, weekStart: 1, numberFormat: "plain", defaultAccountId: null, defaultRiskPercent: null,
-  goals: null, checklist: null, onboardingDismissed: false, reviewReminder: true,
+  goals: null, checklist: null, onboardingDismissed: false, reviewReminder: true, playbook: null,
 };
 
 /** Stored size limit, mirrored by the database check. */
@@ -76,6 +79,7 @@ export function sanitizePreferences(value: unknown): UserPreferences {
     checklist: checklist(input.checklist),
     onboardingDismissed: input.onboardingDismissed === true,
     reviewReminder: input.reviewReminder !== false,
+    playbook: record(input.playbook) ? sanitizePlaybook(input.playbook) : null,
   };
 }
 
