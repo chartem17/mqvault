@@ -1,5 +1,7 @@
-import type { JournalTrade } from "@/hooks/use-trades";
-import { DEFAULT_TIMEZONE, dayKeyOrNull } from "@/lib/time/timezone";
+import { DEFAULT_TIMEZONE, dayKeyOrNull } from "../time/timezone";
+import { byClosing, computeStats, maxDrawdown, rDistribution, type StatsTrade } from "./trade-stats";
+
+export type { RBucket } from "./trade-stats";
 
 export type DrawdownPoint = {
   date: string;
@@ -8,71 +10,41 @@ export type DrawdownPoint = {
   drawdownPct: number;
 };
 
-export type RBucket = { range: string; count: number };
+/**
+ * Only closed trades count; R figures skip trades without a known R (ADR 0020).
+ * @param tz zone that decides which calendar day a trade belongs to (the user's zone).
+ * @param startBalance account starting balance; drawdown % is measured against balance + profit, not profit alone.
+ */
+export function computeAdvancedStats(trades: readonly StatsTrade[], tz: string = DEFAULT_TIMEZONE, startBalance: number | null = null) {
+  const stats = computeStats(trades);
+  const profitFactor = stats.wins > 0 && stats.losses === 0 ? Infinity : stats.profitFactor;
 
-/** @param tz zone that decides which calendar day a trade belongs to (the user's zone). */
-export function computeAdvancedStats(trades: JournalTrade[], tz: string = DEFAULT_TIMEZONE) {
-  const wins = trades.filter((t) => (t.net_pnl ?? 0) > 0);
-  const losses = trades.filter((t) => (t.net_pnl ?? 0) < 0);
-
-  const winRate = trades.length ? wins.length / trades.length : 0;
-  const lossRate = trades.length ? losses.length / trades.length : 0;
-  const avgWin = wins.length
-    ? wins.reduce((s, t) => s + (t.net_pnl ?? 0), 0) / wins.length
-    : 0;
-  const avgLoss = losses.length
-    ? Math.abs(losses.reduce((s, t) => s + (t.net_pnl ?? 0), 0)) / losses.length
-    : 0;
-
-  const grossProfit = wins.reduce((s, t) => s + (t.net_pnl ?? 0), 0);
-  const grossLoss = Math.abs(losses.reduce((s, t) => s + (t.net_pnl ?? 0), 0));
-
-  const expectancy = winRate * avgWin - lossRate * avgLoss;
-  const profitFactor = grossLoss === 0 ? (grossProfit > 0 ? Infinity : 0) : grossProfit / grossLoss;
-
-  let equity = 0;
-  let peak = 0;
-  let maxDrawdownPct = 0;
+  const base = startBalance !== null && startBalance > 0 ? startBalance : 0;
+  let equity = base, peak = base;
   const drawdownCurve: DrawdownPoint[] = [];
-
-  const sorted = [...trades].sort(
-    (a, b) => new Date(a.opened_at).getTime() - new Date(b.opened_at).getTime()
-  );
-
-  for (const t of sorted) {
+  for (const t of byClosing(trades)) {
     equity += t.net_pnl ?? 0;
     peak = Math.max(peak, equity);
     const drawdownPct = peak > 0 ? ((equity - peak) / peak) * 100 : 0;
-    maxDrawdownPct = Math.min(maxDrawdownPct, drawdownPct);
-    drawdownCurve.push({ date: dayKeyOrNull(t.opened_at, tz) ?? t.opened_at.slice(0, 10), equity, peak, drawdownPct: +drawdownPct.toFixed(2) });
+    const day = dayKeyOrNull(t.closed_at ?? null, tz) ?? String(t.closed_at).slice(0, 10);
+    drawdownCurve.push({ date: day, equity: +(equity - base).toFixed(2), peak: +(peak - base).toFixed(2), drawdownPct: +drawdownPct.toFixed(2) });
   }
 
-  const edges = [-Infinity, -2, -1, 0, 1, 2, 3, Infinity];
-  const rDistribution: RBucket[] = [];
-  for (let i = 0; i < edges.length - 1; i++) {
-    const lower = edges[i];
-    const upper = edges[i + 1];
-    const count = trades.filter((t) => {
-      const r = t.result_r ?? 0;
-      return r > lower && r <= upper;
-    }).length;
-    const label =
-      lower === -Infinity ? `<${upper}R` : upper === Infinity ? `>${lower}R` : `${lower}..${upper}R`;
-    rDistribution.push({ range: label, count });
-  }
-
+  // Day of a trade = day of its opening, as on the Overview calendar (see docs/architecture/trade-formulas.md, open questions).
   const dailyPnl: Record<string, number> = {};
   for (const t of trades) {
+    if (!t.closed_at || !t.opened_at) continue;
     const day = dayKeyOrNull(t.opened_at, tz) ?? t.opened_at.slice(0, 10);
     dailyPnl[day] = +((dailyPnl[day] || 0) + (t.net_pnl ?? 0)).toFixed(2);
   }
 
   return {
-    expectancy: +expectancy.toFixed(2),
+    expectancy: +stats.expectancy.toFixed(2),
+    expectancyR: stats.rCount ? +stats.avgR.toFixed(2) : null,
     profitFactor: profitFactor === Infinity ? profitFactor : +profitFactor.toFixed(2),
-    maxDrawdownPct: +maxDrawdownPct.toFixed(2),
+    maxDrawdownPct: maxDrawdown(trades, startBalance).pct ?? 0,
     drawdownCurve,
-    rDistribution,
+    rDistribution: rDistribution(trades),
     dailyPnl,
   };
 }

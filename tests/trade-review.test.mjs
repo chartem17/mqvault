@@ -66,19 +66,26 @@ const { financialsChanged } = require("../.tmp-trade-review-tests/lib/journal/tr
 
 test("PATCH keeps reconciled P/L: only a changed financial input triggers a recompute", () => {
   // Shape of an imported, reconciled trade as Supabase returns it (numerics as strings).
-  const current = { direction: "Long", entry_price: "1.16500", exit_price: "1.17200", stop_loss: "1.16350", gross_pnl: "225.60", commission: "12.00", swap: "0.00", fee: "0.00", net_pnl: "213.60" };
+  const current = { direction: "Long", entry_price: "1.16500", exit_price: "1.17200", stop_loss: "1.16350", initial_stop_loss: "1.16350", gross_pnl: "225.60", commission: "12.00", swap: "0.00", fee: "0.00", net_pnl: "213.60", closed_at: "2026-10-01T10:00:00Z" };
   assert.equal(financialsChanged({ setup: "Retest", emotion: "Calm", notes: null }, current), false);
   // The edit modal resends every field with the same values (numbers, positive costs).
-  assert.equal(financialsChanged({ direction: "Long", entry_price: 1.165, exit_price: 1.172, stop_loss: 1.1635, gross_pnl: 225.6, commission: 12, swap: 0, fee: 0 }, current), false);
+  assert.equal(financialsChanged({ direction: "Long", entry_price: 1.165, exit_price: 1.172, stop_loss: 1.1635, initial_stop_loss: 1.1635, gross_pnl: 225.6, commission: 12, swap: 0, fee: 0, closed_at: "2026-10-01T10:00:00.000Z" }, current), false);
   assert.equal(financialsChanged({ commission: -12 }, current), false);
   assert.equal(financialsChanged({ exit_price: 1.173 }, current), true);
   assert.equal(financialsChanged({ direction: "Short" }, current), true);
-  assert.equal(financialsChanged({ stop_loss: null }, current), true);
+  assert.equal(financialsChanged({ initial_stop_loss: null }, current), true);
+  // The last stop is shown in the journal but no longer drives R (ADR 0020).
+  assert.equal(financialsChanged({ stop_loss: 1.172 }, current), false);
+  assert.equal(financialsChanged({ closed_at: null }, current), true);
 });
 
-test("server formulas: net treats costs as costs whatever the sign, R needs a valid stop", () => {
+test("server formulas: net treats costs as costs whatever the sign, R needs a valid initial stop", () => {
   const { derivedFinancials } = require("../.tmp-trade-review-tests/lib/journal/trade-financials.js");
-  assert.deepEqual(derivedFinancials({ gross_pnl: -53.1, commission: -4.5, swap: 0, fee: 0, direction: "Long", entry_price: "1.16723", exit_price: 1.16669, stop_loss: 1.16669 }), { net_pnl: -57.6, result_r: -1 });
-  assert.deepEqual(derivedFinancials({ gross_pnl: 10, commission: 2, swap: -0.5, fee: 1, direction: "Short", entry_price: 100, exit_price: 98, stop_loss: 101 }), { net_pnl: 6.5, result_r: 2 });
-  assert.equal(derivedFinancials({ gross_pnl: 1, direction: "Long", entry_price: 1, exit_price: 2, stop_loss: 1.5 }).result_r, null);
+  // EURUSD long, 1 lot, initial stop hit: risk 5.4 pips × 1 lot = $54, net −57.6 → −1.0667R (costs included).
+  const loss = derivedFinancials({ gross_pnl: -54, commission: -3.6, swap: 0, fee: 0, direction: "Long", entry_price: "1.16723", exit_price: 1.16669, initial_stop_loss: 1.16669, volume: 1, closed_at: "x" }, { initialBalance: 5000 });
+  assert.deepEqual(loss, { net_pnl: -57.6, risk_amount: 54, risk_percent: 1.08, risk_basis: "stop", result_r: -1.0667 });
+  // No volume → no money risk: falls back to the price R.
+  assert.deepEqual(derivedFinancials({ gross_pnl: 10, commission: 2, swap: -0.5, fee: 1, direction: "Short", entry_price: 100, exit_price: 98, initial_stop_loss: 101 }), { net_pnl: 6.5, risk_amount: null, risk_percent: null, risk_basis: null, result_r: 2 });
+  // A stop on the winning side is not an initial risk.
+  assert.equal(derivedFinancials({ gross_pnl: 1, direction: "Long", entry_price: 1, exit_price: 2, initial_stop_loss: 1.5 }).result_r, null);
 });

@@ -724,6 +724,7 @@ export const uk: Dictionary = {
   "Risk": "Ризик",
   "Risk %": "Ризик %",
   "Risk amount": "Сума ризику",
+  "Initial stop loss": "Початковий стоп",
   "Risk data unavailable": "Дані про ризик відсутні",
   "Risk escalation after a loss": "Ескалація ризику після збитку",
   "No trading around red news": "Не торгувати навколо червоних новин",

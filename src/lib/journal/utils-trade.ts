@@ -35,46 +35,17 @@ function toTimeLabel(value: string | null | undefined, tz: string) {
   try { return timeLabel(d, tz); } catch { return ""; }
 }
 
-function sortByOpenedAt(a: JournalTrade, b: JournalTrade) {
-  return (a.opened_at ?? "").localeCompare(b.opened_at ?? "");
+/** Realised equity moves when a trade closes. */
+function sortByClosedAt(a: JournalTrade, b: JournalTrade) {
+  return (a.closed_at ?? "").localeCompare(b.closed_at ?? "");
 }
 
-export function computeStats(trades: JournalTrade[]) {
-  const wins = trades.filter((t) => toNumber(t.net_pnl) > 0);
-  const losses = trades.filter((t) => toNumber(t.net_pnl) < 0);
-  const be = trades.filter((t) => toNumber(t.net_pnl) === 0);
-
-  const totalPnl = trades.reduce((s, t) => s + toNumber(t.net_pnl), 0);
-  const grossWin = wins.reduce((s, t) => s + toNumber(t.net_pnl), 0);
-  const grossLoss = Math.abs(
-    losses.reduce((s, t) => s + toNumber(t.net_pnl), 0),
-  );
-
-  return {
-    total: trades.length,
-    wins: wins.length,
-    losses: losses.length,
-    be: be.length,
-    winRate: trades.length ? (wins.length / trades.length) * 100 : 0,
-    totalPnl,
-    avgWin: wins.length ? grossWin / wins.length : 0,
-    avgLoss: losses.length ? -(grossLoss / losses.length) : 0,
-    avgR: trades.length
-      ? trades.reduce((s, t) => s + toNumber(t.result_r), 0) / trades.length
-      : 0,
-    profitFactor: grossLoss ? grossWin / grossLoss : 0,
-    bestTrade: trades.length
-      ? Math.max(...trades.map((t) => toNumber(t.net_pnl)))
-      : 0,
-    worstTrade: trades.length
-      ? Math.min(...trades.map((t) => toNumber(t.net_pnl)))
-      : 0,
-  };
-}
+/** Stats of the metric widgets: closed trades only, R averaged over trades with a known R (lib/journal/trade-stats.ts). */
+export { computeStats } from "./trade-stats";
 
 /** @param tz zone used for the date/time labels of each point (the user's zone). */
 export function computeEquity(trades: JournalTrade[], tz: string = DEFAULT_TIMEZONE) {
-  const sorted = [...trades].sort(sortByOpenedAt);
+  const sorted = trades.filter(t => t.closed_at).sort(sortByClosedAt);
 
   let cum = 0;
 
@@ -84,13 +55,13 @@ export function computeEquity(trades: JournalTrade[], tz: string = DEFAULT_TIMEZ
 
     return {
       index,
-      date: toDateLabel(t.opened_at, tz),
-      time: toTimeLabel(t.opened_at, tz),
+      date: toDateLabel(t.closed_at, tz),
+      time: toTimeLabel(t.closed_at, tz),
       pair: t.symbol ?? "",
       session: t.session ?? "",
       emotion: t.emotion ?? "",
       tradePnl,
-      resultR: toNumber(t.result_r),
+      resultR: typeof t.result_r === "number" && Number.isFinite(t.result_r) ? t.result_r : null,
       pnl: +cum.toFixed(2),
     };
   });

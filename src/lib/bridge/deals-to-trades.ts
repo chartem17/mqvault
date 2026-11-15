@@ -104,13 +104,17 @@ function segmentsOf(deals: Mt5Deal[]): Segment[] {
   return done;
 }
 
-/** Initial stop/take of a trade: from the order that opened it, else the earliest order of the position that had one. */
-function initialLevels(orders: Mt5Order[], openOrder: number | null): { sl: number | null; tp: number | null } {
+/**
+ * Initial stop/take of a trade: from the order that opened it, else the earliest order of the position that had one.
+ * The stop falls back only to orders placed no later than the entry (`openMs`): a stop added after the entry, or a
+ * later order carrying a trailed stop, is not the initial risk.
+ */
+function initialLevels(orders: Mt5Order[], openOrder: number | null, openMs: number): { sl: number | null; tp: number | null } {
   const sorted = [...orders].sort((a, b) => a.time_setup_msc - b.time_setup_msc || a.ticket - b.ticket);
   const opening = sorted.find(order => order.ticket === openOrder);
   const pick = (field: "sl" | "tp") => {
     if (opening && opening[field] > 0) return opening[field];
-    const any = sorted.find(order => order[field] > 0);
+    const any = sorted.find(order => order[field] > 0 && (field === "tp" || order.time_setup_msc <= openMs));
     return any ? any[field] : null;
   };
   return { sl: pick("sl"), tp: pick("tp") };
@@ -142,7 +146,7 @@ export function buildTrades(deals: readonly Mt5Deal[], orders: readonly Mt5Order
   for (const [positionId, positionDeals] of byPosition) {
     const symbol = positionDeals[0].symbol;
     segmentsOf(positionDeals).forEach((segment, index) => {
-      const levels = index === 0 || segment.openOrder !== null ? initialLevels(ordersByPosition.get(positionId) ?? [], segment.openOrder) : { sl: null, tp: null };
+      const levels = index === 0 || segment.openOrder !== null ? initialLevels(ordersByPosition.get(positionId) ?? [], segment.openOrder, segment.openMs) : { sl: null, tp: null };
       const inVolume = segment.ins.reduce((sum, leg) => sum + leg.volume, 0);
       const closed = segment.closeMs !== null;
       trades.push({

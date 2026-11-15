@@ -2,7 +2,8 @@
  * Which built trades to insert, update or leave alone (features/mt5-bridge.md §3.6, items 3–5).
  *
  * - Sync owns only broker facts: prices, volume, times, gross/costs, closing. Setup, emotions, notes, screenshots and
- *   the review are never written. Stop/take are filled only while the journal has none (the owner may correct them for R).
+ *   the review are never written. Stop/take and the initial stop (the stop of the opening order) are filled only while
+ *   the journal has none (the owner may correct them for R).
  * - A trade the owner deleted is never brought back: its position row stays with trade_id = null (ADR 0005).
  * - A trade already in the journal (CSV import or typed by hand) is attached, not duplicated: same ticket, or same
  *   symbol, direction, opening minute (±1) and entry price within 0.05 %.
@@ -13,6 +14,7 @@ export type PositionLink = { key: string; trade_id: string | null; synced_at: st
 export type JournalTradeRef = {
   id: string; ticket: string | null; external_id: string | null; symbol: string; direction: string;
   opened_at: string; entry_price: number | string | null; stop_loss: number | string | null; take_profit: number | string | null;
+  initial_stop_loss?: number | string | null;
 };
 
 export type BrokerFields = Pick<BuiltTrade, "opened_at" | "closed_at" | "entry_price" | "exit_price" | "volume" | "gross_pnl" | "commission" | "swap" | "fee">;
@@ -62,6 +64,7 @@ export function planSync(built: readonly BuiltTrade[], links: readonly PositionL
     taken.add(target.id);
     const patch: Record<string, unknown> = { ...brokerFields(trade), ticket: trade.key };
     if (num(target.stop_loss) === null && trade.stop_loss !== null) patch.stop_loss = trade.stop_loss;
+    if (num(target.initial_stop_loss) === null && trade.stop_loss !== null) patch.initial_stop_loss = trade.stop_loss;
     if (num(target.take_profit) === null && trade.take_profit !== null) patch.take_profit = trade.take_profit;
     plan.updates.push({ trade, trade_id: target.id, patch });
   }
