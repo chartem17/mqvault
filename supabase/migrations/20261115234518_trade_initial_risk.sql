@@ -1,6 +1,6 @@
 -- Initial stop and the origin of the initial risk (ADR 0020).
--- NOT APPLIED: apply only after the owner approves this exact migration; the code of the same PR writes both columns,
--- so it must be applied BEFORE that code reaches production (preview uses the production database).
+-- Applied 2026-11-16 with the owner's approval, before the code that writes both columns was merged
+-- (preview uses the production database). Version assigned by Supabase.
 --
 -- stop_loss stays what it was: the stop the journal shows (for MT5 imports — the last stop).
 -- initial_stop_loss is the stop at entry; R and risk are measured from it, never from stop_loss.

@@ -7,7 +7,7 @@
 //   node scripts/backfill-trade-risk.mjs [--planned-percent=1] [--apply]
 //
 // Needs NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY in the environment (never printed) and the migration
-// 20261116120000_trade_initial_risk applied. The formulas are the app's own: src/lib/journal/trade-financials.ts and
+// 20261115234518_trade_initial_risk applied. The formulas are the app's own: src/lib/journal/trade-financials.ts and
 // src/lib/bridge/deals-to-trades.ts are compiled and reused, nothing is re-implemented here.
 
 import { execFileSync } from "node:child_process";

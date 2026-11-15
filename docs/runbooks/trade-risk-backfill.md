@@ -3,7 +3,7 @@
 Кожен крок із записом у БД — лише після погодження власником саме цього кроку. Preview і production мають одну БД.
 
 ## Крок 0. Міграція
-`supabase/migrations/20261116120000_trade_initial_risk.sql` — дві порожні колонки (`initial_stop_loss`, `risk_basis`) і check. Дані не змінює. Застосовується **до** злиття PR (новий код пише ці колонки).
+`supabase/migrations/20261115234518_trade_initial_risk.sql` — дві порожні колонки (`initial_stop_loss`, `risk_basis`) і check. Дані не змінює. **Застосовано 2026-11-16.**
 
 ## Крок 1. Подивитись, що зміниться (лише читання)
 ```bash
