@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveUser, type UserContext } from "@/lib/auth/current-user";
 import { parseTradeReview, reviewFromInput } from "@/lib/journal/trade-review";
-import { derivedFinancials, financialsChanged } from "@/lib/journal/trade-financials";
+import { calibrateValuePerLot, derivedFinancials, financialsChanged, type FinancialContext } from "@/lib/journal/trade-financials";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +23,7 @@ const NULLABLE_NUM_KEYS = [
   "entry_price",
   "exit_price",
   "stop_loss",
+  "initial_stop_loss",
   "take_profit",
   "volume",
   "risk_percent",
@@ -76,7 +77,7 @@ async function accountBelongsToOwner(
   return Boolean(data);
 }
 
-// net_pnl and result_r are never read from the client: always computed here.
+// net_pnl, result_r and risk_basis are never read from the client: always computed here (ADR 0003, ADR 0020).
 function fieldsFrom(body: Body) {
   const f: Record<string, unknown> = {};
 
@@ -104,11 +105,7 @@ function fieldsFrom(body: Body) {
   for (const key of COST_KEYS) {
     if (body[key] !== undefined) f[key] = Math.abs(toNum(body[key]) ?? 0);
   }
-  if (body.gross_pnl !== undefined) f.gross_pnl = toNum(body.gross_pnl) ?? 0;
   if (body.swap !== undefined) f.swap = toNum(body.swap) ?? 0;
-  for (const key of COST_KEYS) {
-    if (body[key] !== undefined) f[key] = Math.abs(toNum(body[key]) ?? 0);
-  }
 
   return f;
 }
@@ -131,10 +128,12 @@ function mapRow(row: Record<string, unknown>) {
     entry_price: str(row.entry_price),
     exit_price: str(row.exit_price),
     stop_loss: str(row.stop_loss),
+    initial_stop_loss: str(row.initial_stop_loss),
     take_profit: str(row.take_profit),
     volume: num(row.volume),
     risk_percent: num(row.risk_percent),
     risk_amount: num(row.risk_amount),
+    risk_basis: row.risk_basis ?? null,
     gross_pnl: num(row.gross_pnl),
     commission: num(row.commission),
     swap: num(row.swap),
@@ -154,7 +153,28 @@ function mapRow(row: Record<string, unknown>) {
   };
 }
 
-const derived = derivedFinancials;
+/**
+ * What the R/risk formulas need beyond the row: the account's starting balance and, for trades that barely moved,
+ * the value of a price move per lot calibrated on the account's other closed trades of the same symbol.
+ */
+async function financialContext(db: Db, ownerId: string, accountId: unknown, symbol: unknown): Promise<FinancialContext> {
+  if (typeof accountId !== "string" || !accountId) return {};
+  const { data: account } = await db.from("accounts").select("initial_balance").eq("id", accountId).eq("user_id", ownerId).maybeSingle();
+  let valuePerLot: number | null = null;
+  if (typeof symbol === "string" && symbol) {
+    const { data: peers } = await db
+      .from("journal_trades")
+      .select("direction, entry_price, exit_price, volume, gross_pnl, closed_at")
+      .eq("user_id", ownerId)
+      .eq("account_id", accountId)
+      .eq("symbol", symbol)
+      .not("closed_at", "is", null)
+      .order("closed_at", { ascending: false })
+      .limit(200);
+    valuePerLot = calibrateValuePerLot(peers ?? []);
+  }
+  return { initialBalance: toNum(account?.initial_balance), valuePerLot };
+}
 
 async function readBody(request: NextRequest): Promise<Body | null> {
   try {
@@ -212,15 +232,16 @@ export async function POST(request: NextRequest) {
       return fail(400, "Unknown account_id");
     }
 
+    // A trade typed in the form is logged with the stop it was opened with: that stop is the initial one,
+    // unless the form sends a separate initial stop.
+    if ((fields.initial_stop_loss ?? null) === null && (fields.stop_loss ?? null) !== null) {
+      fields.initial_stop_loss = fields.stop_loss;
+    }
+    const base = { source: "manual", gross_pnl: 0, commission: 0, swap: 0, fee: 0, ...fields };
     const payload = {
-      source: "manual",
-      gross_pnl: 0,
-      commission: 0,
-      swap: 0,
-      fee: 0,
-      ...fields,
+      ...base,
       user_id: ownerId,
-      ...derived(fields),
+      ...derivedFinancials(base, await financialContext(db, ownerId, fields.account_id, fields.symbol)),
     };
 
     const { data, error } = await db
@@ -304,13 +325,18 @@ export async function PATCH(request: NextRequest) {
     }
 
     const recompute = financialsChanged(fields, current);
-    const merged = { ...current, ...fields };
+    const merged: Record<string, unknown> = { ...current, ...fields };
+    // A risk typed now is the owner's value, whatever was derived before.
+    if ("risk_amount" in fields || "risk_percent" in fields) merged.risk_basis = null;
+    const derived = recompute
+      ? derivedFinancials(merged, await financialContext(db, ownerId, merged.account_id, merged.symbol))
+      : null;
 
     const { data, error } = await db
       .from("journal_trades")
       .update({
         ...fields,
-        ...(recompute ? derived(merged) : {}),
+        ...(derived ?? {}),
         ...(meta ? { meta } : {}),
         updated_at: new Date().toISOString(),
       })

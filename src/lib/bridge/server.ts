@@ -4,7 +4,7 @@
  */
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
-import { derivedFinancials } from "@/lib/journal/trade-financials";
+import { derivedFinancials, toNum, valueKey, valuesBySymbol } from "@/lib/journal/trade-financials";
 import { canonicalString, clockSkewOk, MAX_BODY_BYTES, parseSignedHeaders, sha256Hex, verifySignature } from "./signature";
 import { buildTrades, type Mt5Deal, type Mt5Order } from "./deals-to-trades";
 import { planSync, type JournalTradeRef, type PositionLink } from "./trade-sync";
@@ -81,17 +81,22 @@ export type SyncResult = { inserted: number; updated: number; skipped_deleted: n
 
 /**
  * Rebuilds journal trades of one linked MT5 account from its stored deals: all positions, or only `positionIds`.
- * Only broker facts are written (see trade-sync.ts); net and R come from derivedFinancials (ADR 0003).
+ * Only broker facts are written (see trade-sync.ts); net, risk and R come from derivedFinancials (ADR 0003, ADR 0020).
+ * The stop of the order that opened the position is the initial stop (initial_stop_loss).
  */
 export async function syncPositions(db: Db, terminal: { id: string; user_id: string; account_id: string }, positionIds: number[] | "all"): Promise<SyncResult> {
   const result: SyncResult = { inserted: 0, updated: 0, skipped_deleted: 0 };
   const { data: account } = await db.from("accounts").select("id, broker_timezone, initial_balance").eq("id", terminal.account_id).eq("user_id", terminal.user_id).maybeSingle();
   if (!account) return result;
+  let initialBalance = toNum(account.initial_balance);
   if (account.initial_balance === null) {
     // An account the Bridge created starts with the broker's deposits as its starting balance (never overwrites the owner's value).
     const { data: deposits } = await db.from("bridge_deals").select("type, profit").eq("terminal_account_id", terminal.id).eq("type", 2).limit(1000);
     const total = depositsTotal((deposits ?? []).map(deal => ({ type: Number(deal.type), profit: Number(deal.profit) })));
-    if (total !== null) await db.from("accounts").update({ initial_balance: total }).eq("id", terminal.account_id).eq("user_id", terminal.user_id).is("initial_balance", null);
+    if (total !== null) {
+      await db.from("accounts").update({ initial_balance: total }).eq("id", terminal.account_id).eq("user_id", terminal.user_id).is("initial_balance", null);
+      initialBalance = total;
+    }
   }
   if (positionIds !== "all" && positionIds.length === 0) return result;
 
@@ -125,12 +130,15 @@ export async function syncPositions(db: Db, terminal: { id: string; user_id: str
     links.push(...(data ?? []).map(row => ({ key: row.position_key as string, trade_id: row.trade_id as string | null, synced_at: row.synced_at as string | null })));
   }
   const { data: journalRows, error: journalError } = await db.from("journal_trades")
-    .select("id, ticket, external_id, symbol, direction, opened_at, closed_at, entry_price, exit_price, stop_loss, take_profit, volume, gross_pnl, commission, swap, fee, meta")
+    .select("id, ticket, external_id, symbol, direction, opened_at, closed_at, entry_price, exit_price, stop_loss, initial_stop_loss, take_profit, volume, gross_pnl, commission, swap, fee, risk_amount, risk_percent, risk_basis, meta")
     .eq("account_id", terminal.account_id).eq("user_id", terminal.user_id).limit(20000);
   if (journalError) throw new Error("Failed to read journal trades");
   const journal = (journalRows ?? []) as (JournalTradeRef & Record<string, unknown>)[];
   const journalById = new Map(journal.map(row => [row.id, row]));
   const plan = planSync(built, links, journal);
+  // Value of a price move per lot by symbol, from this account's own closed positions (for trades that barely moved).
+  const values = valuesBySymbol(built);
+  const context = (symbol: unknown) => ({ initialBalance, valuePerLot: values.get(valueKey(symbol)) ?? null });
   result.skipped_deleted = plan.skippedDeleted.length;
   const syncedAt = new Date().toISOString();
   const bridgeMeta = (trade: (typeof built)[number]) => ({ position_id: trade.position_id, close_reason: trade.close_reason, deals: trade.deal_count, synced_at: syncedAt });
@@ -142,11 +150,11 @@ export async function syncPositions(db: Db, terminal: { id: string; user_id: str
         user_id: terminal.user_id, account_id: terminal.account_id, source: "mt5", ticket: trade.key, external_id: trade.key,
         symbol: trade.symbol, raw_symbol: trade.raw_symbol, direction: trade.direction,
         opened_at: trade.opened_at, closed_at: trade.closed_at, entry_price: trade.entry_price, exit_price: trade.exit_price,
-        stop_loss: trade.stop_loss, take_profit: trade.take_profit, volume: trade.volume,
+        stop_loss: trade.stop_loss, initial_stop_loss: trade.stop_loss, take_profit: trade.take_profit, volume: trade.volume,
         gross_pnl: trade.gross_pnl, commission: trade.commission, swap: trade.swap, fee: trade.fee,
         meta: { bridge: bridgeMeta(trade) },
       };
-      return { ...row, ...derivedFinancials(row) };
+      return { ...row, ...derivedFinancials(row, context(row.symbol)) };
     });
     const { data, error } = await db.from("journal_trades").insert(rows).select("id, ticket");
     if (error) throw new Error("Failed to insert trades");
@@ -160,7 +168,7 @@ export async function syncPositions(db: Db, terminal: { id: string; user_id: str
     const merged = { ...current, ...update.patch };
     const meta = current.meta && typeof current.meta === "object" && !Array.isArray(current.meta) ? current.meta as Record<string, unknown> : {};
     const { error } = await db.from("journal_trades")
-      .update({ ...update.patch, ...derivedFinancials(merged), meta: { ...meta, bridge: bridgeMeta(update.trade) }, updated_at: syncedAt })
+      .update({ ...update.patch, ...derivedFinancials(merged, context(merged.symbol)), meta: { ...meta, bridge: bridgeMeta(update.trade) }, updated_at: syncedAt })
       .eq("id", update.trade_id).eq("user_id", terminal.user_id);
     if (error) throw new Error("Failed to update a trade");
     positionRows.push({ terminal_account_id: terminal.id, position_key: update.trade.key, trade_id: update.trade_id, synced_at: syncedAt });

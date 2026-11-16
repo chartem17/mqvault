@@ -327,3 +327,18 @@ test("the owner's answer about a new MT5 account is parsed strictly; deposits su
   assert.equal(match.depositsTotal([{ type: 2, profit: 10000 }, { type: 2, profit: 5000.004 }, { type: 2, profit: -2000 }, { type: 0, profit: 300 }]), 15000);
   assert.equal(match.depositsTotal([{ type: 0, profit: 300 }]), null);
 });
+
+test("initial stop: a stop added after the entry is not the initial risk; planSync fills an empty initial stop", () => {
+  const open = deal({ position_id: 31, order: 310, time_msc: wall("2026-07-04T09:00:00") });
+  const close = deal({ position_id: 31, order: 311, entry: 1, type: 1, price: 1.099, profit: -100, reason: 4, time_msc: wall("2026-07-04T10:00:00") });
+  // Opened without a stop; the only order with a stop is set up later (e.g. a trailed level on a later order).
+  const later = [{ ticket: 310, position_id: 31, time_setup_msc: open.time_msc, sl: 0, tp: 0 }, { ticket: 311, position_id: 31, time_setup_msc: close.time_msc, sl: 1.0995, tp: 0 }];
+  assert.equal(build.buildTrades([open, close], later, NY7)[0].stop_loss, null);
+  // A pending order placed before the entry with a stop still counts.
+  const pending = [{ ticket: 300, position_id: 31, time_setup_msc: open.time_msc - 60_000, sl: 1.098, tp: 0 }, ...later];
+  assert.equal(build.buildTrades([open, close], pending, NY7)[0].stop_loss, 1.098);
+
+  const plan = sync.planSync([built("1"), built("2")], [], [journalRow("a", { ticket: "1", initial_stop_loss: "1.0975" }), journalRow("b", { ticket: "2" })]);
+  assert.equal(plan.updates[0].patch.initial_stop_loss, undefined, "owner's initial stop is kept");
+  assert.equal(plan.updates[1].patch.initial_stop_loss, 1.098, "empty initial stop is filled from the opening order");
+});
