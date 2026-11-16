@@ -80,6 +80,6 @@ app_users ─┬─< accounts ─┬─< journal_trades ─┬─< strategy_chec
 | `20261112194420 user_preferences` | `app_users.preferences` jsonb ≤ 16 КБ | застосовано 2026-11-12 |
 | `20261112194829 rls_user_isolation` | політики RLS, права `authenticated`, перевірка власника у `vault_delete_entity`, прибрано `dev read journal_trades` | застосовано 2026-11-12 (63 політики; дані без змін: 13 рахунків, 321 угода, 2 стратегії) |
 | `20261112214306 audit_events` | журнал дій: пише лише сервер, користувач читає свої рядки | застосовано 2026-11-12 |
-| `20261115234518 trade_initial_risk` | `journal_trades.initial_stop_loss`, `risk_basis` (ADR 0020); дані не змінює | застосовано 2026-11-16 за погодженням власника (дані без змін: 13 рахунків, 321 угода, 256 з R, сума net −1608.87; advisors — лише «захист від злитих паролів»); бекфіл — [runbooks/trade-risk-backfill.md](../runbooks/trade-risk-backfill.md), не виконано |
+| `20261115234518 trade_initial_risk` | `journal_trades.initial_stop_loss`, `risk_basis` (ADR 0020); дані не змінює | застосовано 2026-11-16 за погодженням власника (дані без змін: 13 рахунків, 321 угода, 256 з R, сума net −1608.87; advisors — лише «захист від злитих паролів»); бекфіл виконано 2026-11-16 (оцінка 1 % для 233 угод) — [runbooks/trade-risk-backfill.md](../runbooks/trade-risk-backfill.md) |
 | `20261112204953 private_rls_helpers` | допоміжні функції RLS переїжджають у схему `private` (advisor 0029) | застосовано 2026-11-12; advisors: лишилось лише «захист від злитих паролів» (налаштування Auth) |
 

@@ -36,6 +36,9 @@ node scripts/backfill-trade-risk.mjs --planned-percent=1 --apply  # записа
 ```
 Для закритих угод без стопу й без введеного ризику: `risk_percent = 1`, `risk_amount = 1 % стартового балансу`, `risk_basis = 'planned'`, `R = net / risk_amount` (як на уроці). Позначка `planned` лишається, тож статистику можна фільтрувати «лише точний R». Відсоток називає власник.
 
+## Виконано 2026-11-16
+Варіант «з оцінкою 1 %» (`--planned-percent=1 --apply`) за рішенням власника: `stop` 25, `entered` 63, `planned` 233; net виправлено в 61 угоді; R є в 320 з 321. Перед записом збережено копію `id, net_pnl, risk_amount, risk_percent, risk_basis, result_r, initial_stop_loss` усіх 321 угоди (файл у власника, поза репозиторієм) — з неї можна відкотити.
+
 ## Перевірка після
 ```sql
 select risk_basis, count(*), count(result_r) from journal_trades where closed_at is not null group by 1;
