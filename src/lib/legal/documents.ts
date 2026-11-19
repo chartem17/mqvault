@@ -69,7 +69,7 @@ const privacy: LegalDocument = {
     ] },
     { heading: msg("What we collect"), paragraphs: [
       msg("Account: your e-mail address, a password hash (we never see the password itself), the name you set and, if you sign in with Google, your Google name and avatar."),
-      msg("Journal: trading accounts, trades, notes, tags, screenshots, strategies, goals and settings that you add yourself or that MT5 Bridge sends from your terminal."),
+      msg("Journal: trading accounts, trades, notes, tags, links to screenshots, strategies, trade plans, goals and settings that you add yourself or that MT5 Bridge sends from your terminal."),
       msg("Security: sign-in events and security changes, with the IP address stored only as a one-way hash, and the list of computers connected to MT5 Bridge."),
       msg("Technical: error reports when something breaks, with e-mail addresses, tokens, long numbers, cookies and request bodies removed before they leave the site."),
     ] },
@@ -79,7 +79,7 @@ const privacy: LegalDocument = {
       msg("We do not sell your data, do not use it for advertising and do not build profiles about you for anyone else."),
     ] },
     { heading: msg("Who processes it for us"), paragraphs: [
-      msg("Supabase (database, sign-in and file storage), Vercel (hosting) and, when enabled, Sentry (error reports), Cloudflare Turnstile (bot check at sign-up and sign-in) and Google (if you choose to sign in with Google). They process data only to provide their service to us."),
+      msg("Supabase (database and sign-in), Vercel (hosting) and, when enabled, Sentry (error reports), Cloudflare Turnstile (bot check at sign-up and sign-in) and Google (if you choose to sign in with Google). They process data only to provide their service to us. Screenshots are stored as links: the images stay with the service where you uploaded them."),
       msg("Some of these providers may process data outside your country. Where that happens, we rely on the safeguards they offer, such as standard contractual clauses."),
     ] },
     { heading: msg("Who can see your journal"), paragraphs: [
