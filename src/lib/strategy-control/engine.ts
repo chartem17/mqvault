@@ -24,7 +24,7 @@ function resolveStatus(
           : "neutral";
 
   if (sampleSize === 0) {
-    return { status: "insufficient", confidence: "low", impactStatus } as const;
+    return { status: "no_data", confidence: "low", impactStatus } as const;
   }
 
   if (violations === 0) {
@@ -58,7 +58,7 @@ function buildRecommendation(
   compliantAvgR: number | null,
   violatedAvgR: number | null,
 ) {
-  if (status === "ok" || status === "insufficient") return null;
+  if (status === "ok" || status === "insufficient" || status === "no_data") return null;
 
   const comparison =
     compliantAvgR !== null && violatedAvgR !== null
@@ -110,6 +110,8 @@ export function analyzeTrades(
       )
     : null;
 
+  const checkedIds = new Set<string>();
+  const violatedIds = new Set<string>();
   const findings: RuleFinding[] = strategy.rules
     .filter((rule) => rule.enabled)
     .map((rule) => {
@@ -118,6 +120,8 @@ export function analyzeTrades(
         trades,
         params: rule.params,
       });
+      evaluated.checkedTradeIds.forEach((id) => checkedIds.add(id));
+      evaluated.violatedTradeIds.forEach((id) => violatedIds.add(id));
       const { status, confidence, impactStatus } = resolveStatus(
         evaluated.violations,
         evaluated.sampleSize,
@@ -151,7 +155,7 @@ export function analyzeTrades(
         evidenceTrades: evaluated.evidenceTrades,
         message:
           evaluated.sampleSize === 0
-            ? tr(msg("Not enough data to check rule “{title}” in the selected period."), { title: tr(definition.title) })
+            ? tr(msg("No data: no trade in the period has what rule “{title}” needs ({needs})."), { title: tr(definition.title), needs: tr(definition.needs) })
             : evaluated.violations === 0
               ? tr(msg("No violations: rule “{title}” was followed fully."), { title: tr(definition.title) })
               : tr(msg("Rule “{title}” was broken {violations} times ({trades} trades)."), { title: tr(definition.title), violations: evaluated.violations, trades: evaluated.affectedTrades }),
@@ -167,35 +171,12 @@ export function analyzeTrades(
       } satisfies RuleFinding;
     });
 
-  const violatedIds = new Set(
-    findings.flatMap((finding) => finding.evidenceTradeIds),
-  );
-  const checkedIds = new Set(
-    findings.flatMap((finding) => finding.evidenceTradeIds),
-  );
-  findings.forEach((finding) => {
-    if (finding.sampleSize > 0) {
-      finding.evidenceTrades.forEach((trade) => checkedIds.add(trade.id));
-    }
-  });
-
-  const checkedTrades = trades.filter(
-    (trade) =>
-      checkedIds.has(trade.id) ||
-      findings.some(
-        (finding) =>
-          finding.sampleSize > 0 &&
-          (finding.evidenceTradeIds.includes(trade.id) ||
-            finding.compliantCount > 0),
-      ),
-  );
-
-  const cleanTrades = checkedTrades.filter(
-    (trade) => !violatedIds.has(trade.id),
-  );
+  // Only trades some rule could actually check count; a trade no rule had data for is neither clean nor broken.
+  const checkedTrades = trades.filter((trade) => checkedIds.has(trade.id));
+  const cleanTrades = checkedTrades.filter((trade) => !violatedIds.has(trade.id));
   const compliance = checkedTrades.length
     ? Math.round((cleanTrades.length / checkedTrades.length) * 100)
-    : 0;
+    : null;
 
   const disciplineRisk = Math.min(
     100,

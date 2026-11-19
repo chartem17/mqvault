@@ -2,6 +2,20 @@ import type { Dictionary } from "./core";
 
 /** Ukrainian translations keyed by the English source text. Keep keys identical to the `t()` / `tn()` / `msg()` calls. */
 export const uk: Dictionary = {
+  // Strategy control: rules without data
+  "No data": "Немає даних",
+  "No trade has the data the rules need": "Жодна угода не має даних, потрібних правилам",
+  "No data: no trade in the period has what rule “{title}” needs ({needs}).": "Немає даних: жодна угода за період не має того, що потрібно правилу «{title}» ({needs}).",
+  "at least one trade": "хоча б одна угода",
+  "a trading session": "торгова сесія",
+  "an instrument": "інструмент",
+  "the entry model marked as followed or not": "позначка, чи дотримано модель входу",
+  "an emotional state": "емоційний стан",
+  "risk %": "ризик у %",
+  "a planned RR": "плановий RR",
+  "risk % above the threshold together with a planned RR": "ризик у % понад поріг разом із плановим RR",
+  "a trade after a loss on the same day, both with risk %": "угода після збитку того ж дня, обидві з ризиком у %",
+  "a check against the economic calendar": "перевірка за економічним календарем",
   // Section addresses, error pages, help, legal texts and footer (package 4)
   "Contents": "Зміст",
   "Creating an account means you accept these documents:": "Створюючи акаунт, ви приймаєте ці документи:",
