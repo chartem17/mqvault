@@ -5,8 +5,8 @@ import type { ReactNode } from "react";
 import { TrendingUp } from "lucide-react";
 import { useI18n } from "@/components/providers/i18n-provider";
 
-/** Full-page message for 404 and unexpected errors: the site's look, no technical details. */
-export function StatusPage({ code, title, text, action }: { code: string; title: string; text: string; action?: ReactNode }) {
+/** Full-page message for 404, unexpected errors and 503: the site's look, no technical details. */
+export function StatusPage({ code, title, text, action, home = true }: { code: string; title: string; text: string; action?: ReactNode; home?: boolean }) {
   const { t } = useI18n();
   return <main className="flex min-h-dvh items-center justify-center px-4 py-16">
     <div className="w-full max-w-md text-center">
@@ -16,7 +16,7 @@ export function StatusPage({ code, title, text, action }: { code: string; title:
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{text}</p>
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
         {action}
-        <Link href="/" className="inline-flex min-h-10 items-center rounded-xl border border-border bg-secondary px-4 text-sm font-medium text-secondary-foreground hover:bg-accent">{t("Go to Home")}</Link>
+        {home && <Link href="/" className="inline-flex min-h-10 items-center rounded-xl border border-border bg-secondary px-4 text-sm font-medium text-secondary-foreground hover:bg-accent">{t("Go to Home")}</Link>}
       </div>
     </div>
   </main>;

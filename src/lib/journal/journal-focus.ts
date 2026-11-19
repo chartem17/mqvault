@@ -26,11 +26,3 @@ export function applyJournalFocus<T extends { id: string }>(trades: readonly T[]
   const ids = new Set(focus.ids);
   return trades.filter(trade => ids.has(trade.id.toLowerCase()));
 }
-export function journalAliasDestination(value: string | string[] | undefined): string {
-  const search = new URLSearchParams({ tab: "journal" });
-  if (value !== undefined) {
-    const values = Array.isArray(value) ? value : [value];
-    search.set("focusTradeIds", values.length === 1 && values[0].length <= MAX_TEXT ? values[0] : "invalid");
-  }
-  return `/?${search.toString()}`;
-}

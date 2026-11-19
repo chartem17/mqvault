@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
-import type { TabId } from "@/app/page";
+import { tabPath } from "@/lib/navigation/workspace-routes";
 import { SECTION_LABEL, visiblePages } from "./nav-pages";
 import { useProfile } from "@/components/providers/profile-provider";
 import { useI18n } from "@/components/providers/i18n-provider";
@@ -12,7 +12,7 @@ import { useI18n } from "@/components/providers/i18n-provider";
  * Ctrl/⌘K page search. Lists every destination, filters as you type (English and translated names),
  * ↑/↓ + Enter navigate, Esc closes.
  */
-export function CommandPalette({ open, onClose, setActiveTab }: { open: boolean; onClose: () => void; setActiveTab: (tab: TabId) => void }) {
+export function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useI18n();
   const router = useRouter();
   const isOwner = useProfile().profile?.plan === "owner";
@@ -38,8 +38,7 @@ export function CommandPalette({ open, onClose, setActiveTab }: { open: boolean;
 
   function go(page: (typeof pages)[number]) {
     onClose();
-    if (page.target.kind === "tab") setActiveTab(page.target.tab);
-    else router.push(page.target.href);
+    router.push(page.target.kind === "tab" ? tabPath(page.target.tab) : page.target.href, { scroll: false });
   }
 
   return <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-[14vh]" role="dialog" aria-modal="true" aria-label={t("Search pages")}>

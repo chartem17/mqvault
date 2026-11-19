@@ -82,7 +82,7 @@ export function BridgeConnect({ initialCode }: { initialCode: string }) {
   return (
     <main className="relative mx-auto flex min-h-dvh w-full max-w-xl flex-col gap-4 px-4 py-8 sm:py-12">
       <div className="flex items-center justify-between gap-3">
-        <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">← {t("Back to the journal")}</Link>
+        <Link href="/journal" className="text-sm text-muted-foreground hover:text-foreground">← {t("Back to the journal")}</Link>
         <LanguageToggle />
       </div>
 

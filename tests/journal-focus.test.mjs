@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const { parseJournalFocus, applyJournalFocus, journalAliasDestination, MAX_JOURNAL_FOCUS_IDS } = require("../.tmp-journal-focus-tests/lib/journal/journal-focus.js");
+const { parseJournalFocus, applyJournalFocus, MAX_JOURNAL_FOCUS_IDS } = require("../.tmp-journal-focus-tests/lib/journal/journal-focus.js");
 const A = "aaaaaaaa-0000-4000-8000-000000000001", B = "bbbbbbbb-0000-4000-8000-000000000002", C = "cccccccc-0000-4000-8000-000000000003";
 const parse = value => parseJournalFocus(new URLSearchParams(value));
 test("absent focus preserves normal journal mode", () => { assert.equal(parse("").kind, "none"); });
@@ -26,9 +26,3 @@ test("missing IDs do not broaden selection and no-focus returns a new array", ()
   const input = [{ id: A }]; assert.deepEqual(applyJournalFocus(input, { kind: "ids", ids: [C] }), []);
   const result = applyJournalFocus(input, { kind: "none" }); assert.deepEqual(result, input); assert.notEqual(result, input);
 });
-test("journal alias leads to existing root workspace and retains exact IDs", () => {
-  const url = new URL(journalAliasDestination(`${A},${B}`), "https://example.invalid");
-  assert.equal(url.pathname, "/"); assert.equal(url.searchParams.get("tab"), "journal"); assert.deepEqual(parseJournalFocus(url.searchParams), { kind: "ids", ids: [A, B] });
-  assert.equal(parseJournalFocus(new URL(journalAliasDestination(undefined), "https://example.invalid").searchParams).kind, "none");
-});
-test("ambiguous alias parameters never remove the focus restriction", () => { const url = new URL(journalAliasDestination([A, B]), "https://example.invalid"); assert.equal(parseJournalFocus(url.searchParams).kind, "invalid"); });

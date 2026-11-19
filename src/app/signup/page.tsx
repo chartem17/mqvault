@@ -34,7 +34,8 @@ export default function SignupPage() {
     setSentTo(email.trim()); settle();
   }
 
-  const footer = <>{t("Already have an account?")} <Link href="/login" className={authLinkClass}>{t("Sign in")}</Link></>;
+  const footer = <>{t("Already have an account?")} <Link href="/login" className={authLinkClass}>{t("Sign in")}</Link>
+    <span className="mt-2 block text-xs">{t("Creating an account means you accept these documents:")} <Link href="/terms" className={authLinkClass}>{t("Terms of Use")}</Link> · <Link href="/privacy" className={authLinkClass}>{t("Privacy Policy")}</Link></span></>;
   if (sentTo) {
     return (
       <AuthCard title={codeStatus === "success" ? t("Verified successfully") : t("Let's verify your email")} tone={codeStatus === "success" ? "success" : undefined} footer={codeStatus === "success" ? undefined : footer}>

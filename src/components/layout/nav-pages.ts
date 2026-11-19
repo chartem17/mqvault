@@ -1,5 +1,5 @@
 import { BookOpen, CalendarDays, Globe2, House, LayoutDashboard, LifeBuoy, MonitorSmartphone, Settings, ShieldCheck, UserRound, type LucideIcon } from "lucide-react";
-import type { TabId } from "@/app/page";
+import type { TabId } from "@/lib/navigation/workspace-routes";
 import { msg } from "@/lib/i18n/core";
 import { OWNER_ONLY_TABS } from "@/lib/auth/beta-access";
 

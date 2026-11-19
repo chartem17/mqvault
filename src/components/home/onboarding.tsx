@@ -34,12 +34,12 @@ export function Onboarding() {
       action: <div className="flex flex-wrap gap-2">
         <Button size="sm" variant="secondary" disabled={!accounts.length} onClick={() => setImporting(true)}>{t("Import CSV")}</Button>
         <Link href="/bridge/connect" className="inline-flex min-h-8 items-center rounded-xl border border-border bg-secondary px-3 text-xs font-medium text-secondary-foreground hover:bg-accent">{t("Connect MT5")}</Link>
-        <Button size="sm" variant="ghost" onClick={() => router.push("/?tab=journal", { scroll: false })}>{t("Open journal")}</Button>
+        <Button size="sm" variant="ghost" onClick={() => router.push("/journal", { scroll: false })}>{t("Open journal")}</Button>
       </div> },
     { key: "strategy", done: strategies.length > 0, title: t("Write down your rules"), hint: t("A strategy turns your rules into checks: trades per day, sessions, risk, news. Home and Strategy Control use it."),
-      action: <Button size="sm" variant="secondary" onClick={() => router.push("/?tab=strategy-control", { scroll: false })}>{t("Create strategy")}</Button> },
+      action: <Button size="sm" variant="secondary" onClick={() => router.push("/strategy-control", { scroll: false })}>{t("Create strategy")}</Button> },
     { key: "review", done: trades.some(trade => trade.closed_at && !needsReview(trade)), title: t("Review your first trade"), hint: t("Setup, emotion and whether it followed the plan — a few taps per trade. This is what makes the statistics honest."),
-      action: <Button size="sm" variant="secondary" disabled={!trades.length} onClick={() => router.push("/?tab=journal&review=1", { scroll: false })}>{t("Start review")}</Button> },
+      action: <Button size="sm" variant="secondary" disabled={!trades.length} onClick={() => router.push("/journal?review=1", { scroll: false })}>{t("Start review")}</Button> },
   ];
   const doneCount = steps.filter(step => step.done).length;
   if (!ready || preferences.onboardingDismissed || doneCount === steps.length) return null;

@@ -24,6 +24,7 @@ const builds = [
   [["src/lib/accounts/account-payload.ts"], ".tmp-account-payload-tests", [...dom, "--strict"]],
   [["src/lib/accounts/account-setup.ts"], ".tmp-account-tests", [...dom, "--strict"]],
   [["src/lib/journal/journal-focus.ts"], ".tmp-journal-focus-tests", [...dom, "--strict"]],
+  [["src/lib/navigation/workspace-routes.ts", "src/lib/journal/journal-focus.ts"], ".tmp-workspace-routes-tests", [...dom, "--strict"]],
   [["src/lib/journal/journal-layout.ts"], ".tmp-journal-layout-tests", ["--strict"]],
   [["src/lib/journal/journal-filters.ts"], ".tmp-journal-filters-tests", ["--strict"]],
   [["src/lib/strategy-control/violation-cost.ts"], ".tmp-violation-cost-tests", ["--strict"]],

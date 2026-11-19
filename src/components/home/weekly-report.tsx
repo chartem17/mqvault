@@ -40,7 +40,7 @@ export function WeeklySummary() {
       <p className="m-0 text-sm text-muted-foreground">{label(report.start, report.end)} · {tn(report.totals.trades, "{count} trade", "{count} trades")}</p>
       <p className="m-0 flex flex-wrap items-baseline gap-x-6 gap-y-1"><span className="text-[1.65rem] font-medium tabular-nums" style={{ ...DISPLAY, ...tone(report.totals.withR ? report.totals.totalR : null) }}>{report.totals.withR ? signedR(report.totals.totalR) : "—"}</span><span className="tabular-nums" style={tone(report.totals.net)}>{fmt.usd(report.totals.net)}</span></p>
     </>}
-    <Button variant="secondary" size="sm" type="button" onClick={() => router.push(`/?tab=home&report=week&week=${report.start}`, { scroll: false })}>{t("Open report")}</Button>
+    <Button variant="secondary" size="sm" type="button" onClick={() => router.push(`/home?report=week&week=${report.start}`, { scroll: false })}>{t("Open report")}</Button>
   </section>;
 }
 
@@ -67,7 +67,7 @@ export function WeeklyReportView({ week }: { week: string | null }) {
   const report = useMemo(() => weeklyReport(visibleTrades, start, timezone), [visibleTrades, start, timezone]);
   const [copied, setCopied] = useState("");
   const thisWeek = weekStart(dayKey(Date.now(), timezone));
-  const go = (next: string | null) => router.push(next ? `/?tab=home&report=week&week=${next}` : "/?tab=home", { scroll: false });
+  const go = (next: string | null) => router.push(next ? `/home?report=week&week=${next}` : "/home", { scroll: false });
   const p = report.previous, n = report.totals;
   const maxR = Math.max(...report.days.map(day => Math.abs(day.totalR)), 0.5);
   const weekday = (day: string) => new Date(`${day}T12:00:00Z`).toLocaleDateString(intl, { weekday: "short", timeZone: "UTC" });
@@ -143,7 +143,7 @@ export function WeeklyReportView({ week }: { week: string | null }) {
           </dl>
           {report.discipline.mistakes.length > 0 ? <ul className="m-0 list-none divide-y divide-border/60 p-0 text-sm">{report.discipline.mistakes.slice(0, 5).map(item => <li key={item.mistake} className="flex justify-between gap-4 py-2"><span>{t(item.mistake)} <span className="text-muted-foreground">×{item.trades}</span></span><span className="tabular-nums" style={tone(item.totalR)}>{signedR(item.totalR)}</span></li>)}</ul>
             : <p className="m-0 text-sm text-muted-foreground">{t("No mistakes marked this week.")}</p>}
-          {report.discipline.waiting > 0 && <Button variant="secondary" size="sm" onClick={() => router.push("/?tab=journal&review=1", { scroll: false })}>{tn(report.discipline.waiting, "Review {count} trade", "Review {count} trades")}</Button>}
+          {report.discipline.waiting > 0 && <Button variant="secondary" size="sm" onClick={() => router.push("/journal?review=1", { scroll: false })}>{tn(report.discipline.waiting, "Review {count} trade", "Review {count} trades")}</Button>}
         </section>
       </div>
     </>}
