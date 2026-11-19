@@ -1,5 +1,6 @@
 "use client";
 
+import { Hint } from "@/components/ui/hint";
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { screenshotImageUrl } from "@/lib/journal/screenshot-gallery";
 import { ArrowLeft, ArrowRight, Check, CheckCheck, Plus, X } from "lucide-react";
@@ -224,7 +225,7 @@ export function DayReview({ trades, accounts, updateTrade, onExit }: Props) {
     <div className="sticky bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] z-10 flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card/95 p-2 backdrop-blur md:bottom-4">
       <Button variant="ghost" size="md" aria-label={t("Previous trade")} disabled={index === 0 || saving} onClick={() => move(-1)}><ArrowLeft className="h-4 w-4" /><span className="hidden sm:inline">{t("Back")}</span></Button>
       <Button variant="secondary" size="md" disabled={saving} onClick={skip}>{t("Skip")}<ArrowRight className="h-4 w-4" /></Button>
-      <Button variant="ghost" size="md" disabled={saving} onClick={() => void finishDay()} title={t("Marks the remaining trades of this day as reviewed without changing them")}><CheckCheck className="h-4 w-4" /><span className="hidden sm:inline">{t("Day is fine")}</span></Button>
+      <Hint label={t("Marks the remaining trades of this day as reviewed without changing them")}><Button variant="ghost" size="md" disabled={saving} onClick={() => void finishDay()}><CheckCheck className="h-4 w-4" /><span className="hidden sm:inline">{t("Day is fine")}</span></Button></Hint>
       <span className="ml-auto hidden text-xs text-muted-foreground lg:inline">{t("Enter — save · → skip · ← back · Esc — close")}</span>
       <Button size="md" className="w-full sm:ml-auto sm:w-auto lg:ml-0" loading={saving} onClick={() => void save()}><Check className="h-4 w-4" />{t("Save and next")}</Button>
     </div>

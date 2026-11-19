@@ -41,7 +41,7 @@ src/
       accounts/                 CRUD рахунків;   accounts/[id]/prop-rules — умови проп-рахунку (GET/PATCH, expectedRevision)
       journal/trades/           угоди
       strategies/               правила стратегій
-      trade-plans/              плани угод Playbook (бар'єр-чекліст перевіряє сервер, ADR 0019)
+      trade-plans/              плани угод Playbook (бар'єр-чекліст перевіряє сервер, ADR 0021)
       deletions/                відкладене остаточне видалення (RPC), сюди middleware перенаправляє DELETE
       preferences/              timezone, journal-layout, dashboard-layout
       auth/                     login, signup, reset, password, logout, google

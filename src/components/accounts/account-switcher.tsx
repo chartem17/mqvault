@@ -1,4 +1,5 @@
 "use client";
+import { Hint } from "@/components/ui/hint";
 import { useState } from "react";
 import { Check, ChevronDown, Layers3, Plus, Trash2, Wallet2 } from "lucide-react";
 import { NewAccountModal } from "@/components/accounts/new-account-modal";
@@ -35,7 +36,7 @@ export default function AccountSwitcher() {
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: badgeBackground(account.color) }}><Wallet2 className="h-4 w-4" /></div><div className="min-w-0 flex-1"><div className="truncate text-sm font-medium">{account.name}</div><div className="truncate text-xs text-muted-foreground">{t(kindLabel[account.kind])} · {currencyAmount(account.initialBalance, account.currency)}</div></div>{activeAccountId === account.id ? <Check className="h-4 w-4 text-primary" /> : null}
               </Button>
               <span className="flex h-10 shrink-0 items-center px-1" title={t("Include {name} in totals", { name: account.name })}><Switch size="sm" aria-label={t("Include {name} in totals", { name: account.name })} isSelected={included} onChange={() => toggleAccountIncluded(account.id)} /></span>
-              <Button variant="ghost" size="icon" aria-label={t("Delete account {name}", { name: account.name })} title={t("Delete account {name}", { name: account.name })} onClick={() => void deleteAccount(account.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+              <Hint label={t("Delete account {name}", { name: account.name })}><Button variant="ghost" size="icon" aria-label={t("Delete account {name}", { name: account.name })} onClick={() => void deleteAccount(account.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></Hint>
             </div>;
           })}
         </div>

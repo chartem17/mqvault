@@ -1,6 +1,7 @@
 "use client";
 import { dialogSurface, DIALOG_BACKDROP } from "@/components/ui/dialog-styles";
 import { screenshotImageUrl } from "@/lib/journal/screenshot-gallery";
+import { derivedFinancials } from "@/lib/journal/trade-financials";
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Camera, ChevronDown, X } from "lucide-react";
@@ -11,6 +12,8 @@ import { GhostInput } from "@/components/ui/ghost-input";
 import { usePreferences } from "@/components/providers/preferences-provider";
 import { AutoTextarea } from "@/components/ui/auto-textarea";
 import { Field } from "@/components/ui/field";
+import { DateTimeField } from "@/components/ui/date-time-field";
+import { ModalPortal } from "@/components/ui/modal-portal";
 import { EmptyState } from "@/components/ui/empty-state";
 import "@/components/ui/field.css";
 import { useInstruments } from "@/hooks/use-instruments";
@@ -48,6 +51,7 @@ type FormTrade = {
   direction: "Long" | "Short" | "";
   entry_price: string;
   stop_loss: string;
+  initial_stop_loss: string;
   take_profit: string;
   exit_price: string;
   volume: string;
@@ -132,28 +136,24 @@ function absCost(value: string) {
   return Math.abs(toNullableNumber(value) ?? 0);
 }
 
-// net = gross - |commission| - |fee| + swap; commission/fee are positive costs, swap is signed (same rule as the API).
-function computeNetPnl(form: FormTrade) {
-  const gross = toNullableNumber(form.gross_pnl) ?? 0;
-  const swap = toNullableNumber(form.swap) ?? 0;
-  const costs = absCost(form.commission) + absCost(form.fee);
-  return Math.round((gross - costs + swap) * 1e8) / 1e8;
-}
-
-// Realized R = price result / initial risk distance (entry -> stop loss).
-function computeR(form: FormTrade): number | null {
-  const entry = toNullableNumber(form.entry_price);
-  const exit = toNullableNumber(form.exit_price);
-  const stop = toNullableNumber(form.stop_loss);
-
-  if (entry === null || exit === null || stop === null) return null;
-  if (form.direction !== "Long" && form.direction !== "Short") return null;
-
-  const risk = form.direction === "Long" ? entry - stop : stop - entry;
-  if (!(risk > 0)) return null;
-
-  const move = form.direction === "Long" ? exit - entry : entry - exit;
-  return Math.round((move / risk) * 10000) / 10000;
+/**
+ * Preview of what the server will store (same functions as the API, ADR 0003/0020). The server may still differ:
+ * it also knows the account's starting balance and the value per lot calibrated on earlier trades.
+ */
+function previewFinancials(form: FormTrade) {
+  return derivedFinancials({
+    direction: form.direction,
+    entry_price: form.entry_price,
+    exit_price: form.exit_price,
+    initial_stop_loss: form.initial_stop_loss || form.stop_loss,
+    volume: form.volume,
+    gross_pnl: form.gross_pnl,
+    commission: form.commission,
+    swap: form.swap,
+    fee: form.fee,
+    risk_amount: form.risk_amount,
+    risk_percent: form.risk_percent,
+  });
 }
 
 function buildInitialForm(
@@ -171,6 +171,7 @@ function buildInitialForm(
     direction: "Long",
     entry_price: "",
     stop_loss: "",
+    initial_stop_loss: "",
     take_profit: "",
     exit_price: "",
     volume: "",
@@ -207,6 +208,7 @@ function formFromTrade(trade: JournalTrade, zone: string): FormTrade {
     direction: trade.direction === "Short" ? "Short" : "Long",
     entry_price: trade.entry_price == null ? "" : String(trade.entry_price),
     stop_loss: trade.stop_loss == null ? "" : String(trade.stop_loss),
+    initial_stop_loss: trade.initial_stop_loss == null ? "" : String(trade.initial_stop_loss),
     take_profit: trade.take_profit == null ? "" : String(trade.take_profit),
     exit_price: trade.exit_price == null ? "" : String(trade.exit_price),
     volume: trade.volume == null ? "" : String(trade.volume),
@@ -257,6 +259,7 @@ export function ManualTradeModal({
   const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const backdropPress = useRef(false);
   const { instruments } = useInstruments();
   const { timezone: userZone } = useTimezone();
   const [entryZone, setEntryZone] = useState(userZone);
@@ -311,11 +314,9 @@ export function ManualTradeModal({
     return sortBySymbol(bySearch);
   }, [symbolQuery, instruments, marketFilter]);
 
-  const netPreview = useMemo(() => String(computeNetPnl(form)), [form]);
-  const rPreview = useMemo(() => {
-    const r = computeR(form);
-    return r === null ? "—" : String(r);
-  }, [form]);
+  const preview = useMemo(() => previewFinancials(form), [form]);
+  const netPreview = String(preview.net_pnl);
+  const rPreview = preview.result_r === null ? "—" : String(preview.result_r);
   const previewSource =
     localPreviewUrl ||
     (form.screenshot_url.trim() ? screenshotImageUrl(form.screenshot_url) ?? form.screenshot_url.trim() : "");
@@ -427,6 +428,7 @@ export function ManualTradeModal({
       direction: form.direction as "Long" | "Short",
       entry_price: form.entry_price || null,
       stop_loss: form.stop_loss || null,
+      initial_stop_loss: form.initial_stop_loss || null,
       take_profit: form.take_profit || null,
       exit_price: form.exit_price || null,
       volume: toNullableNumber(form.volume),
@@ -513,6 +515,7 @@ export function ManualTradeModal({
   }
 
   return (
+    <ModalPortal>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6">
       <style>{`
         @keyframes trade-ticket-shake {
@@ -525,7 +528,10 @@ export function ManualTradeModal({
 
       <div
         className={`${DIALOG_BACKDROP} absolute inset-0`}
-        onClick={onClose}
+        // Close only on a press that starts and ends on the backdrop, so dismissing a
+        // date picker or finishing a text selection outside the ticket keeps it open.
+        onPointerDown={(event) => { backdropPress.current = event.target === event.currentTarget; }}
+        onClick={(event) => { if (backdropPress.current && event.target === event.currentTarget) onClose(); backdropPress.current = false; }}
       />
 
       <aside
@@ -597,11 +603,13 @@ export function ManualTradeModal({
                 <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
                   {t("Opened at")}
                 </span>
-                <Input
+                <DateTimeField
                   data-trade-field="opened_at"
                   type="datetime-local"
+                  aria-label={t("Opened at")}
+                  zone={entryZone}
                   value={form.opened_at}
-                  onChange={(event) => changeOpenedAt(event.target.value)} className="ui-field-control" data-ui-state={errors.opened_at ? 'error' : undefined} aria-invalid={Boolean(errors.opened_at)}
+                  onChange={changeOpenedAt} data-ui-state={errors.opened_at ? 'error' : undefined} aria-invalid={Boolean(errors.opened_at)}
                 />
                 {errors.opened_at ? (
                   <span className="text-[11px] text-destructive">
@@ -610,7 +618,7 @@ export function ManualTradeModal({
                 ) : null}
               </label>
 
-              {input("closed_at", msg("Closed at"), "datetime-local")}
+              <Field label={t("Closed at")}>{control => <DateTimeField {...control} data-trade-field="closed_at" type="datetime-local" zone={entryZone} clearable value={form.closed_at} onChange={value => setField("closed_at", value)} />}</Field>
 
               <div className="col-span-2 flex flex-col gap-1">
                 <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
@@ -732,6 +740,7 @@ export function ManualTradeModal({
               {select("direction", msg("Direction"), ["Long", "Short"])}
               {select("session", msg("Session"), SESSIONS)}
               {input("entry_price", msg("Entry price"), "number")}
+              {input("initial_stop_loss", msg("Initial stop loss"), "number")}
               {input("stop_loss", msg("Stop loss"), "number")}
               {input("take_profit", msg("Take profit"), "number")}
               {input("exit_price", msg("Exit price"), "number")}
@@ -894,5 +903,6 @@ export function ManualTradeModal({
         </div>
       ) : null}
     </div>
+    </ModalPortal>
   );
 }

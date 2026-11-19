@@ -1,4 +1,5 @@
 "use client";
+import { ModalPortal } from "@/components/ui/modal-portal";
 
 import { useEffect, useMemo, useState, type DragEvent } from "react";
 import { FileUp, X } from "lucide-react";
@@ -103,7 +104,7 @@ export function CsvImportModal({ open, accounts, defaultAccountId, onClose, onIm
   const missing = required.filter(field => !mapping.includes(field));
   const noDate = !mapping.some(field => field === "opened_at" || field === "open_date");
 
-  return <div className={`${DIALOG_BACKDROP} fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4`} onClick={() => !busy && close()}>
+  return <ModalPortal><div className={`${DIALOG_BACKDROP} fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4`} onClick={() => !busy && close()}>
     <div role="dialog" aria-modal="true" aria-label={t("Import trades from CSV")} className={dialogSurface("flex max-h-[94vh] w-full max-w-4xl flex-col overflow-hidden rounded-t-2xl sm:rounded-2xl")} onClick={event => event.stopPropagation()}>
       <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-5">
         <h2 className="m-0 text-lg font-semibold">{t("Import trades from CSV")}</h2>
@@ -186,5 +187,5 @@ export function CsvImportModal({ open, accounts, defaultAccountId, onClose, onIm
         </>}
       </footer>
     </div>
-  </div>;
+  </div></ModalPortal>;
 }

@@ -1,4 +1,4 @@
--- Playbook: trade plans — the pre-trade checklist saved BEFORE an entry (ADR 0019).
+-- Playbook: trade plans — the pre-trade checklist saved BEFORE an entry (ADR 0021).
 -- New table only; no existing data changes. The API (src/app/api/trade-plans) re-checks the whole
 -- checklist on the server; the CHECK constraints below are the last line, not the gate itself.
 -- Rows go with the user and the account (ON DELETE CASCADE); a deleted trade only unlinks (SET NULL).

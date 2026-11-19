@@ -1,7 +1,7 @@
 /**
  * Playbook state computed from trade history: the trading window right now, the day's limits and the
  * current risk level (1 % → 0.5 % after a losing streak → back after wins). Pure functions; every
- * "day" and wall clock is read in `config.timezone` (ADR 0019).
+ * "day" and wall clock is read in `config.timezone` (ADR 0021).
  */
 import { shiftDay, zonedParts, zonedWallTime } from "../time/timezone";
 import { minutesOf, type PlaybookConfig, type TradingWindow } from "./config";

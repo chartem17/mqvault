@@ -1,5 +1,6 @@
 "use client";
 
+import { Segmented } from "@/components/ui/segmented";
 import { useMemo, useState } from "react";
 import { useTrades } from "@/hooks/use-trades";
 import { tradeNewsKey, useTradeNews } from "@/hooks/use-trade-news";
@@ -66,7 +67,7 @@ export function NewsImpactWidget() {
   </table>;
 
   return <WidgetPanel title={t("News ↔ trades")} sub={t("Closed trades · high-impact releases · fewer than {count} trades are dimmed", { count: MIN_SAMPLE })} scroll
-    aside={report && <div role="radiogroup" aria-label={t("Group by")} className="flex flex-wrap gap-1">{VIEWS.map(item => <button key={item} type="button" role="radio" aria-checked={view === item} onClick={() => setView(item)} className={`min-h-8 rounded-full border px-2.5 text-xs transition-colors ${view === item ? "border-primary bg-primary text-primary-foreground" : "border-border bg-secondary/40 text-muted-foreground hover:text-foreground"}`}>{t(VIEW_LABEL[item])}</button>)}</div>}>
+    aside={report && <Segmented aria-label={t("Group by")} size="xs" value={view} onChange={setView} options={VIEWS.map(item => ({ value: item, label: t(VIEW_LABEL[item]) }))} />}>
     {loading && !report ? <p role="status" className="text-sm text-muted-foreground">{t("Loading…")}</p>
       : error ? <p className="text-sm text-muted-foreground">{t("Could not load the economic calendar.")}</p>
       : !report ? <p className="text-sm text-muted-foreground">{t("No calendar data for the period of your trades.")}</p>

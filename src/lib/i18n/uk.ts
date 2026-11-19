@@ -3,6 +3,11 @@ import type { Dictionary } from "./core";
 /** Ukrainian translations keyed by the English source text. Keep keys identical to the `t()` / `tn()` / `msg()` calls. */
 export const uk: Dictionary = {
   // Sidebar, profile, settings and the e-mail code step (package 2)
+  "{count} of {total}": "{count} з {total}",
+  "How it is counted": "Як це рахується",
+  "Calendar view": "Вигляд календаря",
+  "Search time zones": "Пошук часового поясу",
+  "Search time zones…": "Пошук часового поясу…",
   "The human check did not load. Reload the page or try another browser.": "Перевірка «я не робот» не завантажилась. Перезавантажте сторінку або спробуйте інший браузер.",
   "The human check failed. Try again.": "Перевірка «я не робот» не пройдена. Спробуйте ще раз.",
   "Computer connected to MT5 Bridge": "Компʼютер підключено до MT5 Bridge",
@@ -719,6 +724,7 @@ export const uk: Dictionary = {
   "Risk": "Ризик",
   "Risk %": "Ризик %",
   "Risk amount": "Сума ризику",
+  "Initial stop loss": "Початковий стоп",
   "Risk data unavailable": "Дані про ризик відсутні",
   "Risk escalation after a loss": "Ескалація ризику після збитку",
   "No trading around red news": "Не торгувати навколо червоних новин",
@@ -1223,6 +1229,13 @@ export const uk: Dictionary = {
   "The new password must differ from the current one": "Новий пароль має відрізнятися від поточного",
   "Could not change the password. Try again later.": "Не вдалося змінити пароль. Спробуйте пізніше.",
   "This section is not available in the closed beta": "Цей розділ недоступний у закритій беті",
+  "Pick a time": "Оберіть час",
+  "Pick a date": "Оберіть дату",
+  "Pick date and time": "Оберіть дату й час",
+  "Hours": "Години",
+  "Minutes": "Хвилини",
+  "Now": "Зараз",
+  "Clear": "Очистити",
   // Playbook: trading system rules, trade plans, discipline (agent/ts-rules)
   "Morning (Frankfurt – London)": "Ранок (Франкфурт – Лондон)",
   "Lunch — observe only": "Ланч — лише спостереження",

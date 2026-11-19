@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { Inter, Unbounded } from "next/font/google";
+// ui-sdk defaults first: its `ui-sdk` cascade layer is then the lowest, so our tokens and Tailwind win.
+import "@ui-sdk/core/web.css";
 import "./globals.css";
 import "./typography.css";
+import "./ui-finish.css";
+import { AppBackdrop } from "@/components/layout/app-backdrop";
+import { AppDotField } from "@/components/layout/app-dot-field";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { TradesProvider } from "@/hooks/use-trades";
 import { UndoProvider } from "@/components/ui/undo-toast";
@@ -21,9 +26,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // Per-request CSP nonce from the middleware: next-themes injects an inline script that must carry it.
   const nonce = (await headers()).get("x-nonce") ?? undefined;
   const locale = isLocale(saved) ? saved : DEFAULT_LOCALE;
-  return <html lang={locale} className={`${inter.variable} ${unbounded.variable}`} suppressHydrationWarning><body style={{ margin: 0, minHeight: "100dvh", backgroundColor: "var(--page-bg)" }}>
+  return <html lang={locale} className={`${inter.variable} ${unbounded.variable}`} suppressHydrationWarning><body style={{ margin: 0, minHeight: "100dvh" }}>
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange nonce={nonce}>
-      <I18nProvider initialLocale={locale}><ProfileProvider><PreferencesProvider><TimezoneProvider><UndoProvider><TradesProvider>{children}</TradesProvider></UndoProvider></TimezoneProvider></PreferencesProvider></ProfileProvider></I18nProvider>
+      <AppBackdrop />
+      <I18nProvider initialLocale={locale}><ProfileProvider><PreferencesProvider><TimezoneProvider><UndoProvider><TradesProvider><AppDotField>{children}</AppDotField></TradesProvider></UndoProvider></TimezoneProvider></PreferencesProvider></ProfileProvider></I18nProvider>
     </ThemeProvider>
   </body></html>;
 }

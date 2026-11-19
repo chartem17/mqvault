@@ -13,7 +13,7 @@ import { UK_EMOTIONS, UK_HEADER_ALIASES, UK_LONG, UK_NO, UK_SHORT, UK_YES } from
 
 export type ImportField =
   | "symbol" | "direction" | "opened_at" | "closed_at" | "open_date" | "open_time" | "close_date" | "close_time"
-  | "entry_price" | "exit_price" | "stop_loss" | "take_profit" | "volume"
+  | "entry_price" | "exit_price" | "stop_loss" | "initial_stop_loss" | "take_profit" | "volume"
   | "gross_pnl" | "net_pnl" | "commission" | "swap" | "fee" | "risk_percent" | "risk_amount"
   | "setup" | "emotion" | "mistake" | "followed_plan" | "entry_reason" | "notes" | "screenshot_url" | "external_id" | "market";
 
@@ -23,7 +23,7 @@ export const IMPORT_FIELDS: readonly { field: ImportField; label: string }[] = [
   { field: "opened_at", label: msg("Open date & time") }, { field: "open_date", label: msg("Open date") }, { field: "open_time", label: msg("Open time") },
   { field: "closed_at", label: msg("Close date & time") }, { field: "close_date", label: msg("Close date") }, { field: "close_time", label: msg("Close time") },
   { field: "entry_price", label: msg("Entry price") }, { field: "exit_price", label: msg("Exit price") },
-  { field: "stop_loss", label: msg("Stop loss") }, { field: "take_profit", label: msg("Take profit") }, { field: "volume", label: msg("Volume") },
+  { field: "stop_loss", label: msg("Stop loss") }, { field: "initial_stop_loss", label: msg("Initial stop loss") }, { field: "take_profit", label: msg("Take profit") }, { field: "volume", label: msg("Volume") },
   { field: "gross_pnl", label: msg("Profit (before costs)") }, { field: "net_pnl", label: msg("Net P&L") },
   { field: "commission", label: msg("Commission") }, { field: "swap", label: msg("Swap") }, { field: "fee", label: msg("Fee") },
   { field: "risk_percent", label: msg("Risk %") }, { field: "risk_amount", label: msg("Risk amount") },
@@ -87,6 +87,7 @@ const ALIASES: Record<ImportField, string[]> = {
   entry_price: ["entryprice", "entry", "openprice", "priceopen", "price"],
   exit_price: ["exitprice", "exit", "closeprice", "priceclose"],
   stop_loss: ["sl", "stoploss", "stop", "s l"],
+  initial_stop_loss: ["initialstop", "initialsl", "initialstoploss", "originalstop", "originalsl", "entrystop", "stopatentry"],
   take_profit: ["tp", "takeprofit", "take", "target", "t p"],
   volume: ["lots", "lot", "volume", "size", "qty", "quantity", "amount"],
   gross_pnl: ["profit", "grosspnl", "gross", "grossprofit", "pnlgross", "realizedpnl"],
@@ -254,7 +255,7 @@ function toIso(parts: DateParts, timezone: string): string | null {
 
 export type ImportedTrade = {
   symbol: string; direction: "Long" | "Short"; opened_at: string; closed_at: string | null;
-  entry_price: number | null; exit_price: number | null; stop_loss: number | null; take_profit: number | null; volume: number | null;
+  entry_price: number | null; exit_price: number | null; stop_loss: number | null; initial_stop_loss: number | null; take_profit: number | null; volume: number | null;
   gross_pnl: number | null; commission: number | null; swap: number | null; fee: number | null;
   risk_percent: number | null; risk_amount: number | null;
   setup: string | null; emotion: string | null; mistake: string | null; entry_reason: string | null; notes: string | null; screenshot_url: string | null; external_id: string | null; market: string | null;
@@ -302,7 +303,7 @@ export function rowToTrade(cells: readonly string[], mapping: ColumnMapping, opt
   const emotionRaw = text("emotion");
   const trade: ImportedTrade = {
     symbol, direction: direction ?? "Long", opened_at: opened.iso ?? "", closed_at: closed.iso,
-    entry_price: num("entry_price"), exit_price: num("exit_price"), stop_loss: num("stop_loss"), take_profit: num("take_profit"), volume: num("volume"),
+    entry_price: num("entry_price"), exit_price: num("exit_price"), stop_loss: num("stop_loss"), initial_stop_loss: num("initial_stop_loss"), take_profit: num("take_profit"), volume: num("volume"),
     gross_pnl: gross === null ? null : Math.round(gross * 1e8) / 1e8, commission, swap, fee,
     risk_percent: num("risk_percent"), risk_amount: num("risk_amount"),
     setup: text("setup"), emotion: emotionRaw ? EMOTIONS[emotionRaw.toLowerCase()] ?? emotionRaw : null, mistake: text("mistake"), entry_reason: text("entry_reason"),
