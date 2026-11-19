@@ -41,6 +41,7 @@ src/
       accounts/                 CRUD рахунків;   accounts/[id]/prop-rules — умови проп-рахунку (GET/PATCH, expectedRevision)
       journal/trades/           угоди
       strategies/               правила стратегій
+      trade-plans/              плани угод Playbook (бар'єр-чекліст перевіряє сервер, ADR 0021)
       deletions/                відкладене остаточне видалення (RPC), сюди middleware перенаправляє DELETE
       preferences/              timezone, journal-layout, dashboard-layout
       auth/                     login, signup, reset, password, logout, google
@@ -68,6 +69,7 @@ src/
     news/             економічний календар (CSV MT5 → news_events, значення, «сюрприз») і зв'язки угод із новинами
     auth/             правила доступу й CSRF, поточний користувач, створення робочого простору, ліміти входу
     strategy-control/ рушій правил, бібліотека правил, збереження, адаптер угод
+    playbook/         ТС власника: конфіг, вікна, ліміти, драбина ризику, план і його чекліст, зіставлення план↔угода, дисципліна
     i18n/             словник і ядро локалізації (en за замовчуванням, uk)
     supabase/         серверний клієнт, власник, видалення, типи
     utils.ts          cn() та дрібні утиліти
@@ -79,7 +81,7 @@ docs/                 ця документація
 
 ## Вкладки
 
-`home` (за замовчуванням) · `overview` · `journal` · `strategy-control` · `market` · `calendar`. Активна вкладка живе в URL (`?tab=`), посилання з `focusTradeIds` завжди відкривають журнал. Невідомі значення `?tab=` падають на `home`. Статус кожної вкладки — у [roadmap](../roadmap/ROADMAP.md).
+`home` (за замовчуванням) · `overview` · `journal` · `playbook` · `strategy-control` · `market` · `calendar`. Активна вкладка живе в URL (`?tab=`), посилання з `focusTradeIds` завжди відкривають журнал. Невідомі значення `?tab=` падають на `home`. Статус кожної вкладки — у [roadmap](../roadmap/ROADMAP.md).
 
 ## Ключові правила (деталі — в ADR)
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { BookOpen, CalendarDays, Globe2, House, LayoutDashboard, ShieldCheck, TrendingUp } from "lucide-react";
+import { BookOpen, CalendarDays, ClipboardCheck, Globe2, House, LayoutDashboard, ShieldCheck, TrendingUp } from "lucide-react";
 import type { TabId } from "@/app/page";
 import AccountSwitcher from "@/components/accounts/account-switcher";
 import { AppSidebar } from "@/components/layout/app-sidebar";
@@ -21,6 +21,7 @@ const ALL_TABS: { id: TabId; label: string; short?: string; icon: React.ElementT
   { id: "home", label: msg("Home"), icon: House },
   { id: "overview", label: msg("Overview"), icon: LayoutDashboard },
   { id: "journal", label: msg("Journal"), icon: BookOpen },
+  { id: "playbook", label: msg("Playbook"), short: msg("Rules"), icon: ClipboardCheck },
   { id: "strategy-control", label: msg("Strategy control"), short: msg("Strategy"), icon: ShieldCheck },
   { id: "market", label: msg("Market"), icon: Globe2 },
   { id: "calendar", label: msg("Calendar"), icon: CalendarDays },

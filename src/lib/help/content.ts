@@ -50,10 +50,11 @@ export const SHORTCUTS: Shortcut[] = [
   { keys: ["G", "H"], label: msg("Go to Home") },
   { keys: ["G", "O"], label: msg("Go to Overview") },
   { keys: ["G", "J"], label: msg("Go to Journal") },
+  { keys: ["G", "P"], label: msg("Go to Playbook") },
   { keys: ["G", "S"], label: msg("Go to Strategy control") },
   { keys: ["G", "R"], label: msg("Start the day review") },
   { keys: ["Esc"], label: msg("Close a dialog") },
 ];
 
 /** "g" then a letter: where it leads. */
-export const GO_TO: Record<string, string> = { h: "/?tab=home", o: "/?tab=overview", j: "/?tab=journal", s: "/?tab=strategy-control", r: "/?tab=journal&review=1" };
+export const GO_TO: Record<string, string> = { h: "/?tab=home", o: "/?tab=overview", j: "/?tab=journal", p: "/?tab=playbook", s: "/?tab=strategy-control", r: "/?tab=journal&review=1" };
