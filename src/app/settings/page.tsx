@@ -14,6 +14,7 @@ const START_TAB_OPTIONS = [
   { id: "home", label: msg("Home"), ownerOnly: false },
   { id: "overview", label: msg("Overview"), ownerOnly: false },
   { id: "journal", label: msg("Journal"), ownerOnly: false },
+  { id: "playbook", label: msg("Playbook"), ownerOnly: false },
   { id: "strategy-control", label: msg("Strategy control"), ownerOnly: false },
   { id: "calendar", label: msg("Calendar"), ownerOnly: true },
 ] as const;

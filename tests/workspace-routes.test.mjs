@@ -19,6 +19,7 @@ test("every section has its own address and maps back to itself", () => {
 test("old ?tab= links move to the new address and keep their other parameters", () => {
   assert.equal(legacy("tab=overview"), "/overview");
   assert.equal(legacy("tab=strategy-control"), "/strategy-control");
+  assert.equal(legacy("tab=playbook"), "/playbook");
   assert.equal(legacy("tab=journal&review=1"), "/journal?review=1");
   assert.equal(legacy("tab=home&report=week&week=2026-11-09"), "/home?report=week&week=2026-11-09");
   assert.equal(legacy("tab=unknown"), "/home");

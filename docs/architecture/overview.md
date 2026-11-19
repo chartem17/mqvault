@@ -44,6 +44,7 @@ src/
       accounts/                 CRUD рахунків;   accounts/[id]/prop-rules — умови проп-рахунку (GET/PATCH, expectedRevision)
       journal/trades/           угоди
       strategies/               правила стратегій
+      trade-plans/              плани угод Playbook (бар'єр-чекліст перевіряє сервер, ADR 0021)
       deletions/                відкладене остаточне видалення (RPC), сюди middleware перенаправляє DELETE
       preferences/              timezone, journal-layout, dashboard-layout
       auth/                     login, signup, reset, password, logout, google
@@ -71,6 +72,7 @@ src/
     news/             економічний календар (CSV MT5 → news_events, значення, «сюрприз») і зв'язки угод із новинами
     auth/             правила доступу й CSRF, поточний користувач, створення робочого простору, ліміти входу
     strategy-control/ рушій правил, бібліотека правил, збереження, адаптер угод
+    playbook/         ТС власника: конфіг, вікна, ліміти, драбина ризику, план і його чекліст, зіставлення план↔угода, дисципліна
     i18n/             словник і ядро локалізації (en за замовчуванням, uk)
     navigation/       адреси розділів і перенаправлення старих `?tab=`
     legal/            юридичні тексти (Terms, Privacy, Cookies, Risk) і дані оператора
@@ -85,7 +87,7 @@ docs/                 ця документація
 
 ## Вкладки
 
-`home` (за замовчуванням) · `overview` · `journal` · `strategy-control` · `market` · `calendar` — кожна за власною адресою (`/journal`, …). Вигляди журналу теж в адресі: `/journal?review=1`, `?gallery=1`, `?focusTradeIds=…`; тижневий звіт — `/home?report=week&week=…`. Старі `/?tab=…` (і `/?focusTradeIds=…` → журнал) перенаправляються; невідомий `tab` → `/home`. `market` і `calendar` для всіх, крім власника, перекидають на `/home`. Статус кожної вкладки — у [roadmap](../roadmap/ROADMAP.md).
+`home` (за замовчуванням) · `overview` · `journal` · `playbook` · `strategy-control` · `market` · `calendar` — кожна за власною адресою (`/journal`, …). Вигляди журналу теж в адресі: `/journal?review=1`, `?gallery=1`, `?focusTradeIds=…`; тижневий звіт — `/home?report=week&week=…`. Старі `/?tab=…` (і `/?focusTradeIds=…` → журнал) перенаправляються; невідомий `tab` → `/home`. `market` і `calendar` для всіх, крім власника, перекидають на `/home`. Статус кожної вкладки — у [roadmap](../roadmap/ROADMAP.md).
 
 ## Ключові правила (деталі — в ADR)
 

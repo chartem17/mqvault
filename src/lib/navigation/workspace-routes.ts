@@ -4,7 +4,7 @@
  * (bookmarks, shared evidence links) into the new address so nothing a user saved breaks.
  */
 
-export const WORKSPACE_TABS = ["home", "overview", "journal", "strategy-control", "market", "calendar"] as const;
+export const WORKSPACE_TABS = ["home", "overview", "journal", "playbook", "strategy-control", "market", "calendar"] as const;
 export type TabId = typeof WORKSPACE_TABS[number];
 
 export function isTabId(value: unknown): value is TabId {
