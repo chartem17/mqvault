@@ -12,6 +12,8 @@ export const uk: Dictionary = {
   "Which trades are marked as breaking the system?": "Які угоди позначаються як порушення системи?",
   "Trades without a plan, outside a trading window, over the daily trade or stop limit, with RR below the minimum, risk not following the ladder, or closed by hand at break-even. You can add your own marks to a trade, such as a moved target or an early break-even.": "Угоди без плану, поза торговим вікном, понад денний ліміт угод чи стопів, з RR нижче мінімуму, з ризиком не за драбиною або закриті вручну в нуль. До угоди можна додати й власні позначки — наприклад, перенесений таргет чи ранній беззбиток.",
   // Strategy control: rules without data
+  "Edit strategy": "Редагування стратегії",
+  "Changes apply to this strategy only; trades are not changed.": "Зміни стосуються лише цієї стратегії; угоди не змінюються.",
   "No data": "Немає даних",
   "No trade has the data the rules need": "Жодна угода не має даних, потрібних правилам",
   "No data: no trade in the period has what rule “{title}” needs ({needs}).": "Немає даних: жодна угода за період не має того, що потрібно правилу «{title}» ({needs}).",

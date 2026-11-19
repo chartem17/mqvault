@@ -11,9 +11,14 @@ import { useI18n } from "@/components/providers/i18n-provider";
 import { msg } from "@/lib/i18n/core";
 import type { ParamDefinition, RuleInstance, RuleType, StrategyProfile } from "@/lib/strategy-control/types";
 
-type Props = { onSave: (strategy: StrategyProfile) => void; onCancel: () => void };
-function buildDefaultRules(): RuleInstance[] {
-  return (Object.keys(ruleLibrary) as RuleType[]).map(ruleType => ({ ruleType, enabled: false, params: { ...ruleLibrary[ruleType].defaultParams } }));
+/** `initial`: an existing strategy to edit; without it the builder starts empty. */
+type Props = { onSave: (strategy: StrategyProfile) => void; onCancel: () => void; initial?: StrategyProfile };
+/** Every rule of the library, with the saved ones (and their parameters) taken from `saved`. */
+function buildRules(saved: readonly RuleInstance[] = []): RuleInstance[] {
+  return (Object.keys(ruleLibrary) as RuleType[]).map(ruleType => {
+    const existing = saved.find(rule => rule.ruleType === ruleType);
+    return { ruleType, enabled: existing?.enabled ?? false, params: { ...ruleLibrary[ruleType].defaultParams, ...(existing?.params ?? {}) } };
+  });
 }
 function ParamField({ definition, value, onChange }: { definition: ParamDefinition; value: unknown; onChange: (value: unknown) => void }) {
   const { t } = useI18n();
@@ -33,22 +38,22 @@ function ParamField({ definition, value, onChange }: { definition: ParamDefiniti
   }
   return null;
 }
-export function StrategyBuilder({ onSave, onCancel }: Props) {
+export function StrategyBuilder({ onSave, onCancel, initial }: Props) {
   const { t } = useI18n();
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [rules, setRules] = useState<RuleInstance[]>(buildDefaultRules);
-  const [setups, setSetups] = useState<string[]>([]);
-  const [mistakes, setMistakes] = useState<string[]>([]);
+  const [name, setName] = useState(initial?.name ?? "");
+  const [description, setDescription] = useState(initial?.description ?? "");
+  const [rules, setRules] = useState<RuleInstance[]>(() => buildRules(initial?.rules));
+  const [setups, setSetups] = useState<string[]>(initial?.reviewChips?.setups ?? []);
+  const [mistakes, setMistakes] = useState<string[]>(initial?.reviewChips?.mistakes ?? []);
   const categories: Record<string, string> = { discipline: msg("Discipline"), session: msg("Sessions"), instrument: msg("Instruments"), risk: msg("Risk"), psychology: msg("Psychology"), setup: msg("Entry model") };
   function updateRule(ruleType: RuleType, updater: (rule: RuleInstance) => RuleInstance) { setRules(current => current.map(rule => rule.ruleType === ruleType ? updater(rule) : rule)); }
   function handleSave() {
     const trimmedName = name.trim();
     if (!trimmedName) return;
-    onSave({ id: `strategy-${Date.now()}`, name: trimmedName, description: description.trim(), createdAt: new Date().toISOString().slice(0, 10), rules, reviewChips: { setups, mistakes } });
+    onSave({ id: initial?.id ?? `strategy-${Date.now()}`, name: trimmedName, description: description.trim(), createdAt: initial?.createdAt ?? new Date().toISOString().slice(0, 10), rules, reviewChips: { setups, mistakes } });
   }
   return <div className="w-full rounded-3xl border border-border bg-card p-3 shadow-sm sm:p-6"><div className="grid gap-6 xl:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)]">
-    <div className="space-y-5"><div className="rounded-2xl border border-border bg-muted/30 p-4 sm:p-5"><div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{t("Basic info")}</div><div className="mt-4 space-y-4"><label className="space-y-2"><div className="text-sm font-medium text-foreground">{t("Strategy name")}</div><Input value={name} onChange={event => setName(event.target.value)} placeholder={t("For example: TS Base")}  /></label><label className="space-y-2"><div className="text-sm font-medium text-foreground">{t("Description")}</div><Textarea value={description} onChange={event => setDescription(event.target.value)} rows={5} placeholder={t("Briefly describe the profile and limits of this strategy")}  /></label></div></div><div className="rounded-2xl border border-border bg-muted/30 p-4 sm:p-5"><div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{t("Day review chips")}</div><p className="mt-2 text-xs text-muted-foreground">{t("Shown first when you review trades of this account. A word becomes a chip on Enter; leave empty to use values from the journal.")}</p><div className="mt-4 space-y-4"><div className="space-y-2"><div className="text-sm font-medium text-foreground">{t("Setups")}</div><TagInput value={setups} onChange={setSetups} aria-label={t("Setups")} placeholder={t("Type a setup and press Enter")} /></div><div className="space-y-2"><div className="text-sm font-medium text-foreground">{t("Mistakes")}</div><TagInput value={mistakes} onChange={setMistakes} aria-label={t("Mistakes")} placeholder={t("Type a mistake and press Enter")} /></div></div></div><div className="rounded-2xl border border-border bg-muted/30 p-4 sm:p-5"><div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{t("Actions")}</div><div className="mt-4 flex flex-wrap gap-3"><Button variant="primary" size="md" type="button" onClick={handleSave} >{t("Save strategy")}</Button><Button variant="secondary" size="md" type="button" onClick={onCancel} >{t("Cancel")}</Button></div></div></div>
+    <div className="space-y-5"><div className="rounded-2xl border border-border bg-muted/30 p-4 sm:p-5"><div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{t("Basic info")}</div><div className="mt-4 space-y-4"><label className="space-y-2"><div className="text-sm font-medium text-foreground">{t("Strategy name")}</div><Input value={name} onChange={event => setName(event.target.value)} placeholder={t("For example: TS Base")}  /></label><label className="space-y-2"><div className="text-sm font-medium text-foreground">{t("Description")}</div><Textarea value={description} onChange={event => setDescription(event.target.value)} rows={5} placeholder={t("Briefly describe the profile and limits of this strategy")}  /></label></div></div><div className="rounded-2xl border border-border bg-muted/30 p-4 sm:p-5"><div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{t("Day review chips")}</div><p className="mt-2 text-xs text-muted-foreground">{t("Shown first when you review trades of this account. A word becomes a chip on Enter; leave empty to use values from the journal.")}</p><div className="mt-4 space-y-4"><div className="space-y-2"><div className="text-sm font-medium text-foreground">{t("Setups")}</div><TagInput value={setups} onChange={setSetups} aria-label={t("Setups")} placeholder={t("Type a setup and press Enter")} /></div><div className="space-y-2"><div className="text-sm font-medium text-foreground">{t("Mistakes")}</div><TagInput value={mistakes} onChange={setMistakes} aria-label={t("Mistakes")} placeholder={t("Type a mistake and press Enter")} /></div></div></div><div className="rounded-2xl border border-border bg-muted/30 p-4 sm:p-5"><div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{t("Actions")}</div><div className="mt-4 flex flex-wrap gap-3"><Button variant="primary" size="md" type="button" onClick={handleSave} >{initial ? t("Save changes") : t("Save strategy")}</Button><Button variant="secondary" size="md" type="button" onClick={onCancel} >{t("Cancel")}</Button></div></div></div>
     <div className="space-y-4">{(Object.keys(ruleLibrary) as RuleType[]).map(ruleType => {
       const definition = ruleLibrary[ruleType], rule = rules.find(item => item.ruleType === ruleType);
       if (!rule) return null;

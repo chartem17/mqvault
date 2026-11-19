@@ -95,6 +95,22 @@ export function useStrategies() {
       throw cause;
     } finally { writeBusy.current = false; if (mounted.current) setSaving(false); }
   }
+  /** Saves name, description, rules and review chips of an existing strategy (PATCH; trades are not touched). */
+  async function updateStrategy(id: string, profile: StrategyProfile): Promise<AccountStrategy> {
+    if (!STRATEGY_UUID.test(id)) throw new Error(msg("Could not save the strategy"));
+    if (writeBusy.current) throw new Error(msg("A strategy is already being saved"));
+    writeBusy.current = true;
+    setSaving(true); setError(null);
+    try {
+      const result = await requestJson<{ strategy: StoredStrategy }>("/api/strategies", { method: "PATCH", body: JSON.stringify({ id, name: profile.name, description: profile.description ?? null, definition: { rules: profile.rules, review: profile.reviewChips } }) });
+      const saved = profileFromRow(result.strategy);
+      if (mounted.current) setRecords(current => current.map(strategy => strategy.id === saved.id ? saved : strategy));
+      return saved;
+    } catch (cause) {
+      if (mounted.current) setError(cause instanceof Error ? cause.message : msg("Could not save the strategy"));
+      throw cause;
+    } finally { writeBusy.current = false; if (mounted.current) setSaving(false); }
+  }
   async function duplicateStrategy(profile: AccountStrategy) {
     return createStrategy({ ...profile, name: `${profile.name} Copy`, rules: profile.rules.map(rule => ({ ...rule, params: { ...rule.params } })) }, profile.id);
   }
@@ -131,5 +147,5 @@ export function useStrategies() {
     setSelection(current => current === removed.id ? fallback : current);
   }
   const confirmation = <ConfirmDialog open={pending !== null} title={t("Delete strategy “{name}”?", { name: pending?.name ?? "" })} description={t("Trades are not deleted. After you confirm you have 10 seconds to undo; then the strategy is removed from the database.")} onCancel={() => setPending(null)} onConfirm={confirmDelete} />;
-  return { strategies, activeStrategy, selectedStrategyId, setSelectedStrategyId: setSelection, loading, saving, error, canCreate, createStrategy, duplicateStrategy, requestDelete, confirmation, reload };
+  return { strategies, activeStrategy, selectedStrategyId, setSelectedStrategyId: setSelection, loading, saving, error, canCreate, createStrategy, updateStrategy, duplicateStrategy, requestDelete, confirmation, reload };
 }
