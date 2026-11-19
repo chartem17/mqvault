@@ -10,7 +10,7 @@ import { legacyTabDestination } from "@/lib/navigation/workspace-routes";
  * everything that is not explicitly public. Routes still resolve the user themselves (`resolveUser`) —
  * the middleware only answers "is somebody signed in", and keeps the session cookies fresh.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Content-Security-Policy with a fresh nonce on every response (package 3). Next.js reads the nonce from the
   // forwarded request header and tags its own scripts; the layout passes it to next-themes.
   const nonce = createNonce();

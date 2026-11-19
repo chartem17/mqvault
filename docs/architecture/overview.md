@@ -2,7 +2,7 @@
 
 Приватний торговий журнал і дашборд: облік угод по кількох рахунках (особисті й проп), аналітика, контроль торгової стратегії.
 
-**Стек:** Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Supabase (Postgres) · Vercel.
+**Стек:** Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Supabase (Postgres) · Vercel.
 
 ## Шари і напрямок залежностей
 
@@ -15,7 +15,7 @@
 | Шар | Де | Відповідальність |
 |---|---|---|
 | Маршрути | `src/app/` | Розділи робочого простору — група `(workspace)` зі спільним каркасом: `/home`, `/overview`, `/journal`, `/strategy-control`, `/market`, `/calendar`; `/` — стартова сторінка (Головна або розділ із «Стартової сторінки»). Старі `/?tab=…` middleware перенаправляє (308) на нову адресу (`lib/navigation/workspace-routes.ts`). Публічні: `/login`, `/signup`, `/forgot-password`, юридичні тексти (`/terms`, `/privacy`, `/cookies`, `/risk-disclosure`) і `/unavailable`; усі серверні ендпоінти в `src/app/api/` |
-| Доступ | `src/middleware.ts`, `src/lib/auth/` | Сесія Supabase Auth для всіх сторінок і API, крім сторінок входу й машинних ендпоінтів; `resolveUser()` визначає користувача в кожному маршруті (див. [ADR 0017](../decisions/0017-user-accounts-supabase-auth.md)); перенаправляє `DELETE /api/accounts` і `DELETE /api/journal/trades` на `/api/deletions`. Виняток — `TOKEN_PATHS` (`POST /api/economic-calendar/sync`, власний токен, [ADR 0015](../decisions/0015-calendar-sync-from-owner-mt5.md)) |
+| Доступ | `src/proxy.ts` (колишній `middleware.ts`, перейменовано під Next.js 16), `src/lib/auth/` | Сесія Supabase Auth для всіх сторінок і API, крім сторінок входу й машинних ендпоінтів; `resolveUser()` визначає користувача в кожному маршруті (див. [ADR 0017](../decisions/0017-user-accounts-supabase-auth.md)); перенаправляє `DELETE /api/accounts` і `DELETE /api/journal/trades` на `/api/deletions`. Виняток — `TOKEN_PATHS` (`POST /api/economic-calendar/sync`, власний токен, [ADR 0015](../decisions/0015-calendar-sync-from-owner-mt5.md)) |
 | UI | `src/components/` | Екрани-вкладки (`tabs/`), фічі (`overview/`, `accounts/`, `journal/`, `strategy-control/`, `home/`, `settings/`), каркас (`layout/`), контексти (`providers/`), спільні примітиви (`ui/`) |
 | Стан і дані на клієнті | `src/hooks/` | `use-trades` (угоди й рахунки), `use-strategies`, `use-dashboard-layout`, `use-journal-layout`, `use-instruments`, `use-market-quotes`, `use-mt5` (вимкнений), `use-media-query` |
 | Доменна логіка | `src/lib/<домен>/` | Чисті функції без React: розрахунки, парсинг, правила. Тут живуть тести |
