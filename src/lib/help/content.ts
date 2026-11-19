@@ -31,6 +31,12 @@ export const FAQ: FaqSection[] = [
     { q: msg("Which time zone is used?"), a: msg("Days, months and periods follow the time zone in Settings. Trading sessions (Asia, London, New York) follow the markets' own clocks. Times you type for a manual trade are read in the broker's time zone of the account.") },
     { q: msg("Can I undo a deletion?"), a: msg("Yes, for 10 seconds: a bar with Undo appears after you delete a trade or an account. After that the deletion is final.") },
   ] },
+  { id: "playbook", title: msg("Playbook"), items: [
+    { q: msg("What is Playbook?"), a: msg("Playbook keeps the rules of your trading system in one place: trading windows, limits per day, the risk ladder and the entry model. It shows the state right now \u2014 whether you may trade, how many trades and stops are left today and which risk applies.") },
+    { q: msg("What is a trade plan?"), a: msg("A checklist you fill in before the entry: context, point of interest, reaction, structure break, entry, stop, target, risk and a screenshot link. It can be saved only when every point is met; the server checks it again with its own clock and data.") },
+    { q: msg("How are plans matched with trades?"), a: msg("Automatically, when a trade from CSV or MT5 Bridge arrives: the same account, symbol and direction, entry within minutes to hours after the plan and a price close to the planned one. You can also link a plan to a trade by hand; a manual link wins.") },
+    { q: msg("Which trades are marked as breaking the system?"), a: msg("Trades without a plan, outside a trading window, over the daily trade or stop limit, with RR below the minimum, risk not following the ladder, or closed by hand at break-even. You can add your own marks to a trade, such as a moved target or an early break-even.") },
+  ] },
   { id: "strategy", title: msg("Strategy control"), items: [
     { q: msg("What does a strategy do?"), a: msg("It turns your rules into checks: trades and losses per day, allowed sessions and instruments, risk range, news windows. Strategy Control shows how often each rule was broken and what it cost in R.") },
     { q: msg("What does \"no data\" next to a rule mean?"), a: msg("The trades in the period do not have the information the rule needs, for example no stop for a risk rule. Fill it in the journal or during day review and the rule will be checked.") },

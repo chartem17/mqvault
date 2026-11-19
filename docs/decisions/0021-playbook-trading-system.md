@@ -20,4 +20,4 @@
 - Скрін у плані — посилання (як `screenshot_url`), не завантаження файлу.
 
 ## Де в коді
-`src/lib/playbook/{config,engine,plans,discipline}.ts` (тести `tests/playbook.test.mjs`), `src/app/api/trade-plans/route.ts`, `src/app/api/journal/trades/route.ts` (`discipline`, `close_reason`), `src/hooks/use-playbook.ts`, `src/components/playbook/*`, `src/components/tabs/playbook-tab.tsx`, міграція `supabase/migrations/20261114120000_trade_plans.sql`, RLS-тест `tests/rls-user-isolation.sql`.
+`src/lib/playbook/{config,engine,plans,discipline}.ts` (тести `tests/playbook.test.mjs`), `src/app/api/trade-plans/route.ts`, `src/app/api/journal/trades/route.ts` (`discipline`, `close_reason`), `src/hooks/use-playbook.ts`, `src/components/playbook/*`, `src/components/tabs/playbook-tab.tsx`, міграція `supabase/migrations/20261119220215_trade_plans.sql`, RLS-тест `tests/rls-user-isolation.sql`.

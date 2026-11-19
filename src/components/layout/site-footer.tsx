@@ -7,7 +7,7 @@ import { msg } from "@/lib/i18n/core";
 
 const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
   { title: msg("Product"), links: [
-    { href: "/journal", label: msg("Journal") }, { href: "/overview", label: msg("Overview") },
+    { href: "/journal", label: msg("Journal") }, { href: "/playbook", label: msg("Playbook") },
     { href: "/strategy-control", label: msg("Strategy control") }, { href: "/bridge/connect", label: msg("MT5 Bridge") },
   ] },
   { title: msg("Help"), links: [

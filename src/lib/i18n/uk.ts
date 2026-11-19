@@ -2,6 +2,15 @@ import type { Dictionary } from "./core";
 
 /** Ukrainian translations keyed by the English source text. Keep keys identical to the `t()` / `tn()` / `msg()` calls. */
 export const uk: Dictionary = {
+  // Help: Playbook
+  "What is Playbook?": "Що таке Playbook?",
+  "Playbook keeps the rules of your trading system in one place: trading windows, limits per day, the risk ladder and the entry model. It shows the state right now — whether you may trade, how many trades and stops are left today and which risk applies.": "Playbook тримає правила вашої торгової системи в одному місці: торгові вікна, денні ліміти, драбину ризику й модель входу. Він показує стан просто зараз — чи можна торгувати, скільки угод і стопів лишилось на сьогодні й який ризик діє.",
+  "What is a trade plan?": "Що таке план угоди?",
+  "A checklist you fill in before the entry: context, point of interest, reaction, structure break, entry, stop, target, risk and a screenshot link. It can be saved only when every point is met; the server checks it again with its own clock and data.": "Чекліст, який заповнюється до входу: контекст, зона інтересу, реакція, злам структури, вхід, стоп, ціль, ризик і посилання на скриншот. Зберегти його можна, лише коли виконано всі пункти; сервер перевіряє його ще раз за власним годинником і даними.",
+  "How are plans matched with trades?": "Як плани зіставляються з угодами?",
+  "Automatically, when a trade from CSV or MT5 Bridge arrives: the same account, symbol and direction, entry within minutes to hours after the plan and a price close to the planned one. You can also link a plan to a trade by hand; a manual link wins.": "Автоматично, коли угода надходить із CSV чи MT5 Bridge: той самий рахунок, символ і напрямок, вхід протягом кількох хвилин чи годин після плану й ціна, близька до запланованої. План можна прив'язати до угоди й вручну; ручна прив'язка має пріоритет.",
+  "Which trades are marked as breaking the system?": "Які угоди позначаються як порушення системи?",
+  "Trades without a plan, outside a trading window, over the daily trade or stop limit, with RR below the minimum, risk not following the ladder, or closed by hand at break-even. You can add your own marks to a trade, such as a moved target or an early break-even.": "Угоди без плану, поза торговим вікном, понад денний ліміт угод чи стопів, з RR нижче мінімуму, з ризиком не за драбиною або закриті вручну в нуль. До угоди можна додати й власні позначки — наприклад, перенесений таргет чи ранній беззбиток.",
   // Strategy control: rules without data
   "No data": "Немає даних",
   "No trade has the data the rules need": "Жодна угода не має даних, потрібних правилам",
