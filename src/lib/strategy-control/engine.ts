@@ -101,7 +101,10 @@ export function analyzeTrades(
     ? round(knownRTrades.reduce((sum, t) => sum + (t.resultR as number), 0))
     : null;
 
-  const wins = knownRTrades.filter((t) => (t.resultR as number) > 0).length;
+  // Win rate by net, as in the journal (owner decision 2026-11-20): every closed trade with a known net counts,
+  // including those without R. R > 0 and net > 0 always agree in sign; only the denominator differs.
+  const netTrades = trades.filter((t) => t.closedAt && typeof t.netPnl === "number" && Number.isFinite(t.netPnl));
+  const wins = netTrades.filter((t) => (t.netPnl as number) > 0).length;
 
   const averageRisk = knownRiskTrades.length
     ? round(
@@ -195,8 +198,8 @@ export function analyzeTrades(
     checkedTrades: checkedTrades.length,
     cleanTrades: cleanTrades.length,
     compliance,
-    winRate: knownRTrades.length
-      ? round((wins / knownRTrades.length) * 100, 1)
+    winRate: netTrades.length
+      ? round((wins / netTrades.length) * 100, 1)
       : null,
     totalR,
     averageR:

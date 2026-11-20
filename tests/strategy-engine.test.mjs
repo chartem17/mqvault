@@ -46,3 +46,13 @@ test("a trade over the daily limit breaks the rule even without a known R", () =
   // R statistics still ignore the trade without R.
   assert.equal(result.findings[0].affectedTrades, 0);
 });
+
+test("win rate counts every closed trade with a net, like the journal", () => {
+  const trades = [
+    trade({ closedAt: "2026-11-03T12:00:00Z", netPnl: 50, resultR: 1 }),
+    trade({ closedAt: "2026-11-03T13:00:00Z", netPnl: -20, resultR: -1 }),
+    trade({ closedAt: "2026-11-03T14:00:00Z", netPnl: 30, resultR: null }), // no risk known: still a win
+    trade({ closedAt: null, netPnl: null, resultR: null }), // still open: not counted
+  ];
+  assert.equal(analyzeTrades(trades, strategy([]), period).winRate, 66.7);
+});
