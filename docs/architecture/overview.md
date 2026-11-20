@@ -42,7 +42,7 @@ src/
     auth/{callback,confirm}/   повернення з листа або Google (створюють сесію)
     api/
       accounts/                 CRUD рахунків;   accounts/[id]/prop-rules — умови проп-рахунку (GET/PATCH, expectedRevision)
-      journal/trades/           угоди
+      journal/trades/           угоди;   journal/ideas — зв'язати угоди в ідею (ADR 0022)
       strategies/               правила стратегій
       trade-plans/              плани угод Playbook (бар'єр-чекліст перевіряє сервер, ADR 0021)
       deletions/                відкладене остаточне видалення (RPC), сюди middleware перенаправляє DELETE

@@ -13,6 +13,7 @@ import { DayReview } from '@/components/journal/day-review';
 import { ScreenshotGallery } from '@/components/journal/screenshot-gallery';
 import { CsvImportModal } from '@/components/journal/csv-import-modal';
 import { NewsBadge, TradeNewsSection } from '@/components/journal/trade-news';
+import { TradeIdeaPanel } from '@/components/journal/trade-idea-panel';
 import { tradeNewsKey, useTradeNews } from '@/hooks/use-trade-news';
 import { needsReview } from '@/lib/journal/trade-review';
 import { useTrades, type JournalTrade, type TradeInput, type UpdateTradeInput } from '@/hooks/use-trades';
@@ -155,7 +156,7 @@ export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus, review = fa
     return raw(trade, id) ?? '—';
   }
   if (review && focus.kind === 'none') return <div className="space-y-4 sm:p-6">{loading ? <EmptyState title={t("Loading trades…")} role="status" /> : <DayReview key={activeAccountId} trades={visibleTrades} accounts={accounts} updateTrade={updateTrade} onExit={() => onReviewChange?.(false)} />}</div>;
-  const modal = <ManualTradeModal open={showModal} accounts={accounts} defaultAccountId={activeAccountId !== 'all' ? activeAccountId : undefined} initialTrade={editingTrade} submitting={saving} news={editingTrade ? <TradeNewsSection summary={news.byTrade?.get(editingTrade.id)} loading={news.loading} error={news.error} /> : null} onClose={() => { setShowModal(false); setEditingTrade(null); }} onSubmit={submit} />;
+  const modal = <ManualTradeModal open={showModal} accounts={accounts} defaultAccountId={activeAccountId !== 'all' ? activeAccountId : undefined} initialTrade={editingTrade} submitting={saving} news={editingTrade ? <><TradeNewsSection summary={news.byTrade?.get(editingTrade.id)} loading={news.loading} error={news.error} /><TradeIdeaPanel trade={editingTrade} /></> : null} onClose={() => { setShowModal(false); setEditingTrade(null); }} onSubmit={submit} />;
   if (gallery && focus.kind === 'none') return <div className="space-y-4 sm:p-6">{loading ? <EmptyState title={t("Loading trades…")} role="status" /> : <ScreenshotGallery trades={visibleTrades} accounts={accounts} onExit={() => onGalleryChange?.(false)} onOpenTrade={trade => { setEditingTrade(trade); setShowModal(true); }} />}{modal}</div>;
   // Until the saved view is known (device copy or server), show a placeholder rather than a table that flips to cards.
   if (!phone && !prefs.known) return <div className="space-y-4 sm:p-6"><EmptyState title={t("Loading trades…")} role="status" />{modal}</div>;

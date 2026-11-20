@@ -9,6 +9,7 @@ import { formatDateTimeOrDash } from "@/lib/time/timezone";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { TradeReview } from "@/lib/journal/trade-review";
 import type { TradeDiscipline } from "@/lib/playbook/discipline";
+import type { IdeaLink } from "@/lib/journal/trade-idea";
 
 export type AccountFilter = "all" | string;
 type DbAccount = { id: string; name: string; broker_timezone?: string | null; broker?: string | null; platform: string; account_type: string; currency: string; mt5_login?: string | null; mt5_server?: string | null; initial_balance?: number | null; phase?: string | null; target_percent?: number | null; max_loss_percent?: number | null; daily_loss_percent?: number | null; min_trading_days?: number | null; is_active: boolean; status: string; color?: string | null; parent_account_id?: string | null; prop_target_state?: string | null };
@@ -17,10 +18,12 @@ export type JournalTrade = {
   entry_price: string | null; exit_price: string | null; stop_loss?: string | null; initial_stop_loss?: string | null; take_profit?: string | null; volume?: number | null; risk_percent?: number | null; risk_amount?: number | null; risk_basis?: "stop" | "entered" | "planned" | null; gross_pnl?: number | null; commission?: number | null; swap?: number | null; fee?: number | null; net_pnl?: number | null; result_r?: number | null; session?: string | null; setup?: string | null; htf_bias?: string | null; entry_reason?: string | null; exit_reason?: string | null; emotion?: string | null; mistake?: string | null; screenshot_url?: string | null; notes?: string | null; review?: TradeReview | null;
   /** Playbook marks from meta.discipline. */
   discipline?: TradeDiscipline | null;
+  /** One idea made of several trades (meta.idea, ADR 0022); linked through /api/journal/ideas. */
+  idea?: IdeaLink | null;
   /** MT5 Bridge: how the position closed (sl, tp, manual, …). */
   close_reason?: string | null;
 };
-export type TradeInput = Partial<Omit<JournalTrade, "id" | "review" | "discipline" | "close_reason">> & { review?: { followed_plan: boolean | null } | null; discipline?: Partial<Omit<TradeDiscipline, "updated_at">> | null };
+export type TradeInput = Partial<Omit<JournalTrade, "id" | "review" | "discipline" | "idea" | "close_reason">> & { review?: { followed_plan: boolean | null } | null; discipline?: Partial<Omit<TradeDiscipline, "updated_at">> | null };
 export type UpdateTradeInput = TradeInput & { id: string };
 export type AccountInput = { id?: string; brokerTimezone?: string; accountType?: AccountType; name: string; broker?: string; platform: "manual" | "mt5"; source: "manual" | "mt5"; kind: AccountKind; currency: "USD" | "USDT"; initialBalance: number; phase?: AccountPhase | null; status?: AccountStatus; mt5Login?: string; mt5Server?: string; color?: string; targetPercent?: number | null; maxLossPercent?: number | null; dailyLossPercent?: number | null; minTradingDays?: number | null; parentAccountId?: string | null };
 const PROP_PHASES: AccountPhase[] = ["phase-1", "phase-2", "phase-3", "funded"];
