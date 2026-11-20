@@ -37,3 +37,9 @@ test("review streak skips empty days and stops at an unreviewed day", () => {
   assert.equal(reviewStreak([...trades, t("2026-11-11T09:00:00Z", 1, 1)], "Europe/Kyiv", NOW), 4);
   assert.equal(reviewStreak([], "Europe/Kyiv", NOW), 0);
 });
+
+test("month progress counts a trade in the month it was opened", () => {
+  const crossing = { opened_at: "2026-10-31T21:00:00Z", closed_at: "2026-11-01T08:00:00Z", net_pnl: -10, result_r: -1, ...done };
+  assert.equal(monthProgress([crossing], "Etc/UTC", NOW).closed, 0);
+  assert.equal(monthProgress([crossing], "Etc/UTC", Date.parse("2026-10-31T23:00:00Z")).closed, 1);
+});

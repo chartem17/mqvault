@@ -16,11 +16,14 @@ export type TodaySummary = {
   limits: StrategyLimits;
 };
 
-/** Trades are attributed to a day in the user's zone: counts by opening time, P&L by closing time (open trades have no realised P&L yet). */
+/**
+ * A trade belongs to the day it was opened, in the user's zone (owner decision 2026-11-20, docs/architecture/trade-formulas.md).
+ * `opened` counts every trade opened today; the result covers those of them already closed (open trades have no realised P&L).
+ */
 export function summarizeToday(trades: readonly HomeTrade[], timezone: string, now = new Date(), limits: StrategyLimits = { maxTrades: null, maxLosses: null }): TodaySummary {
   const day = dayKey(now, timezone);
   const opened = trades.filter(trade => dayKeyOrNull(trade.opened_at, timezone) === day);
-  const closed = trades.filter(trade => dayKeyOrNull(trade.closed_at, timezone) === day);
+  const closed = opened.filter(trade => !!trade.closed_at);
   const known = closed.filter(trade => typeof trade.net_pnl === "number" && Number.isFinite(trade.net_pnl));
   return {
     day, opened: opened.length, closedCount: closed.length,
@@ -38,11 +41,11 @@ export function dailyLossRoom(initialBalance: number | null, dailyLossPercent: n
   return { limit, room: Math.max(0, limit + Math.min(0, todayNet)) };
 }
 
-/** Net P&L per day for the last `days` days ending today (oldest first), by closing day in the user's zone. */
+/** Net P&L of closed trades per day for the last `days` days ending today (oldest first), by opening day in the user's zone. */
 export function lastDays(trades: readonly HomeTrade[], timezone: string, days: number, now = new Date()): { day: string; net: number; count: number }[] {
   const byDay = new Map<string, { net: number; count: number }>();
   for (const trade of trades) {
-    const day = dayKeyOrNull(trade.closed_at, timezone);
+    const day = trade.closed_at ? dayKeyOrNull(trade.opened_at, timezone) : null;
     if (!day || typeof trade.net_pnl !== "number" || !Number.isFinite(trade.net_pnl)) continue;
     const entry = byDay.get(day) ?? { net: 0, count: 0 };
     entry.net += trade.net_pnl; entry.count++; byDay.set(day, entry);

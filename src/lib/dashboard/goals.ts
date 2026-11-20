@@ -19,14 +19,14 @@ export type MonthProgress = {
 
 const finite = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
 
-/** Closed trades of the month that contains `now`, in the user's zone. */
+/** Closed trades opened in the month that contains `now`, in the user's zone (a trade belongs to its opening day). */
 export function monthProgress(trades: readonly GoalTrade[], timezone: string, now: Date | number = Date.now()): MonthProgress {
   const month = dayKey(now, timezone).slice(0, 7);
   const days = new Map<string, number>();
   let r = 0, rCount = 0, closed = 0, reviewed = 0;
   for (const trade of trades) {
     if (!trade.closed_at) continue;
-    const day = dayKeyOrNull(trade.closed_at, timezone);
+    const day = dayKeyOrNull(trade.opened_at, timezone);
     if (!day || day.slice(0, 7) !== month) continue;
     closed += 1;
     if (finite(trade.result_r)) { r += trade.result_r; rCount += 1; }
@@ -58,7 +58,7 @@ export function reviewStreak(trades: readonly GoalTrade[], timezone: string, now
   const byDay = new Map<string, { total: number; open: number }>();
   for (const trade of trades) {
     if (!trade.closed_at) continue;
-    const day = dayKeyOrNull(trade.closed_at, timezone);
+    const day = dayKeyOrNull(trade.opened_at, timezone);
     if (!day) continue;
     const entry = byDay.get(day) ?? { total: 0, open: 0 };
     entry.total += 1;
