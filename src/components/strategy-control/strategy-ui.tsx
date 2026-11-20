@@ -10,6 +10,7 @@ export const statusTone: Record<RuleStatus, { chip: string; card: string; label:
   warning: { chip: "border-gold/20 bg-gold/10 text-gold", card: "border-gold/20 bg-gold/10", label: msg("Needs attention") },
   critical: { chip: "border-red/20 bg-red/10 text-red", card: "border-red/20 bg-red/10", label: msg("Negative impact") },
   insufficient: { chip: "border-border bg-muted text-muted-foreground", card: "border-border bg-card", label: msg("Small sample") },
+  no_data: { chip: "border-dashed border-border bg-transparent text-muted-foreground", card: "border-dashed border-border bg-card", label: msg("No data") },
 };
 export const impactTone: Record<string, string> = {
   positive: "border-green/20 bg-green/10 text-green",

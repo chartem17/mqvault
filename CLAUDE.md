@@ -1,6 +1,6 @@
 # MQVault — інструкції для Claude
 
-Приватний торговий журнал і дашборд (Next.js 15 App Router · React 19 · TypeScript · Tailwind 4 · Supabase · Vercel).
+Приватний торговий журнал і дашборд (Next.js 16 App Router · React 19 · TypeScript · Tailwind 4 · Supabase · Vercel).
 Власник пише українською — **відповідай українською**. Код, імена, коміти — англійською.
 
 ## Спершу прочитай

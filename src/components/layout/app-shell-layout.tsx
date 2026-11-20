@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { BookOpen, CalendarDays, ClipboardCheck, Globe2, House, LayoutDashboard, ShieldCheck, TrendingUp } from "lucide-react";
-import type { TabId } from "@/app/page";
+import { tabPath, type TabId } from "@/lib/navigation/workspace-routes";
 import AccountSwitcher from "@/components/accounts/account-switcher";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { Shortcuts } from "@/components/layout/shortcuts";
+import { SiteFooter } from "@/components/layout/site-footer";
 import { useI18n } from "@/components/providers/i18n-provider";
 import { usePreferences } from "@/components/providers/preferences-provider";
 import { DefaultAccount } from "@/components/layout/default-account";
@@ -27,7 +29,7 @@ const ALL_TABS: { id: TabId; label: string; short?: string; icon: React.ElementT
   { id: "calendar", label: msg("Calendar"), icon: CalendarDays },
 ];
 
-export default function AppShellLayout({ children, activeTab, setActiveTab }: { children: ReactNode; activeTab: TabId; setActiveTab: (tab: TabId) => void }) {
+export default function AppShellLayout({ children, activeTab, pageKey }: { children: ReactNode; activeTab: TabId | null; pageKey: string }) {
   const { t } = useI18n();
   // Closed beta: Market and Calendar stay with the installation owner (data licensed for private use).
   const owner = useCurrentUser()?.isOwner === true;
@@ -48,7 +50,7 @@ export default function AppShellLayout({ children, activeTab, setActiveTab }: { 
     <div className="min-h-screen text-foreground">
       <DefaultAccount />
       <div key={displayKey} className="flex min-h-screen">
-        <AppSidebar activeTab={activeTab} setActiveTab={setActiveTab} onSearch={() => setSearch(true)} />
+        <AppSidebar activeTab={activeTab} onSearch={() => setSearch(true)} />
         <main className="min-w-0 flex-1 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0">
           <div className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-border bg-background/85 px-3 py-2.5 backdrop-blur sm:gap-4 sm:px-6 sm:py-4 md:border-transparent md:bg-transparent md:backdrop-blur-none xl:px-8">
             <div className="flex items-center gap-3 md:hidden">
@@ -62,17 +64,18 @@ export default function AppShellLayout({ children, activeTab, setActiveTab }: { 
               <div className="flex items-center gap-2 md:hidden"><LanguageToggle /><UserMenu /></div>
             </div>
           </div>
-          <div key={activeTab} className="page-enter px-3 py-4 sm:px-6 sm:py-5 xl:px-8 xl:py-6">{children}</div>
+          <div key={pageKey} className="page-enter px-3 py-4 sm:px-6 sm:py-5 xl:px-8 xl:py-6">{children}</div>
+          <SiteFooter className="mt-6" />
         </main>
       </div>
       <Shortcuts />
-      <CommandPalette open={search} onClose={() => setSearch(false)} setActiveTab={setActiveTab} />
+      <CommandPalette open={search} onClose={() => setSearch(false)} />
       <nav aria-label={t("Main navigation")} style={{ gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))` }} className="fixed inset-x-0 bottom-0 z-40 grid border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
         {TABS.map((tab) => {
           const Icon = tab.icon, active = activeTab === tab.id;
-          return <button key={tab.id} type="button" aria-current={active ? "page" : undefined} onClick={() => setActiveTab(tab.id)} className={`flex min-w-0 flex-col items-center gap-1 px-0.5 pb-2 pt-2.5 text-[10px] leading-tight focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary ${active ? "text-primary" : "text-muted-foreground"}`}>
+          return <Link key={tab.id} href={tabPath(tab.id)} scroll={false} aria-current={active ? "page" : undefined} className={`flex min-w-0 flex-col items-center gap-1 px-0.5 pb-2 pt-2.5 text-[10px] leading-tight focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary ${active ? "text-primary" : "text-muted-foreground"}`}>
             <Icon aria-hidden="true" className="h-5 w-5 shrink-0" /><span className="w-full truncate text-center">{t(tab.short ?? tab.label)}</span>
-          </button>;
+          </Link>;
         })}
       </nav>
     </div>

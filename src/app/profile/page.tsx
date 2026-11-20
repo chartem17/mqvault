@@ -12,6 +12,7 @@ import { traderSummary } from "@/lib/journal/trader-summary";
 import { useTimezone } from "@/components/providers/timezone-provider";
 import { useMemo } from "react";
 import { fmt } from "@/lib/journal/utils-trade";
+import { SiteFooter } from "@/components/layout/site-footer";
 
 /** Profile: who is signed in, counters and the account list. Editing is limited to the display name (ADR 0017). */
 export default function ProfilePage() {
@@ -44,7 +45,7 @@ export default function ProfilePage() {
     if (problem) setError(problem); else setEditing(false);
   }
 
-  return <main className="page-enter mx-auto w-full max-w-2xl px-3 py-5 sm:px-6 sm:py-8">
+  return <><main className="page-enter mx-auto w-full max-w-2xl px-3 py-5 sm:px-6 sm:py-8">
     <div className="mb-5 flex items-center justify-between gap-3">
       <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" aria-hidden="true" />{t("Back to workspace")}</Link>
       <Link href="/settings" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"><Settings className="h-4 w-4" aria-hidden="true" />{t("Settings")}</Link>
@@ -100,5 +101,5 @@ export default function ProfilePage() {
     <div className="mt-4 flex justify-end">
       <Button variant="secondary" loading={leaving} onClick={() => void signOut()}><LogOut className="h-4 w-4" aria-hidden="true" />{leaving ? t("Signing out…") : t("Sign out")}</Button>
     </div>
-  </main>;
+  </main><SiteFooter /></>;
 }

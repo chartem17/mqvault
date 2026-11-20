@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
-const { guardRequest, unauthenticatedResponse, safeNextPath, normalizeEmail, passwordProblem, TOKEN_PATHS, PUBLIC_PAGES, PUBLIC_API } = require("../.tmp-request-guard-tests/lib/auth/request-guard.js");
+const { guardRequest, unauthenticatedResponse, safeNextPath, normalizeEmail, passwordProblem, TOKEN_PATHS, PUBLIC_PAGES, PUBLIC_INFO_PAGES, PUBLIC_API } = require("../.tmp-request-guard-tests/lib/auth/request-guard.js");
 
 const req = (path, method = "GET", headers = {}) => new Request(`https://vault.test${path}`, { method, headers });
 const sameOrigin = { origin: "https://vault.test", "content-type": "application/json" };
@@ -48,8 +48,8 @@ test("the configured site origin wins over the request host", () => {
 });
 
 test("only the listed pages and callbacks are public; data and the app are not", () => {
-  for (const path of [...PUBLIC_PAGES, "/auth/confirm", "/auth/callback", "/api/auth/google"]) assert.equal(access(path), "public", path);
-  for (const path of ["/", "/journal", "/bridge/connect", "/reset-password", "/api/me", "/api/journal/trades", "/api/auth/login", "/login/", "/LOGIN", "/login/x", "/api/auth"]) assert.equal(access(path), "session", path);
+  for (const path of [...PUBLIC_PAGES, ...PUBLIC_INFO_PAGES, "/auth/confirm", "/auth/callback", "/api/auth/google"]) assert.equal(access(path), "public", path);
+  for (const path of ["/", "/journal", "/overview", "/strategy-control", "/help", "/terms/x", "/bridge/connect", "/reset-password", "/api/me", "/api/journal/trades", "/api/auth/login", "/login/", "/LOGIN", "/login/x", "/api/auth"]) assert.equal(access(path), "session", path);
 });
 
 test("signed-out pages go to the sign-in form and back; APIs get 401 JSON", async () => {
@@ -66,7 +66,7 @@ test("signed-out pages go to the sign-in form and back; APIs get 401 JSON", asyn
 test("post-login destination stays on this site and off the sign-in pages", () => {
   assert.equal(safeNextPath("/journal?review=1"), "/journal?review=1");
   assert.equal(safeNextPath("/reset-password"), "/reset-password");
-  for (const bad of [null, undefined, "", "journal", "https://evil.test", "//evil.test", "/\\evil.test", "/a\\b", "/login", "/login?next=/x", "/signup", "/auth/callback?code=1", "/x\n/y"]) assert.equal(safeNextPath(bad), "/", String(bad));
+  for (const bad of [null, undefined, "", "journal", "https://evil.test", "//evil.test", "/\\evil.test", "/a\\b", "/login", "/login?next=/x", "/signup", "/auth/callback?code=1", "/unavailable", "/x\n/y"]) assert.equal(safeNextPath(bad), "/", String(bad));
 });
 
 test("e-mail and password checks", () => {

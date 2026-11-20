@@ -109,7 +109,7 @@ export function HomeTab() {
     <Onboarding />
     {preferences.reviewReminder && unmarked.length > 0 && <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gold/40 bg-gold/10 px-4 py-3 text-sm">
       <span>{tn(unmarked.length, "{count} closed trade waits for setup and emotion.", "{count} closed trades wait for setup and emotion.")}</span>
-      <Button size="sm" variant="secondary" onClick={() => router.push("/?tab=journal&review=1", { scroll: false })}>{t("Start review")}</Button>
+      <Button size="sm" variant="secondary" onClick={() => router.push("/journal?review=1", { scroll: false })}>{t("Start review")}</Button>
     </div>}
     <section className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(320px,440px)] lg:gap-16" aria-label={t("Today")}>
       <div className="space-y-8">
@@ -136,7 +136,7 @@ export function HomeTab() {
     </section>
 
     <div className="grid gap-12 sm:gap-16 lg:grid-cols-2">
-      <PlaybookStatus state={playbookState} window={playbookWindow} config={playbook.config} onNewPlan={playbook.plansAvailable === false ? undefined : () => router.push("/?tab=playbook", { scroll: false })} />
+      <PlaybookStatus state={playbookState} window={playbookWindow} config={playbook.config} onNewPlan={playbook.plansAvailable === false ? undefined : () => router.push("/playbook", { scroll: false })} />
       <DisciplineMetrics trades={visibleTrades} assessed={playbook.assessed} config={playbook.config} now={now} />
     </div>
 
@@ -158,7 +158,7 @@ export function HomeTab() {
         {unmarked.length === 0 ? <p className="m-0 text-muted-foreground">{t("Everything is marked.")}</p> : <>
           <p className="m-0 text-muted-foreground"><span className="mr-2 text-[2rem] font-medium tabular-nums text-foreground" style={DISPLAY}>{unmarked.length}</span>{tn(unmarked.length, "trade waiting for review", "trades waiting for review")}</p>
           <ul className="m-0 max-w-md list-none divide-y divide-border/60 p-0">{recentUnmarked.map(trade => <li key={trade.id} className="flex items-baseline justify-between gap-4 py-2.5 text-sm"><span>{trade.symbol} <span className="text-muted-foreground">{trade.direction === "Short" ? "short" : "long"}</span></span><span className="text-xs tabular-nums text-muted-foreground">{formatDateTimeOrDash(trade.opened_at, timezone, intl)}</span></li>)}</ul>
-          <Button variant="secondary" size="sm" type="button" onClick={() => router.push("/?tab=journal&review=1", { scroll: false })}>{t("Start review")}</Button>
+          <Button variant="secondary" size="sm" type="button" onClick={() => router.push("/journal?review=1", { scroll: false })}>{t("Start review")}</Button>
         </>}
       </section>
 

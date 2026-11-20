@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 import { ChevronsLeft, ChevronsRight, Languages, Moon, Search, Sun, TrendingUp } from "lucide-react";
 import { LOCALE_LABEL } from "@/lib/i18n/core";
-import type { TabId } from "@/app/page";
+import { tabPath, type TabId } from "@/lib/navigation/workspace-routes";
 import { SECTION_LABEL, visiblePages, type NavPage } from "./nav-pages";
 import { useTrades } from "@/hooks/use-trades";
 import { useI18n } from "@/components/providers/i18n-provider";
@@ -28,7 +28,7 @@ function Avatar({ url, initial, size }: { url: string | null; initial: string; s
   </span>;
 }
 
-export function AppSidebar({ activeTab, setActiveTab, onSearch }: { activeTab: TabId; setActiveTab: (tab: TabId) => void; onSearch: () => void }) {
+export function AppSidebar({ activeTab, onSearch }: { activeTab: TabId | null; onSearch: () => void }) {
   const { t, locale, setLocale } = useI18n();
   const { resolvedTheme, setTheme } = useTheme();
   const { profile, loading: profileLoading } = useProfile();
@@ -104,7 +104,7 @@ export function AppSidebar({ activeTab, setActiveTab, onSearch }: { activeTab: T
     }
     const tab = page.target.tab;
     return <div key={page.key} className="relative">
-      <button type="button" {...itemProps(page.key)} className="sb-item" aria-current={activeTab === tab ? "page" : undefined} data-active={activeTab === tab || undefined} onClick={() => setActiveTab(tab)}>{label}</button>
+      <Link href={tabPath(tab)} scroll={false} {...itemProps(page.key)} className="sb-item" aria-current={activeTab === tab ? "page" : undefined} data-active={activeTab === tab || undefined}>{label}</Link>
     </div>;
   }
 

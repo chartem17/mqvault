@@ -29,6 +29,7 @@ import { LOCALE_LABEL, LOCALES, isLocale, msg } from "@/lib/i18n/core";
 import { PASSWORD_MIN_LENGTH as PASSWORD_MIN } from "@/lib/auth/request-guard";
 import { passwordStrength } from "@/lib/auth/password-strength";
 import { formatDateTimeOrDash } from "@/lib/time/timezone";
+import { SiteFooter } from "@/components/layout/site-footer";
 
 type ActivityRow = { id: number; action: string; method: string | null; detail: Record<string, unknown>; ip_hash: string | null; user_agent: string | null; created_at: string };
 /** What each security event is called on screen. */
@@ -130,7 +131,7 @@ export default function SettingsPage() {
   }
 
   const light = mounted && resolvedTheme === "light";
-  return <main className="page-enter mx-auto w-full max-w-2xl space-y-4 px-3 py-5 sm:px-6 sm:py-8">
+  return <><main className="page-enter mx-auto w-full max-w-2xl space-y-4 px-3 py-5 sm:px-6 sm:py-8">
     <div className="mb-1 flex items-center justify-between gap-3">
       <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" aria-hidden="true" />{t("Back to workspace")}</Link>
       <Link href="/profile" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"><UserRound className="h-4 w-4" aria-hidden="true" />{t("Profile")}</Link>
@@ -285,5 +286,5 @@ export default function SettingsPage() {
         <Button type="submit" variant="destructive" loading={deleteBusy} disabled={!confirmDelete || confirmDelete.trim().toLowerCase() !== (profile?.email ?? "").toLowerCase()}>{t("Delete my account")}</Button>
       </form>}
     </Section>
-  </main>;
+  </main><SiteFooter /></>;
 }

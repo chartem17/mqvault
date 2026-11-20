@@ -114,7 +114,7 @@ export function MyTradesNews({ week, nav }: { week: { from: number; to: number }
           <div className="divide-y divide-border/70">{group.rows.map(row => {
             const net = num(row.trade.net_pnl), r = num(row.trade.result_r);
             const sameDay = row.close !== null && f.key.format(row.close) === f.key.format(row.open);
-            return <Link key={row.trade.id} href={`/?tab=journal&focusTradeIds=${encodeURIComponent(row.trade.id)}`} title={t("Open in journal")}
+            return <Link key={row.trade.id} href={`/journal?focusTradeIds=${encodeURIComponent(row.trade.id)}`} title={t("Open in journal")}
               className={`grid grid-cols-[52px_minmax(0,1fr)_auto] items-start gap-3 px-4 py-3 hover:bg-secondary/35 ${row.news?.length ? "border-l-2 border-l-red/60" : "border-l-2 border-l-transparent"}`}>
               <div className="font-mono text-xs leading-5 text-muted-foreground">{f.time.format(row.open)}{row.close !== null && <div className="text-[10px] leading-4">→ {sameDay ? f.time.format(row.close) : f.dayTime.format(row.close)}</div>}</div>
               <div className="min-w-0">

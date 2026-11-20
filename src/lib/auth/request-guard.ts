@@ -7,6 +7,11 @@ import { isDeviceSignedPath } from "../bridge/signature";
 
 /** Pages a signed-out visitor may open. Signed-in visitors are sent to the app instead. */
 export const PUBLIC_PAGES = new Set(["/login", "/signup", "/forgot-password"]);
+/**
+ * Information anyone may read, signed in or not, without being sent anywhere: legal texts (linked from the
+ * sign-up form) and the "service unavailable" page.
+ */
+export const PUBLIC_INFO_PAGES = new Set(["/terms", "/privacy", "/cookies", "/risk-disclosure", "/unavailable"]);
 /** Sign-in endpoints: POST, same-origin JSON, no session yet. */
 export const PUBLIC_API = new Set(["/api/auth/login", "/api/auth/signup", "/api/auth/reset", "/api/auth/logout", "/api/auth/verify", "/api/auth/resend"]);
 /** GET handlers that finish an e-mail link or OAuth round trip and create the session themselves. */
@@ -57,7 +62,7 @@ export function guardRequest(request: Request): RequestGuard {
     return { access: PUBLIC_API.has(url.pathname) ? "public" : "session" };
   }
 
-  if (PUBLIC_PAGES.has(url.pathname) || PUBLIC_CALLBACKS.has(url.pathname)) return { access: "public" };
+  if (PUBLIC_PAGES.has(url.pathname) || PUBLIC_CALLBACKS.has(url.pathname) || PUBLIC_INFO_PAGES.has(url.pathname)) return { access: "public" };
   return { access: "session" };
 }
 
@@ -77,7 +82,7 @@ export function unauthenticatedResponse(request: Request): Response {
 export function safeNextPath(value: string | null | undefined): string {
   if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/\\") || value.includes("\\") || /[\u0000-\u001f]/.test(value)) return "/";
   const path = value.split(/[?#]/)[0];
-  if (PUBLIC_PAGES.has(path) || PUBLIC_CALLBACKS.has(path)) return "/";
+  if (PUBLIC_PAGES.has(path) || PUBLIC_CALLBACKS.has(path) || path === "/unavailable") return "/";
   return value;
 }
 

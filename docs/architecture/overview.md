@@ -2,7 +2,7 @@
 
 Приватний торговий журнал і дашборд: облік угод по кількох рахунках (особисті й проп), аналітика, контроль торгової стратегії.
 
-**Стек:** Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Supabase (Postgres) · Vercel.
+**Стек:** Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Supabase (Postgres) · Vercel.
 
 ## Шари і напрямок залежностей
 
@@ -14,8 +14,8 @@
 
 | Шар | Де | Відповідальність |
 |---|---|---|
-| Маршрути | `src/app/` | Єдина сторінка `/` із вкладками (`?tab=`), `/journal` (редирект-обгортка для посилань на угоди), `/login`; усі серверні ендпоінти в `src/app/api/` |
-| Доступ | `src/middleware.ts`, `src/lib/auth/` | Сесія Supabase Auth для всіх сторінок і API, крім сторінок входу й машинних ендпоінтів; `resolveUser()` визначає користувача в кожному маршруті (див. [ADR 0017](../decisions/0017-user-accounts-supabase-auth.md)); перенаправляє `DELETE /api/accounts` і `DELETE /api/journal/trades` на `/api/deletions`. Виняток — `TOKEN_PATHS` (`POST /api/economic-calendar/sync`, власний токен, [ADR 0015](../decisions/0015-calendar-sync-from-owner-mt5.md)) |
+| Маршрути | `src/app/` | Розділи робочого простору — група `(workspace)` зі спільним каркасом: `/home`, `/overview`, `/journal`, `/strategy-control`, `/market`, `/calendar`; `/` — стартова сторінка (Головна або розділ із «Стартової сторінки»). Старі `/?tab=…` middleware перенаправляє (308) на нову адресу (`lib/navigation/workspace-routes.ts`). Публічні: `/login`, `/signup`, `/forgot-password`, юридичні тексти (`/terms`, `/privacy`, `/cookies`, `/risk-disclosure`) і `/unavailable`; усі серверні ендпоінти в `src/app/api/` |
+| Доступ | `src/proxy.ts` (колишній `middleware.ts`, перейменовано під Next.js 16), `src/lib/auth/` | Сесія Supabase Auth для всіх сторінок і API, крім сторінок входу й машинних ендпоінтів; `resolveUser()` визначає користувача в кожному маршруті (див. [ADR 0017](../decisions/0017-user-accounts-supabase-auth.md)); перенаправляє `DELETE /api/accounts` і `DELETE /api/journal/trades` на `/api/deletions`. Виняток — `TOKEN_PATHS` (`POST /api/economic-calendar/sync`, власний токен, [ADR 0015](../decisions/0015-calendar-sync-from-owner-mt5.md)) |
 | UI | `src/components/` | Екрани-вкладки (`tabs/`), фічі (`overview/`, `accounts/`, `journal/`, `strategy-control/`, `home/`, `settings/`), каркас (`layout/`), контексти (`providers/`), спільні примітиви (`ui/`) |
 | Стан і дані на клієнті | `src/hooks/` | `use-trades` (угоди й рахунки), `use-strategies`, `use-dashboard-layout`, `use-journal-layout`, `use-instruments`, `use-market-quotes`, `use-mt5` (вимкнений), `use-media-query` |
 | Доменна логіка | `src/lib/<домен>/` | Чисті функції без React: розрахунки, парсинг, правила. Тут живуть тести |
@@ -33,10 +33,13 @@
 ```
 src/
   app/
-    page.tsx, layout.tsx, globals.css, typography.css
+    layout.tsx, globals.css, typography.css, error.tsx, not-found.tsx, global-error.tsx
+    (workspace)/      спільний каркас (сайдбар, шапка, футер) і розділи: page.tsx (старт), home/, overview/, journal/, strategy-control/, market/, calendar/
+    terms/, privacy/, cookies/, risk-disclosure/   юридичні тексти (lib/legal/documents.ts), публічні
+    unavailable/      «сервіс недоступний» (503, режим обслуговування)
+    help/, settings/, profile/, bridge/connect/
     login/, signup/, forgot-password/, reset-password/   вхід, реєстрація, скидання й зміна пароля
     auth/{callback,confirm}/   повернення з листа або Google (створюють сесію)
-    journal/          сторінка-обгортка для посилань «відкрити ці угоди в журналі»
     api/
       accounts/                 CRUD рахунків;   accounts/[id]/prop-rules — умови проп-рахунку (GET/PATCH, expectedRevision)
       journal/trades/           угоди
@@ -71,6 +74,9 @@ src/
     strategy-control/ рушій правил, бібліотека правил, збереження, адаптер угод
     playbook/         ТС власника: конфіг, вікна, ліміти, драбина ризику, план і його чекліст, зіставлення план↔угода, дисципліна
     i18n/             словник і ядро локалізації (en за замовчуванням, uk)
+    navigation/       адреси розділів і перенаправлення старих `?tab=`
+    legal/            юридичні тексти (Terms, Privacy, Cookies, Risk) і дані оператора
+    help/             довідка: FAQ за розділами, «Що нового», гарячі клавіші
     supabase/         серверний клієнт, власник, видалення, типи
     utils.ts          cn() та дрібні утиліти
 supabase/migrations/  SQL-міграції (див. [database.md](database.md))
@@ -81,7 +87,7 @@ docs/                 ця документація
 
 ## Вкладки
 
-`home` (за замовчуванням) · `overview` · `journal` · `playbook` · `strategy-control` · `market` · `calendar`. Активна вкладка живе в URL (`?tab=`), посилання з `focusTradeIds` завжди відкривають журнал. Невідомі значення `?tab=` падають на `home`. Статус кожної вкладки — у [roadmap](../roadmap/ROADMAP.md).
+`home` (за замовчуванням) · `overview` · `journal` · `playbook` · `strategy-control` · `market` · `calendar` — кожна за власною адресою (`/journal`, …). Вигляди журналу теж в адресі: `/journal?review=1`, `?gallery=1`, `?focusTradeIds=…`; тижневий звіт — `/home?report=week&week=…`. Старі `/?tab=…` (і `/?focusTradeIds=…` → журнал) перенаправляються; невідомий `tab` → `/home`. `market` і `calendar` для всіх, крім власника, перекидають на `/home`. Статус кожної вкладки — у [roadmap](../roadmap/ROADMAP.md).
 
 ## Ключові правила (деталі — в ADR)
 
@@ -99,7 +105,7 @@ docs/                 ця документація
 
 ## Середовище
 
-Змінні: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (або стара назва `…_ANON_KEY`), `SUPABASE_SECRET_KEY` (лише сервер), `VAULT_SITE_ORIGIN`; необов'язкові `AUTH_SIGNUP_MODE`, `NEXT_PUBLIC_AUTH_GOOGLE`, `CALENDAR_SYNC_TOKEN` (повний перелік — [runbooks/user-auth-rollout.md](../runbooks/user-auth-rollout.md)). Значень у репозиторії немає; `.env*` у `.gitignore`.
+Змінні: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (або стара назва `…_ANON_KEY`), `SUPABASE_SECRET_KEY` (лише сервер), `VAULT_SITE_ORIGIN`; необов'язкові `MAINTENANCE_MODE=1` (усі сторінки показують «сервіс недоступний» з 503, API — 503 JSON), `AUTH_SIGNUP_MODE`, `NEXT_PUBLIC_AUTH_GOOGLE`, `CALENDAR_SYNC_TOKEN` (повний перелік — [runbooks/user-auth-rollout.md](../runbooks/user-auth-rollout.md)). Значень у репозиторії немає; `.env*` у `.gitignore`.
 
 Деплой: Vercel, проєкт підключений до цього репозиторію. Production-гілка — `main` (перевірити в налаштуваннях Vercel, див. roadmap). База: Supabase, проєкт `mqvault-dev`. Preview-деплої користуються тією самою БД, тому не ізолюють дані.
 
