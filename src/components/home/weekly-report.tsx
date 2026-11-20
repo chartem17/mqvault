@@ -66,7 +66,9 @@ export function WeeklyReportView({ week }: { week: string | null }) {
   const start = week && /^\d{4}-\d{2}-\d{2}$/.test(week) ? weekStart(week) : latestWeekWithTrades(visibleTrades, timezone);
   const report = useMemo(() => weeklyReport(visibleTrades, start, timezone), [visibleTrades, start, timezone]);
   const [copied, setCopied] = useState("");
-  const thisWeek = weekStart(dayKey(Date.now(), timezone));
+  // Read the clock once per mount, not on every render (pure render; the page reloads daily anyway).
+  const [nowMs] = useState(() => Date.now());
+  const thisWeek = weekStart(dayKey(nowMs, timezone));
   const go = (next: string | null) => router.push(next ? `/home?report=week&week=${next}` : "/home", { scroll: false });
   const p = report.previous, n = report.totals;
   const maxR = Math.max(...report.days.map(day => Math.abs(day.totalR)), 0.5);

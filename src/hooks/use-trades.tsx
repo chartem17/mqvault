@@ -66,11 +66,15 @@ function useTradesState() {
       setActiveAccountId(current => current === "all" || mapped.some(account => account.id === current) ? current : "all");
     } catch (err) { setError(err instanceof Error ? err.message : "Failed to load data"); } finally { setLoading(false); setRefreshing(false); }
   }, []);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- loads data from the API after mount; the state is set when the request settles
   useEffect(() => { void load(true); }, [load]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- restores browser storage after mount; reading it during render would break hydration
   useEffect(() => { const active = readActive(), included = readIncluded(); restored.current = true; if (active !== "all") setActiveAccountId(active); if (included.length) setIncludedAccountIds(included); }, []);
   useEffect(() => { if (!restored.current) return; try { window.localStorage.setItem(ACTIVE_KEY, activeAccountId); } catch { /* Storage may be unavailable. */ } }, [activeAccountId]);
   useEffect(() => { if (!restored.current) return; try { window.localStorage.setItem(INCLUDED_KEY, JSON.stringify(includedAccountIds)); } catch { /* Storage may be unavailable. */ } }, [includedAccountIds]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- resets local form/selection state when its input changes
   useEffect(() => { if (accounts.length && activeAccountId !== "all" && !accounts.some(account => account.id === activeAccountId)) setActiveAccountId("all"); }, [accounts, activeAccountId]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- resets local form/selection state when its input changes
   useEffect(() => { if (!accounts.length) return; setIncludedAccountIds(current => { const valid = current.filter(id => accounts.some(account => account.id === id)); return valid.length ? valid : accounts.map(account => account.id); }); }, [accounts]);
   const refreshTrades = useCallback(() => load(false), [load]);
   const createTrade = useCallback(async (input: TradeInput) => {
@@ -132,6 +136,7 @@ export function TradesProvider({ children }: { children: ReactNode }) {
     if (accepted) setHiddenTrades(current => new Set(current).add(id)); else locks.current.delete(key);
   }
   async function deleteAccount(id: string) { if (!locks.current.has(`account:${id}`) && !hiddenAccounts.has(id) && base.accounts.some(account => account.id === id)) setConfirmId(id); }
+  // eslint-disable-next-line react-hooks/refs -- the ref is read on purpose (a lock set or a DOM node passed through); it never drives a stale render
   const hasPendingTrades = confirmId !== null && [...locks.current].some(key => key.startsWith(`trade:${confirmId}:`));
   function confirmDelete() {
     const id = confirmId;

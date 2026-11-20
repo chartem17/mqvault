@@ -34,6 +34,7 @@ export default function ProfilePage() {
     try { await fetch("/api/auth/logout", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}", credentials: "same-origin" }); } catch { /* the reload shows the real state */ }
     window.location.assign("/login");
   }
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- resets local form/selection state when its input changes
   useEffect(() => { setDraft(profile?.display_name ?? ""); }, [profile?.display_name]);
 
   async function submit(event: FormEvent) {

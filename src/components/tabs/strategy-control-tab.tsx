@@ -97,6 +97,7 @@ export function StrategyControlTab() {
   const { t, tn } = useI18n();
   const [period, setPeriod] = useState(() => defaultZonedPeriod(3, new Date(), timezone));
   const accountRef = useRef(activeAccountId);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- resets local form/selection state when its input changes
   useEffect(() => { accountRef.current = activeAccountId; setSelectedFinding(null); setStrategyDetailsOpen(false); setBuilderOpen(false); setEditing(null); }, [activeAccountId]);
   const filteredTrades = useMemo(() => visibleTrades.filter(trade => isInZonedPeriod(trade.opened_at, period, timezone)), [visibleTrades, period, timezone]);
   // Refetch news links when the set of trades or their entry times change.

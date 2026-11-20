@@ -45,6 +45,7 @@ export function AppSidebar({ activeTab, onSearch }: { activeTab: TabId | null; o
   const [metaKey, setMetaKey] = useState("Ctrl");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- restores browser storage after mount; reading it during render would break hydration
     setMounted(true);
     try { setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1"); setUnseenChanges((localStorage.getItem("mq_seen_changes") ?? "") < LATEST_CHANGE); } catch { /* storage may be blocked */ }
     if (/Mac|iP(hone|ad|od)/.test(navigator.platform)) setMetaKey("⌘");
@@ -68,6 +69,7 @@ export function AppSidebar({ activeTab, onSearch }: { activeTab: TabId | null; o
   const activeKey = pages.find(page => page.target.kind === "tab" && page.target.tab === activeTab)?.key ?? null;
 
   /** The light pill glides to the hovered item, resting on the active one. */
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- memoised callback reads refs to measure the DOM; recreated only when its inputs change
   const movePill = useCallback(() => {
     const nav = navRef.current;
     const key = hoverKey ?? activeKey;
@@ -76,6 +78,7 @@ export function AppSidebar({ activeTab, onSearch }: { activeTab: TabId | null; o
     const navRect = nav.getBoundingClientRect();
     const rect = element.getBoundingClientRect();
     setPill({ top: rect.top - navRect.top + nav.scrollTop, height: rect.height });
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- memoised callback reads refs to measure the DOM; recreated only when its inputs change
   }, [hoverKey, activeKey]);
   useLayoutEffect(() => {
     movePill();

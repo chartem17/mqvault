@@ -37,6 +37,7 @@ export function useTradeNews(key: string) {
   const [state, setState] = useState<Loaded & { loading: boolean }>({ byTrade: null, error: false, loading: true });
   useEffect(() => {
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads data from the API after mount; the state is set when the request settles
     setState(current => ({ ...current, loading: true }));
     load(key).then(result => { if (!cancelled) setState({ ...result, loading: false }); });
     return () => { cancelled = true; };

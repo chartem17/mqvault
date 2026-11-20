@@ -37,6 +37,7 @@ export function Mt5AccountReview() {
     const body = await response.json() as { accounts: Pending[] };
     setPending(body.accounts);
   }, []);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- loads data from the API after mount; the state is set when the request settles
   useEffect(() => { void load(); }, [load]);
 
   if (pending.length === 0) return null;

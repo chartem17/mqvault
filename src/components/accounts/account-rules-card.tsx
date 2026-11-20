@@ -47,6 +47,7 @@ export function AccountRulesCard({ account, accountId, trades }: { account: Trad
     } catch (cause) { if (!signal?.aborted) setError(cause instanceof Error ? cause.message : msg("Could not load the account rules")); }
     finally { if (!signal?.aborted) setLoading(false); }
   }, [id, isProp]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- loads data from the API after mount; the state is set when the request settles
   useEffect(() => { const controller = new AbortController(); void load(controller.signal); return () => controller.abort(); }, [load]);
   async function save() {
     if (!id || !saved || !draft || busy.current || conflict) return;

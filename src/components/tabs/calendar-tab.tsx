@@ -43,9 +43,13 @@ export function CalendarTab() {
   const { timezone } = useTimezone();
   const f = useMemo(() => formatters(timezone, intl), [timezone, intl]);
   const dayKeyFmt = f.key, dayFmt = f.day, timeFmt = f.time;
+  // The clock for "today", "next" and past events: read on mount and once a minute, never during render.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 60_000); return () => window.clearInterval(timer); }, []);
   useEffect(() => {
     if (mode !== "calendar") return;
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads data from the API after mount; the state is set when the request settles
     setError(false);
     setRaw(null);
     const week = weekRange(weekOffset, timezone);
@@ -71,8 +75,7 @@ export function CalendarTab() {
     filtered.forEach(e => { const d = new Date(e.ts); const key = dayKeyFmt.format(d); if (!map.has(key)) map.set(key, { label: dayFmt.format(d), items: [] }); map.get(key)!.items.push(e); });
     return [...map.values()];
   }, [filtered, dayKeyFmt, dayFmt]);
-  const now = Date.now();
-  const todayKey = dayKeyFmt.format(new Date());
+  const todayKey = dayKeyFmt.format(new Date(now));
   const todayCount = events.filter(e => dayKeyFmt.format(new Date(e.ts)) === todayKey).length;
   const highCount = events.filter(e => e.impact === "high").length;
   const nextHigh = events.find(e => e.impact === "high" && e.ts >= now);
@@ -105,14 +108,14 @@ export function CalendarTab() {
         {loading && <div className="divide-y divide-border/70" aria-busy="true">{Array.from({ length: 6 }).map((_, i) => <div key={i} className="flex items-center gap-3 px-4 py-4"><div className="h-3 w-12 animate-pulse rounded bg-secondary/60" /><div className="h-3 w-8 animate-pulse rounded bg-secondary/60" /><div className="h-3 flex-1 animate-pulse rounded bg-secondary/60" /></div>)}</div>}
         {error && <div className="px-4 py-10 text-center text-sm text-muted-foreground">{t("Could not load the calendar feed. It refreshes hourly upstream, so try again in a few minutes.")}<div className="mt-3"><Button variant="secondary" size="sm" type="button" onClick={() => setReloadKey(k => k + 1)} >{t("Retry")}</Button></div></div>}
         {!loading && !error && filtered.length === 0 && <div className="px-4 py-10 text-center text-sm text-muted-foreground">{t("No events match these filters.")}</div>}
-        {!loading && !error && grouped.map(group => <div key={group.label}><div className="border-b border-border/70 bg-secondary/20 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{group.label}</div><div className="divide-y divide-border/70">{group.items.map(event => <EventRow key={event.id} event={event} timeFmt={timeFmt} expanded={selectedId === event.id} onToggle={() => setSelectedId(selectedId === event.id ? null : event.id)} />)}</div></div>)}
+        {!loading && !error && grouped.map(group => <div key={group.label}><div className="border-b border-border/70 bg-secondary/20 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{group.label}</div><div className="divide-y divide-border/70">{group.items.map(event => <EventRow key={event.id} event={event} now={now} timeFmt={timeFmt} expanded={selectedId === event.id} onToggle={() => setSelectedId(selectedId === event.id ? null : event.id)} />)}</div></div>)}
       </section>
     </>}
   </div>;
 }
-function EventRow({ event, expanded, onToggle, timeFmt }: { event: EventItem; expanded: boolean; onToggle: () => void; timeFmt: Intl.DateTimeFormat }) {
+function EventRow({ event, now, expanded, onToggle, timeFmt }: { event: EventItem; now: number; expanded: boolean; onToggle: () => void; timeFmt: Intl.DateTimeFormat }) {
   const { t } = useI18n();
-  const past = event.ts < Date.now();
+  const past = event.ts < now;
   return <div className={`transition ${expanded ? "bg-secondary/20" : ""} ${past ? "opacity-70" : ""}`}><button type="button" onClick={onToggle} aria-expanded={expanded} className="grid w-full grid-cols-[64px_48px_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-left hover:bg-secondary/35"><div className="font-mono text-xs text-muted-foreground">{timeFmt.format(new Date(event.ts))}</div><div className="text-xs font-semibold">{event.currency}</div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="truncate text-sm font-medium">{event.title}</span><span className={`rounded-md border px-1.5 py-0.5 text-[10px] uppercase ${impactStyles[event.impact]}`}>{t(IMPACT_LABEL[event.impact])}</span></div><div className="mt-1 text-xs text-muted-foreground">{t("Forecast {forecast} · Previous {previous}", { forecast: event.forecast, previous: event.previous })}</div></div><ChevronDown className={`h-4 w-4 text-muted-foreground transition ${expanded ? "rotate-180 text-primary" : ""}`} /></button>{expanded && <EventDetails event={event} past={past} />}</div>;
 }
 function EventDetails({ event, past }: { event: EventItem; past: boolean }) {

@@ -22,6 +22,7 @@ export function useJournalLayout() {
   /** False until the layout is known (device copy or server); the journal shows a placeholder meanwhile, never the wrong view. */
   const [known, setKnown] = useState(false);
   // Before the first paint: take the device copy, so table/cards never flip after the server answers.
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- restores browser storage after mount; reading it during render would break hydration
   useLayoutEffect(() => { const cached = readCache(); if (cached) { setLayout(cached); setKnown(true); } }, []);
   useEffect(() => { if (known) writeCache(layout); }, [layout, known]);
   const [saved, setSaved] = useState<Snapshot | null>(null);
@@ -39,6 +40,7 @@ export function useJournalLayout() {
     } catch (cause) { if (!signal?.aborted) setError(cause instanceof Error ? cause.message : msg('Loading failed')); }
     finally { if (!signal?.aborted) { setLoading(false); setKnown(true); } }
   }, []);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- loads data from the API after mount; the state is set when the request settles
   useEffect(() => { const controller = new AbortController(); void reload(controller.signal); return () => controller.abort(); }, [reload]);
   const canEdit = saved !== null && !loading && !saving && !conflict;
   const dirty = saved !== null && JSON.stringify(layout) !== JSON.stringify(saved.layout);

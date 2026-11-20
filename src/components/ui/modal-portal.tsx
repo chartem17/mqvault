@@ -15,6 +15,7 @@ import { createPortal } from "react-dom";
 export function ModalPortal({ children }: { children: ReactNode }) {
   const [host, setHost] = useState<HTMLElement | null>(null);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- set after mount on purpose: reading the browser during render would break hydration
     setHost(document.body);
     const { overflow } = document.body.style;
     document.body.style.overflow = "hidden";

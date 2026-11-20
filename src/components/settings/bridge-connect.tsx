@@ -45,6 +45,7 @@ export function BridgeConnect({ initialCode }: { initialCode: string }) {
     const body = await response.json() as { devices: Device[]; accounts: TerminalAccount[] };
     setDevices(body.devices); setAccounts(body.accounts);
   }, []);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- loads data from the API after mount; the state is set when the request settles
   useEffect(() => { void load(); }, [load]);
 
   const check = useCallback(async (value: string) => {
@@ -55,6 +56,7 @@ export function BridgeConnect({ initialCode }: { initialCode: string }) {
     } catch { setError(ERRORS.unavailable); }
     setBusy(false);
   }, []);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- loads data from the API after mount; the state is set when the request settles
   useEffect(() => { if (initialCode) void check(initialCode); }, [initialCode, check]);
 
   async function submit(event: FormEvent) {

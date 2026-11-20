@@ -34,6 +34,7 @@ export function TimezoneProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const controller = new AbortController();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- set after mount on purpose: reading the browser during render would break hydration
     setCurrent(getBrowserTimeZone());
     (async () => {
       try {

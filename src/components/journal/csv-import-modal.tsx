@@ -46,8 +46,11 @@ export function CsvImportModal({ open, accounts, defaultAccountId, onClose, onIm
   const [drag, setDrag] = useState(false);
 
   const account = accounts.find(item => item.id === accountId);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- resets local form/selection state when its input changes
   useEffect(() => { if (open) { setAccountId(current => current || defaultAccountId || accounts[0]?.id || ""); } }, [open, defaultAccountId, accounts]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- resets local form/selection state when its input changes
   useEffect(() => { setZone(account?.brokerTimezone || "UTC"); setCheck(null); }, [account?.brokerTimezone, accountId]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- resets local form/selection state when its input changes
   useEffect(() => { setCheck(null); }, [mapping, dateOrder, zone]);
   useEffect(() => {
     if (!open) return;

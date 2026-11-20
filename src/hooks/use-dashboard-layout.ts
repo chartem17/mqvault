@@ -30,6 +30,7 @@ export function useDashboardLayout() {
     } catch (cause) { if (!signal?.aborted) setError(cause instanceof Error ? cause.message : msg("Loading failed")); }
     finally { if (!signal?.aborted) setLoading(false); }
   }, []);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- loads data from the API after mount; the state is set when the request settles
   useEffect(() => { const controller = new AbortController(); void reload(controller.signal); return () => controller.abort(); }, [reload]);
 
   const dirty = saved !== null && !sameLayout(draft, saved.layout);
