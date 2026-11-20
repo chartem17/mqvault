@@ -30,10 +30,12 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const stored = useRef(false);
   const latest = useRef(preferences);
-  latest.current = preferences;
+  // Keep the newest value for async callbacks; written after render, not during it.
+  useEffect(() => { latest.current = preferences; }, [preferences]);
 
   useEffect(() => {
     const cached = readCache();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- restores browser storage after mount; reading it during render would break hydration
     setPreferences(cached);
     fetch("/api/preferences/app", { credentials: "same-origin", cache: "no-store" })
       .then(response => response.ok ? response.json() : null)
@@ -55,6 +57,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 
   const update = useCallback((patch: Partial<UserPreferences>) => {
     const next = mergePreferences(latest.current, patch);
+    latest.current = next; // two updates in one tick build on each other
     setPreferences(next); writeCache(next);
     if (stored.current) void save(patch);
   }, []);

@@ -8,15 +8,8 @@ export default defineConfig([
   ...nextVitals,
   ...nextTs,
   {
-    // React Compiler rules that arrived with eslint-plugin-react-hooks 7. Existing code predates them
-    // (mostly reading browser storage in an effect after mount); they warn until that code is reworked —
-    // see the roadmap. New code should not add warnings here.
-    rules: {
-      "react-hooks/set-state-in-effect": "warn",
-      "react-hooks/refs": "warn",
-      "react-hooks/purity": "warn",
-      "react-hooks/preserve-manual-memoization": "warn",
-      "react-hooks/use-memo": "warn",
-    },
+    // Market is on hold (CLAUDE.md: not touched without a request); its React Compiler findings stay warnings.
+    files: ["src/hooks/use-market-quotes.ts", "src/components/tabs/market-tab.tsx", "src/components/market/**"],
+    rules: { "react-hooks/set-state-in-effect": "warn", "react-hooks/use-memo": "warn", "react-hooks/purity": "warn", "react-hooks/refs": "warn" },
   },
 ]);

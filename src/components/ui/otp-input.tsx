@@ -29,6 +29,7 @@ export const OtpInput = forwardRef<OtpInputHandle, Props>(function OtpInput({ le
   const [merged, setMerged] = useState(false);
   useImperativeHandle(ref, () => ({ focus: () => input.current?.focus() }), []);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resets local form/selection state when its input changes
     if (status !== "success") { setMerged(false); return; }
     const timer = window.setTimeout(() => setMerged(true), 420);
     return () => window.clearTimeout(timer);

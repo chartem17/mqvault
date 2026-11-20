@@ -72,6 +72,7 @@ export default function SettingsPage() {
   const [mounted, setMounted] = useState(false);
   const { preferences, update } = usePreferences();
   const { accounts } = useTrades();
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- set after mount on purpose: reading the browser during render would break hydration
   useEffect(() => { setMounted(true); }, []);
 
   // Security: password change

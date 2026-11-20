@@ -49,6 +49,7 @@ export function PlaybookRules({ config, onSave }: { config: PlaybookConfig; onSa
   const { t } = useI18n();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(config);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- resets local form/selection state when its input changes
   useEffect(() => { if (!editing) setDraft(config); }, [config, editing]);
 
   const windows = config.windows.map(window => `${window.start}–${window.end} · ${t(window.label)}${window.entries ? "" : ` — ${t("no entries")}`}`);

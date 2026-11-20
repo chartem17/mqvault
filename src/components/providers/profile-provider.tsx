@@ -39,6 +39,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       setProfile(data.profile); setCounters(data.counters); setHasPassword(data.hasPassword); setGoogleLinked(data.googleLinked);
     } catch { /* offline: the UI falls back to placeholders */ }
   }, []);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- loads data from the API after mount; the state is set when the request settles
   useEffect(() => { void refresh().finally(() => setLoading(false)); }, [refresh]);
 
   const saveName = useCallback(async (displayName: string): Promise<string | null> => {

@@ -37,6 +37,7 @@ export function ScreenshotGallery({ trades, accounts, onExit, onOpenTrade }: { t
   const date = (iso: string) => formatDateTimeOrDash(iso, timezone, intl);
   const accountName = (id: string) => accounts.find(account => account.id === id)?.name ?? t("Unknown account");
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- resets local form/selection state when its input changes
   useEffect(() => { setOpen(null); }, [preset, symbol, setup]);
   useEffect(() => {
     if (open === null) return;

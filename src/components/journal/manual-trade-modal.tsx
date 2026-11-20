@@ -274,6 +274,7 @@ export function ManualTradeModal({
 
     const initialForm = buildInitialForm(accounts, defaultAccountId, preferences.defaultRiskPercent);
     const zone = accountZone(accounts, initialTrade?.account_id ?? initialForm.account_id, userZone);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resets local form/selection state when its input changes
     setEntryZone(zone);
     setZoneTouched(false);
     if (initialTrade) {

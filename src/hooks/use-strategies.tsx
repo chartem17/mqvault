@@ -63,6 +63,7 @@ export function useStrategies() {
   }, []);
   useEffect(() => {
     currentAccount.current = activeAccountId;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resets local form/selection state when its input changes
     setRecords([]); setPending(null);
     void reload();
   }, [activeAccountId, reload]);

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useTrades } from "@/hooks/use-trades";
 import { useDashboardLayout } from "@/hooks/use-dashboard-layout";
 import { accountOverviewLabel } from "@/lib/accounts/account-overview";
@@ -11,7 +13,7 @@ import { DashboardToolbar } from "@/components/overview/dashboard-toolbar";
 import { useI18n } from "@/components/providers/i18n-provider";
 
 export function OverviewTab() {
-  const { visibleTrades, activeAccount, activeAccountId } = useTrades();
+  const { visibleTrades, activeAccount, activeAccountId, loading } = useTrades();
   const dashboard = useDashboardLayout();
   const [editing, setEditing] = useState(false);
   const { t, tn } = useI18n();
@@ -27,6 +29,8 @@ export function OverviewTab() {
       onSave={async () => { if (await dashboard.save()) setEditing(false); }} />
     </div>
     <AccountRulesCard key={activeAccount?.id ?? "all"} account={activeAccount} accountId={activeAccountId} trades={visibleTrades} />
+    {!loading && visibleTrades.length === 0 && <EmptyState className="rounded-2xl border border-dashed border-border p-6" title={t("Nothing to analyse yet")}
+      description={<>{t("The widgets fill in as trades arrive.")} <Link href="/journal" className="underline underline-offset-2 hover:text-foreground">{t("Open journal")}</Link> · <Link href="/help#connect" className="underline underline-offset-2 hover:text-foreground">{t("How to connect")}</Link></>} />}
     <DashboardGrid layout={dashboard.layout} onChange={dashboard.setLayout} editing={editing && dashboard.ready} />
   </div>;
 }

@@ -29,6 +29,8 @@ const builds = [
   [["src/lib/journal/journal-filters.ts"], ".tmp-journal-filters-tests", ["--strict"]],
   [["src/lib/strategy-control/violation-cost.ts"], ".tmp-violation-cost-tests", ["--strict"]],
   [["src/lib/strategy-control/engine.ts"], ".tmp-strategy-engine-tests", [...dom, "--strict"]],
+  [["src/lib/journal/trade-idea.ts"], ".tmp-trade-idea-tests", [...dom, "--strict"]],
+  [["src/lib/strategy-control/strategy-storage.ts"], ".tmp-strategy-storage-tests", [...dom, "--strict"]],
   [["src/lib/journal/csv-import.ts"], ".tmp-csv-import-tests", [...dom, "--strict"]],
   [["src/lib/journal/screenshot-gallery.ts"], ".tmp-screenshot-gallery-tests", dom],
   [["src/lib/journal/performance-breakdown.ts"], ".tmp-performance-breakdown-tests", dom],

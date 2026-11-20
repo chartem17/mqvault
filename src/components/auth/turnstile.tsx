@@ -67,6 +67,7 @@ export function CaptchaBox({ captcha }: { captcha: ReturnType<typeof useCaptcha>
   if (!captcha.enabled) return null;
   return <div className="space-y-1">
     <div ref={captcha.box} className="min-h-[65px]" />
+    {/* eslint-disable-next-line react-hooks/refs -- the ref is read on purpose (a lock set or a DOM node passed through); it never drives a stale render */}
     {captcha.failed && <p role="alert" className="text-xs text-destructive">{t("The human check did not load. Reload the page or try another browser.")}</p>}
   </div>;
 }

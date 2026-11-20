@@ -1,7 +1,7 @@
 "use client";
 import { useI18n } from "@/components/providers/i18n-provider";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTrades } from "@/hooks/use-trades";
 import { computeEquity, computeStats, fmt } from "@/lib/journal/utils-trade";
 import { CHART_THEME } from "@/components/overview/overview-styles";
@@ -53,7 +53,7 @@ function EquityChart({ points, totalPnl }: { points: EqPoint[]; totalPnl: number
   const xSlots = Math.max(2, Math.min(4, Math.floor(chartW / 110)));
   const xLabelIndices = Array.from(new Set(Array.from({ length: xSlots }, (_, slot) => Math.round(slot / (xSlots - 1) * (eq.length - 1))))).filter(index => eq[index]);
   const xLabels = xLabelIndices.map(index => ({ x: toX(index), label: eq[index].date }));
-  const handleMouseMove = useCallback((event: React.PointerEvent<SVGSVGElement>) => { const rect = event.currentTarget.getBoundingClientRect(); if (rect.width <= 0 || eq.length === 0) { setHoverIndex(null); return; } const relativeX = Math.max(0, Math.min(1, ((event.clientX - rect.left) / rect.width * W - PAD_L) / chartW)); setHoverIndex(Math.round(relativeX * Math.max(0, eq.length - 1))); }, [W, chartW, eq.length]);
+  const handleMouseMove = (event: React.PointerEvent<SVGSVGElement>) => { const rect = event.currentTarget.getBoundingClientRect(); if (rect.width <= 0 || eq.length === 0) { setHoverIndex(null); return; } const relativeX = Math.max(0, Math.min(1, ((event.clientX - rect.left) / rect.width * W - PAD_L) / chartW)); setHoverIndex(Math.round(relativeX * Math.max(0, eq.length - 1))); };
   const hoverPoint = hoverIndex !== null ? eq[hoverIndex] ?? null : null;
   const hover = hoverIndex !== null && hoverPoint && coords[hoverIndex] ? { px: coords[hoverIndex].x, py: coords[hoverIndex].y } : null;
   return <WidgetPanel title={t("Equity curve")} sub={tn(eq.length, "{count} point", "{count} points")} aside={<div className="text-right text-lg font-semibold" style={{ color: totalPnl >= 0 ? GREEN : RED }}>{fmt.usd(totalPnl)}</div>} className="isolate">

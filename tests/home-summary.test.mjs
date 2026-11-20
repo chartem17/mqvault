@@ -33,3 +33,12 @@ test("unmarked trades miss setup or emotion", () => {
   const list = [t("1", "x", null, 1, { setup: "A", emotion: "Calm" }), t("2", "x", null, 1, { setup: "A" }), t("3", "x", null, 1, { setup: " ", emotion: "Calm" })];
   assert.deepEqual(unmarkedTrades(list).map(x => x.id), ["2", "3"]);
 });
+
+test("a trade belongs to the day it was opened, not the day it closed", () => {
+  // Opened on 05.11 evening, closed on 06.11 after midnight (Kyiv): it is a 05.11 trade.
+  const overnight = t("o", "2026-11-05T20:00:00Z", "2026-11-05T22:15:00Z", 40);
+  const today = summarizeToday([overnight], "Europe/Kyiv", now);
+  assert.equal(today.day, "2026-11-06"); assert.equal(today.opened, 0); assert.equal(today.closedCount, 0); assert.equal(today.netPnl, 0);
+  const days = lastDays([overnight], "Europe/Kyiv", 2, now);
+  assert.deepEqual(days.map(d => [d.day, d.net]), [["2026-11-05", 40], ["2026-11-06", 0]]);
+});

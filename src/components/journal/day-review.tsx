@@ -78,6 +78,7 @@ export function DayReview({ trades, accounts, updateTrade, onExit }: Props) {
   const done = index >= items.length;
 
   // The draft starts from what the trade already has; it resets only when the cursor moves.
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- resets local form/selection state when its input changes
   useEffect(() => { setDraft(trade ? draftFor(trade) : null); setError(null); }, [item?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {

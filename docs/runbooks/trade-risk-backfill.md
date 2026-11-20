@@ -39,6 +39,9 @@ node scripts/backfill-trade-risk.mjs --planned-percent=1 --apply  # записа
 ## Виконано 2026-11-16
 Варіант «з оцінкою 1 %» (`--planned-percent=1 --apply`) за рішенням власника: `stop` 25, `entered` 63, `planned` 233; net виправлено в 61 угоді; R є в 320 з 321. Перед записом збережено копію `id, net_pnl, risk_amount, risk_percent, risk_basis, result_r, initial_stop_loss` усіх 321 угоди (файл у власника, поза репозиторієм) — з неї можна відкотити.
 
+## Повторний прогін 2026-11-20 (після злиття PR #52)
+За погодженням власника — той самий розрахунок `--planned-percent=1` (логіка скрипта без змін, дані зчитано через Supabase MCP, бо сервісного ключа в сесії агента немає). Результат: **0 змін** — з 2026-11-16 жодна угода не створювалась і не редагувалась, тож стара логіка R не встигла нічого перерахувати. Стан: `stop` 25, `entered` 63, `planned` 233; R у 320 з 321; net без розбіжностей. Три угоди Bridge без `initial_stop_loss` відкривались без стопу — відновлювати нічого. Запису в БД не було.
+
 ## Перевірка після
 ```sql
 select risk_basis, count(*), count(result_r) from journal_trades where closed_at is not null group by 1;

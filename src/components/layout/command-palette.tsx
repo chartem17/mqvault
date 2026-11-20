@@ -26,8 +26,8 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       .filter(page => !needle || page.label.toLowerCase().includes(needle) || t(page.label).toLowerCase().includes(needle));
   }, [query, t, isOwner]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- resets local form/selection state when its input changes
   useEffect(() => { if (open) { setQuery(""); setIndex(0); setTimeout(() => input.current?.focus(), 10); } }, [open]);
-  useEffect(() => { setIndex(0); }, [query]);
   useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") { event.preventDefault(); onClose(); } };
@@ -46,7 +46,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     <div className="relative w-full animate-[ui-pop-in_0.25s_cubic-bezier(0.22,1,0.36,1)] max-w-md overflow-hidden rounded-2xl border border-border bg-popover shadow-2xl">
       <div className="flex items-center gap-2.5 border-b border-border px-4">
         <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-        <input ref={input} value={query} onChange={event => setQuery(event.target.value)} placeholder={t("Search pages…")} aria-label={t("Search pages")}
+        <input ref={input} value={query} onChange={event => { setQuery(event.target.value); setIndex(0); }} placeholder={t("Search pages…")} aria-label={t("Search pages")}
           className="min-h-12 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
           onKeyDown={event => {
             if (event.key === "ArrowDown") { event.preventDefault(); setIndex(value => Math.min(value + 1, pages.length - 1)); }

@@ -3,6 +3,7 @@ import { resolveUser, type UserContext } from "@/lib/auth/current-user";
 import { parseTradeReview, reviewFromInput } from "@/lib/journal/trade-review";
 import { calibrateValuePerLot, derivedFinancials, financialsChanged, type FinancialContext } from "@/lib/journal/trade-financials";
 import { disciplineFromInput, parseDiscipline } from "@/lib/playbook/discipline";
+import { parseIdea } from "@/lib/journal/trade-idea";
 
 export const dynamic = "force-dynamic";
 
@@ -158,6 +159,7 @@ function mapRow(row: Record<string, unknown>) {
     notes: row.notes,
     review: parseTradeReview(row.meta),
     discipline: parseDiscipline(row.meta),
+    idea: parseIdea(row.meta),
     close_reason: closeReason(row.meta),
   };
 }

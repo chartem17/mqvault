@@ -74,6 +74,7 @@ export function PlanForm({ open, accountId, config, stateFor, onSave, onClose }:
 
   useEffect(() => {
     if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resets local form/selection state when its input changes
     setDraft({ ...EMPTY_DRAFT, account_id: accountId ?? accounts[0]?.id ?? "" });
     setPrices({ entry: "", stop: "", target: "", risk: "" });
     setError(null); setNow(new Date());
