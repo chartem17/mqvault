@@ -11,6 +11,12 @@ export const uk: Dictionary = {
   "Automatically, when a trade from CSV or MT5 Bridge arrives: the same account, symbol and direction, entry within minutes to hours after the plan and a price close to the planned one. You can also link a plan to a trade by hand; a manual link wins.": "Автоматично, коли угода надходить із CSV чи MT5 Bridge: той самий рахунок, символ і напрямок, вхід протягом кількох хвилин чи годин після плану й ціна, близька до запланованої. План можна прив'язати до угоди й вручну; ручна прив'язка має пріоритет.",
   "Which trades are marked as breaking the system?": "Які угоди позначаються як порушення системи?",
   "Trades without a plan, outside a trading window, over the daily trade or stop limit, with RR below the minimum, risk not following the ladder, or closed by hand at break-even. You can add your own marks to a trade, such as a moved target or an early break-even.": "Угоди без плану, поза торговим вікном, понад денний ліміт угод чи стопів, з RR нижче мінімуму, з ризиком не за драбиною або закриті вручну в нуль. До угоди можна додати й власні позначки — наприклад, перенесений таргет чи ранній беззбиток.",
+  // Empty states
+  "No trades yet": "Угод ще немає",
+  "Add a trade by hand, import a CSV from your broker or connect MT5 Bridge for automatic sync.": "Додайте угоду вручну, імпортуйте CSV від брокера або підключіть MT5 Bridge для автоматичної синхронізації.",
+  "How to connect": "Як підключити",
+  "Nothing to analyse yet": "Поки нічого аналізувати",
+  "The widgets fill in as trades arrive.": "Віджети заповняться, щойно з'являться угоди.",
   // Trade idea (ADR 0022)
   "Trade idea": "Ідея угоди",
   "This trade is part of an idea of {count} trades. Each keeps its own R; the idea is judged as a whole.": "Ця угода — частина ідеї з {count} угод. Кожна зберігає свій R, а ідея оцінюється цілком.",

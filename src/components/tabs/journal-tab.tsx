@@ -1,4 +1,6 @@
 "use client";
+
+import Link from "next/link";
 import { Segmented } from "@/components/ui/segmented";
 import { Hint } from "@/components/ui/hint";
 import { Switch } from "@/components/ui/switch";
@@ -113,6 +115,10 @@ export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus, review = fa
     if (kind === 'date') { const value = raw(trade, id); const ms = typeof value === 'string' ? Date.parse(value) : NaN; return { dateMs: Number.isFinite(ms) ? ms : null }; }
     return { text: searchable(trade, id) };
   }
+  // A brand-new journal explains how trades get here; an empty filter result says so instead.
+  const emptyProps = visibleTrades.length
+    ? { title: t("No trades match these filters.") }
+    : { title: t("No trades yet"), description: <>{t("Add a trade by hand, import a CSV from your broker or connect MT5 Bridge for automatic sync.")} <Link href="/help#connect" className="underline underline-offset-2 hover:text-foreground">{t("How to connect")}</Link></> };
   const filtered = focusedTrades.filter(trade => {
     const q = search.trim().toLowerCase();
     if (q && ![...JOURNAL_COLUMNS.map(column => searchable(trade, column.id)), trade.notes, trade.entry_reason, trade.exit_reason].filter(Boolean).join(' ').toLowerCase().includes(q)) return false;
@@ -204,7 +210,7 @@ export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus, review = fa
     <p role="status" className="text-xs text-muted-foreground">{copyStatus}</p>
     {view === 'cards' ? (
       <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr))]">
-        {loading ? <EmptyState title={t("Loading trades…")} role="status" className="col-span-full" /> : !filtered.length ? <EmptyState title={t("No trades match these filters.")} className="col-span-full" /> : filtered.map(trade => (
+        {loading ? <EmptyState title={t("Loading trades…")} role="status" className="col-span-full" /> : !filtered.length ? <EmptyState className="col-span-full" {...emptyProps} /> : filtered.map(trade => (
           <button key={trade.id} type="button" onClick={() => { setEditingTrade(trade); setShowModal(true); }} className="group overflow-hidden rounded-2xl border border-border bg-card text-left transition hover:border-primary/40 hover:shadow-lg">
             {screenshotImageUrl(trade.screenshot_url) ? <img src={screenshotImageUrl(trade.screenshot_url) ?? undefined} alt="" loading="lazy" className="h-40 w-full object-cover" /> : <div className="hidden h-40 items-center justify-center bg-secondary/40 text-xs text-muted-foreground md:flex">{t("No screenshot")}</div>}
             <div className="space-y-1 p-3">
@@ -217,7 +223,7 @@ export function JournalTab({ focus = NO_JOURNAL_FOCUS, onClearFocus, review = fa
       </div>
     ) : (
     <div className="overflow-x-auto rounded-xl border border-border bg-card"><table className="w-full text-xs"><thead><tr className="border-b border-border">{columns.map((id, index) => <th key={id} scope="col" draggable={editing && prefs.canEdit} onDragStart={e => { if (!editing || !prefs.canEdit) { e.preventDefault(); return; } setDragging(id); e.dataTransfer.setData('text/plain', id); e.dataTransfer.effectAllowed = 'move'; }} onDragEnd={() => setDragging(null)} onDragOver={e => { if (editing && dragging && prefs.canEdit) e.preventDefault(); }} onDrop={e => { e.preventDefault(); if (dragging) move(dragging, id); setDragging(null); }} className={`whitespace-nowrap px-3 py-3 text-left font-semibold ${editing ? 'bg-primary/10 ring-1 ring-inset ring-primary/20' : 'text-muted-foreground'}`}><span className="inline-flex items-center gap-1">{editing && <GripVertical className="h-4 w-4 cursor-grab" />}{labelFor(id)}{editing && <><Button variant="ghost" size="sm" aria-label={t('Move {name} left', { name: labelFor(id) })} disabled={!prefs.canEdit || index === 0} onClick={() => move(id, columns[index - 1])}>←</Button><Button variant="ghost" size="sm" aria-label={t('Move {name} right', { name: labelFor(id) })} disabled={!prefs.canEdit || index === columns.length - 1} onClick={() => move(id, columns[index + 1])}>→</Button></>}</span></th>)}<th scope="col" className="sticky right-0 bg-card px-3 py-3">{t("Actions")}</th></tr></thead><tbody>
-      {loading ? <tr><td colSpan={columns.length + 1} className="p-8"><EmptyState title={t("Loading trades…")} role="status" /></td></tr> : !filtered.length ? <tr><td colSpan={columns.length + 1} className="p-8"><EmptyState title={t("No trades match these filters.")} /></td></tr> : filtered.map((trade, index) => <tr key={trade.id} className={`border-b border-border/50 hover:bg-secondary/30 ${index % 2 ? 'bg-background/30' : ''}`}>{columns.map(id => <td key={id} className="whitespace-nowrap px-3 py-2">{cell(trade, id)}</td>)}<td className="sticky right-0 bg-card px-3 py-2"><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" aria-label={t("Edit trade")} onClick={() => { setEditingTrade(trade); setShowModal(true); }}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" aria-label={t("Delete trade")} disabled={saving} onClick={() => void remove(trade.id)}><Trash2 className="h-4 w-4" /></Button></div></td></tr>)}
+      {loading ? <tr><td colSpan={columns.length + 1} className="p-8"><EmptyState title={t("Loading trades…")} role="status" /></td></tr> : !filtered.length ? <tr><td colSpan={columns.length + 1} className="p-8"><EmptyState {...emptyProps} /></td></tr> : filtered.map((trade, index) => <tr key={trade.id} className={`border-b border-border/50 hover:bg-secondary/30 ${index % 2 ? 'bg-background/30' : ''}`}>{columns.map(id => <td key={id} className="whitespace-nowrap px-3 py-2">{cell(trade, id)}</td>)}<td className="sticky right-0 bg-card px-3 py-2"><div className="flex justify-end gap-2"><Button variant="ghost" size="icon" aria-label={t("Edit trade")} onClick={() => { setEditingTrade(trade); setShowModal(true); }}><Pencil className="h-4 w-4" /></Button><Button variant="ghost" size="icon" aria-label={t("Delete trade")} disabled={saving} onClick={() => void remove(trade.id)}><Trash2 className="h-4 w-4" /></Button></div></td></tr>)}
     </tbody></table></div>
     )}
     {modal}
