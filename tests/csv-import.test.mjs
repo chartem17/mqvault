@@ -128,3 +128,15 @@ test("same trade read in another time zone is a likely duplicate with its offset
   assert.deepEqual(shifted.map(s => s.hours), [6]);
   assert.deepEqual(fresh.map(t => `${t.direction} ${t.opened_at.slice(8, 10)}`), ["Long 27", "Short 25"]);
 });
+
+test("a re-entry at the same limit price hours later is imported, not taken for a time-zone duplicate", () => {
+  const base = { closed_at: null, exit_price: null, stop_loss: null, take_profit: null, volume: null, gross_pnl: 1, commission: null, swap: null, fee: null, risk_percent: null, risk_amount: null, setup: null, emotion: null, mistake: null, entry_reason: null, notes: null, screenshot_url: null, market: null, followed_plan: null, external_id: null };
+  const existing = [{ symbol: "XAUUSD", direction: "Long", opened_at: "2026-08-25T08:13:00Z", entry_price: "2350.5", external_id: null }];
+  const file = [
+    { ...base, symbol: "XAUUSD", direction: "Long", opened_at: "2026-08-25T10:41:00.000Z", entry_price: 2350.5 }, // 2 h 28 min later: a new fill
+    { ...base, symbol: "XAUUSD", direction: "Long", opened_at: "2026-08-25T11:13:00.000Z", entry_price: 2350.5 }, // exactly 3 h: a zone shift
+  ];
+  const { fresh, shifted } = m.splitDuplicates(file, existing);
+  assert.deepEqual(fresh.map(t => t.opened_at.slice(11, 16)), ["10:41"]);
+  assert.deepEqual(shifted.map(s => s.hours), [3]);
+});
