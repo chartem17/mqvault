@@ -76,7 +76,8 @@ export function groupByKey<K extends keyof JournalTrade>(
     { name: string; trades: number; pnl: number; wins: number }
   > = {};
 
-  trades.forEach((t) => {
+  // Closed trades only: an open trade has no result yet and would pull the win rate down.
+  trades.filter((t) => t.closed_at).forEach((t) => {
     const raw = t[key];
     const k = typeof raw === "string" && raw.trim() ? raw : "—";
 

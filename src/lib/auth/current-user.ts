@@ -8,6 +8,11 @@ import { rateLimited, type RateLimit } from "./auth-api";
 
 /** Writes per user: generous for a person, a wall for a script hammering the API. */
 const API_WRITES_PER_USER: RateLimit = { name: "api-writes", windowSeconds: 60, max: 120 };
+/**
+ * Reads per user: generous for real use (a page load is ~10 requests), but a script hammering the API — or a
+ * stolen session — is stopped before it can load the database.
+ */
+const API_READS_PER_USER: RateLimit = { name: "api-reads", windowSeconds: 60, max: 600 };
 
 type Db = ReturnType<typeof createServerSupabase>;
 const NO_STORE = { "Cache-Control": "no-store" };
@@ -109,11 +114,10 @@ export async function resolveUser(request: Request): Promise<UserContext | Respo
   const admin = createServerSupabase();
   const workspace = await workspaceFor(admin, session.authUserId);
   if (workspace.user) {
-    // Every change through the API counts against one per-user budget (package 3); reads are not counted.
-    if (!["GET", "HEAD", "OPTIONS"].includes(request.method.toUpperCase())) {
-      const limited = await rateLimited(API_WRITES_PER_USER, workspace.user.id);
-      if (limited) return limited;
-    }
+    // Every request through the API counts against a per-user budget (package 3): writes tightly, reads generously.
+    const read = ["GET", "HEAD", "OPTIONS"].includes(request.method.toUpperCase());
+    const limited = await rateLimited(read ? API_READS_PER_USER : API_WRITES_PER_USER, workspace.user.id);
+    if (limited) return limited;
     return { db: auth, admin, ownerId: workspace.user.id, isOwner: workspace.user.isOwner, email: workspace.user.email };
   }
   const denial = WORKSPACE_DENIAL[workspace.reason];
