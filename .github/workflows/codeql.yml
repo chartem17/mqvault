@@ -1,4 +1,6 @@
 # Static security analysis of the site code (package 3). Results appear in the repository's Security tab.
+# Code scanning is free only for public repositories: once the repository is private (owner's plan, 2026-11-26)
+# the analysis is skipped instead of failing CI. Secrets are still checked by the gitleaks job in ci.yml.
 name: CodeQL
 
 on:
@@ -14,8 +16,22 @@ permissions:
   contents: read
 
 jobs:
+  visibility:
+    name: Repository visibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      public: ${{ steps.check.outputs.public }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: echo "public=$(gh api "repos/$GITHUB_REPOSITORY" --jq '.private | not')" >> "$GITHUB_OUTPUT"
+
   analyze:
     name: Analyze (${{ matrix.language }})
+    needs: visibility
+    if: needs.visibility.outputs.public == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
