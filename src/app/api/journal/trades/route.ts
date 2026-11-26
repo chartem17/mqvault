@@ -4,23 +4,12 @@ import { parseTradeReview, reviewFromInput } from "@/lib/journal/trade-review";
 import { calibrateValuePerLot, derivedFinancials, financialsChanged, type FinancialContext } from "@/lib/journal/trade-financials";
 import { disciplineFromInput, parseDiscipline } from "@/lib/playbook/discipline";
 import { parseIdea } from "@/lib/journal/trade-idea";
+import { boundedText, httpUrl, MAX_SYMBOL_LENGTH, TRADE_TEXT_LIMITS } from "@/lib/security/input";
 
 export const dynamic = "force-dynamic";
 
 const SOURCES = ["manual", "mt5", "exchange", "import"];
-const TEXT_KEYS = [
-  "market",
-  "session",
-  "setup",
-  "htf_bias",
-  "entry_reason",
-  "exit_reason",
-  "emotion",
-  "mistake",
-  "screenshot_url",
-  "notes",
-  "external_id",
-] as const;
+const TEXT_KEYS = Object.keys(TRADE_TEXT_LIMITS) as (keyof typeof TRADE_TEXT_LIMITS)[];
 const NULLABLE_NUM_KEYS = [
   "entry_price",
   "exit_price",
@@ -84,7 +73,7 @@ function fieldsFrom(body: Body) {
   const f: Record<string, unknown> = {};
 
   if (body.account_id !== undefined) f.account_id = body.account_id;
-  if (body.symbol !== undefined) f.symbol = String(body.symbol).trim();
+  if (body.symbol !== undefined) f.symbol = boundedText(body.symbol, MAX_SYMBOL_LENGTH) ?? "";
   if (body.direction !== undefined) f.direction = normDirection(body.direction);
   if (body.opened_at !== undefined) f.opened_at = validDate(body.opened_at);
   if (body.closed_at !== undefined) {
@@ -95,11 +84,10 @@ function fieldsFrom(body: Body) {
   }
 
   for (const key of TEXT_KEYS) {
-    if (body[key] !== undefined) {
-      const v = body[key];
-      f[key] = v === "" || v === null ? null : String(v);
-    }
+    if (body[key] !== undefined) f[key] = boundedText(body[key], TRADE_TEXT_LIMITS[key]);
   }
+  // Only a plain http(s) link is stored; anything else is refused by screenshotProblem() before saving.
+  if (body.screenshot_url !== undefined) f.screenshot_url = httpUrl(body.screenshot_url);
   for (const key of NULLABLE_NUM_KEYS) {
     if (body[key] !== undefined) f[key] = toNum(body[key]);
   }
@@ -110,6 +98,13 @@ function fieldsFrom(body: Body) {
   if (body.swap !== undefined) f.swap = toNum(body.swap) ?? 0;
 
   return f;
+}
+
+/** A screenshot link that is not a plain http(s) address is an error, not silently dropped. */
+function screenshotProblem(body: Body): string | null {
+  const value = body.screenshot_url;
+  if (value === undefined || value === null || (typeof value === "string" && !value.trim())) return null;
+  return httpUrl(value) ? null : "Screenshot link must be an http(s) address";
 }
 
 /** MT5 Bridge records why a position closed (sl / tp / manual …) in meta.bridge. */
@@ -230,6 +225,8 @@ export async function POST(request: NextRequest) {
 
     const { db, ownerId } = context;
 
+    const shotProblem = screenshotProblem(body);
+    if (shotProblem) return fail(400, shotProblem);
     const fields = fieldsFrom(body);
 
     if (typeof fields.account_id !== "string" || !fields.account_id) {
@@ -291,6 +288,8 @@ export async function PATCH(request: NextRequest) {
 
     const { db, ownerId } = context;
 
+    const shotProblem = screenshotProblem(body);
+    if (shotProblem) return fail(400, shotProblem);
     const fields = fieldsFrom(body);
 
     if ("symbol" in fields && !fields.symbol) {

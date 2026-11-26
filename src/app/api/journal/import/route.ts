@@ -5,6 +5,7 @@ import { rateLimited, type RateLimit } from "@/lib/auth/auth-api";
 const IMPORTS_PER_USER: RateLimit = { name: "csv-import", windowSeconds: 3600, max: 30 };
 import { splitDuplicates, type ImportedTrade } from "@/lib/journal/csv-import";
 import { derivedFinancials, toNum, valueKey, valuesBySymbol } from "@/lib/journal/trade-financials";
+import { httpUrl } from "@/lib/security/input";
 
 export const dynamic = "force-dynamic";
 const MAX_ROWS = 5000;
@@ -28,7 +29,7 @@ function clean(raw: unknown): ImportedTrade | null {
     entry_price: num(row.entry_price), exit_price: num(row.exit_price), stop_loss: num(row.stop_loss), initial_stop_loss: num(row.initial_stop_loss), take_profit: num(row.take_profit), volume: num(row.volume),
     gross_pnl: num(row.gross_pnl), commission: num(row.commission), swap: num(row.swap), fee: num(row.fee),
     risk_percent: num(row.risk_percent), risk_amount: num(row.risk_amount),
-    setup: text(row.setup, 200), emotion: text(row.emotion, 60), mistake: text(row.mistake, 200), entry_reason: text(row.entry_reason), notes: text(row.notes), screenshot_url: text(row.screenshot_url, 500),
+    setup: text(row.setup, 200), emotion: text(row.emotion, 60), mistake: text(row.mistake, 200), entry_reason: text(row.entry_reason), notes: text(row.notes), screenshot_url: httpUrl(row.screenshot_url),
     external_id: text(row.external_id, 100), market: text(row.market, 40),
     followed_plan: typeof row.followed_plan === "boolean" ? row.followed_plan : null,
   };
