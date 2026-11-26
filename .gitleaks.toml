@@ -1,0 +1,14 @@
+# Secret scan settings (CI job "Secret scan"). Default gitleaks rules plus a short allowlist of values that are
+# deliberately fake: CI build placeholders and unit-test fixtures. Never add a real value here.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Known fake values"
+regexes = [
+  '''ci-placeholder[a-z0-9-]*''',
+  '''a-very-long-test-password-123''',
+]
+paths = [
+  '''package-lock\.json''',
+]
