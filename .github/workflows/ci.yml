@@ -15,6 +15,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  secrets:
+    name: Secret scan (full git history)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      # Keys, tokens and passwords in any commit, not only the latest one. Rules: gitleaks defaults + .gitleaks.toml.
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
+          GITLEAKS_ENABLE_SUMMARY: true
+
   checks:
     name: Lint, types, tests, build
     runs-on: ubuntu-latest
@@ -26,6 +44,8 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      # Known high/critical vulnerabilities in what ships to users fail the build (dev tools are Dependabot's job).
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm run lint
       - run: npx tsc --noEmit
       - run: npm test
