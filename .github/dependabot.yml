@@ -9,8 +9,18 @@ updates:
       day: monday
     open-pull-requests-limit: 5
     groups:
+      # @ui-sdk/react peers on the exact same @ui-sdk/core beta: bumping one alone fails `npm ci`.
+      ui-sdk:
+        patterns: ["@ui-sdk/*"]
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # typescript-eslint (via eslint-config-next) supports TypeScript < 6.1 only; TS 7 breaks lint.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      # eslint-config-next 16 plugins support ESLint 9 only (see ROADMAP, PR #44).
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:

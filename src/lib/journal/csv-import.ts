@@ -335,10 +335,19 @@ function fingerprint(trade: ExistingTrade) { return `${symbolKey(trade.symbol)}|
 /**
  * Splits candidates into new trades and duplicates of the account's existing trades (or of earlier
  * rows in the same file). A duplicate has the same ticket, or the same symbol, direction, opening
- * minute and entry price. A trade with the same symbol, direction and exact entry price opened within
- * 24 hours of an existing one is a likely duplicate read in another time zone: it is skipped too and
- * the offset in hours is reported so the user can correct the zone.
+ * minute and entry price. A trade with the same symbol, direction and exact entry price opened a whole
+ * number of half hours (up to 24 h) away from an existing one is a likely duplicate read in another time zone:
+ * it is skipped too and the offset in hours is reported so the user can correct the zone. Any other gap is a
+ * real re-entry at the same price (a limit order hit again) and is imported.
  */
+/** A gap that a wrong time zone could explain: 30 min to 24 h, a whole number of half hours (±1 min). */
+function zoneShift(gapMs: number): boolean {
+  const minutes = Math.abs(gapMs) / 60_000;
+  if (minutes < 29 || minutes > 24 * 60 + 1) return false;
+  const off = minutes % 30;
+  return off <= 1 || off >= 29;
+}
+
 export function splitDuplicates<T extends ImportedTrade>(candidates: readonly T[], existing: readonly ExistingTrade[]): { fresh: T[]; duplicates: T[]; shifted: { trade: T; hours: number }[] } {
   const tickets = new Set(existing.map(trade => trade.external_id?.trim()).filter((id): id is string => Boolean(id)));
   const prints = new Set(existing.map(fingerprint));
@@ -353,7 +362,7 @@ export function splitDuplicates<T extends ImportedTrade>(candidates: readonly T[
     if ((ticket && tickets.has(ticket)) || prints.has(print)) { duplicates.push(trade); continue; }
     const key = priceKey(trade);
     const at = Date.parse(trade.opened_at);
-    const near = key ? (byPrice.get(key) ?? []).find(time => Math.abs(time - at) <= 24 * 3_600_000) : undefined;
+    const near = key ? (byPrice.get(key) ?? []).find(time => zoneShift(at - time)) : undefined;
     if (near !== undefined) { shifted.push({ trade, hours: Math.round(((at - near) / 3_600_000) * 2) / 2 }); continue; }
     fresh.push(trade);
     if (ticket) tickets.add(ticket);
