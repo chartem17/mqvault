@@ -23,6 +23,12 @@ export interface DotFieldProps {
   interactive?: boolean;
   /** Seed for the halftone pattern, so a page always opens on the same one. */
   seed?: number;
+  /**
+   * Milliseconds between frames of the idle drift (MQVault performance pass 2026-11-26). Each idle frame
+   * redraws the whole screen-sized canvas, and every glass panel above it (backdrop-filter) is blurred again.
+   * `Infinity` keeps the field still until the pointer stirs it.
+   */
+  idleFrameMs?: number;
 }
 
 // Width of a light or dark patch in the idle halftone, in px.
@@ -461,6 +467,7 @@ export default function DotField({
   spacing = 16,
   interactive = true,
   seed = 7,
+  idleFrameMs = IDLE_FRAME_MS,
 }: DotFieldProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -499,6 +506,7 @@ export default function DotField({
     let awake = false;
     let raf = 0;
     let visible = true;
+    const drifting = Number.isFinite(idleFrameMs) && idleFrameMs > 0;
 
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
@@ -549,7 +557,7 @@ export default function DotField({
       if (awake) {
         physics(dt);
       }
-      const toneDue = now - lastTone >= IDLE_FRAME_MS;
+      const toneDue = drifting && now - lastTone >= idleFrameMs;
       if (toneDue) {
         sampleTone(field, noise, time);
         lastTone = now;
@@ -558,11 +566,18 @@ export default function DotField({
       if (wasAwake || toneDue) {
         draw(ctx, field, size, wasAwake);
       }
+      // A still field stops asking for frames once the wake has settled; the pointer starts it again.
+      if (!drifting && !awake) {
+        if (wasAwake) {
+          draw(ctx, field, size, false);
+        }
+        return;
+      }
       raf = requestAnimationFrame(frame);
     };
 
     const start = () => {
-      if (!raf && visible && !reduceMotion) {
+      if (!raf && visible && !reduceMotion && (drifting || awake)) {
         last = 0;
         raf = requestAnimationFrame(frame);
       }
@@ -621,20 +636,23 @@ export default function DotField({
     intersection.observe(root);
     document.addEventListener("visibilitychange", updateVisible);
 
-    // Follow light and dark mode without asking the app for a theme. Only
-    // checked while the field is on screen.
-    const colorTimer = window.setInterval(() => {
-      if (!visible) {
-        return;
-      }
+    // Follow light and dark mode without asking the app for a theme: the
+    // theme lives in attributes of <html>, so read the colour only when they
+    // change (polling getComputedStyle forced a style pass twice a second).
+    const onTheme = () => {
       const next = getComputedStyle(canvas).color;
       if (next !== size.color) {
         size.color = next;
-        if (reduceMotion) {
+        if (reduceMotion || !raf) {
           draw(ctx, field, size, false);
         }
       }
-    }, 500);
+    };
+    const themeObserver = new MutationObserver(onTheme);
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class", "style", "data-theme"],
+    });
 
     const local = (event: PointerEvent) => {
       const rect = canvas.getBoundingClientRect();
@@ -695,12 +713,12 @@ export default function DotField({
       dprQuery?.removeEventListener("change", onDpr);
       intersection.disconnect();
       document.removeEventListener("visibilitychange", updateVisible);
-      window.clearInterval(colorTimer);
+      themeObserver.disconnect();
       root.removeEventListener("pointermove", onMove);
       root.removeEventListener("pointerleave", onLeave);
       root.removeEventListener("pointerdown", onDown);
     };
-  }, [spacing, interactive, seed]);
+  }, [spacing, interactive, seed, idleFrameMs]);
 
   return (
     <div
